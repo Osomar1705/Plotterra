@@ -1,0 +1,19 @@
+{
+  "_meta": {
+    "version": "0.1.0-provisional",
+    "nota": "Semilla provisional. Reemplazar por el recorte de SoilGrids o el analisis local que entregue Roger.",
+    "unidades": {"capacidad_campo_mm": "mm en la profundidad declarada", "punto_marchitez_mm": "mm", "profundidad_cm": "cm"}
+  },
+  "hco_0412": {
+    "celda_id": "hco_0412",
+    "localidad": "Huanuco",
+    "textura": "franco",
+    "capacidad_campo_mm": 142,
+    "punto_marchitez_mm": 58,
+    "profundidad_cm": 60,
+    "materia_organica_pct": 2.4,
+    "fuente": "SoilGrids v2.0 (recorte)",
+    "incertidumbre": "media",
+    "provisional": true
+  }
+}

@@ -1,0 +1,16 @@
+# Despliegue en Render. Un contenedor, region mas cercana.
+services:
+  - type: web
+    name: fieldshift-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: oregon
+    plan: free
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: FIELDSHIFT_MOTOR
+        value: mock
+      - key: FIELDSHIFT_DB
+        value: /srv/datos/fieldshift.sqlite3
+      - key: ANTHROPIC_API_KEY
+        sync: false

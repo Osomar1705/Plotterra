@@ -1,0 +1,16 @@
+{
+  "_meta": {"nota": "Zonas con datasets preparados. Una parcela fuera de todo bbox responde DATOS_NO_DISPONIBLES."},
+  "celdas": [
+    {
+      "celda_id": "hco_0412",
+      "localidad": "Huanuco",
+      "bbox": {"lon_min": -76.40, "lon_max": -76.05, "lat_min": -10.10, "lat_max": -9.80},
+      "lluvia_media_campania_mm": 612,
+      "fuente_clima": "NASA GPM IMERG 2015-2025"
+    }
+  ],
+  "parcela_demostrativa": {
+    "geometria": {"type": "Polygon", "coordinates": [[[-76.242, -9.931], [-76.239, -9.931], [-76.239, -9.934], [-76.242, -9.934], [-76.242, -9.931]]]},
+    "area_ha": 1.84
+  }
+}
