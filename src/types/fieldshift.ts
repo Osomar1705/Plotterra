@@ -71,3 +71,40 @@ export interface EntryConditions {
   seed?: number;
   [key: string]: unknown;
 }
+
+// --- Vista 01: entrada de la parcela ---
+
+export type WaterMode = 'rainfed' | 'scheduled' | 'irrigated';
+
+export type ExclusionReason = 'sin_comprador' | 'no_en_mi_zona' | 'no_quiero';
+
+export interface PlotPoint { x: number; y: number }
+
+export interface ExcludedCrop {
+  crop: string;
+  reason: ExclusionReason;
+}
+
+export interface PlotSuggestions {
+  rainfallMm?: number;
+  rainfallSource?: string;
+  soilTexture?: string;
+  fieldCapacityMm?: number;
+  soilSource?: string;
+  soilUncertainty?: string;
+}
+
+/** Respuesta de POST /parcelas: el backend valida y devuelve area y sugerencias. */
+export interface Plot {
+  id: string;
+  areaHa: number;
+  locality?: string;
+  cellId?: string;
+  suggestions?: PlotSuggestions;
+}
+
+export interface PlotDraft {
+  points: PlotPoint[];
+  declaredAreaHa?: number;
+  locality?: string;
+}
