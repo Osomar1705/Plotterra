@@ -10,11 +10,16 @@ nunca produce una cifra de resultado, solo parametros de un cambio.
 """
 from __future__ import annotations
 
+import logging
 import re
 import unicodedata
 
+from pydantic import BaseModel
+
 from app.config import CONFIG
 from app.schemas.consultas import Intent, Interpretacion
+
+log = logging.getLogger("fieldshift")
 
 SUGERENCIAS = [
     "y si tengo 30 % menos riego?",
@@ -141,16 +146,91 @@ def interpretar_por_reglas(texto: str, catalogo: set[str]) -> Interpretacion | N
     return None
 
 
-def interpretar_por_llm(texto: str, catalogo: set[str]) -> Interpretacion | None:
-    """Pendiente: bloque compartido del dia 6.
+class _SalidaLLM(BaseModel):
+    """Lo que se le permite devolver al modelo.
 
-    Reglas de operacion acordadas: temperatura 0, salida obligada al esquema
-    Interpretacion, tiempo maximo de ocho segundos. Ante cualquier fallo se cae
-    al interprete por reglas; nunca se deja al agricultor sin salida.
+    No incluye `etiqueta`: esa la calcula etiqueta_de() con el mismo formato que
+    usan los botones de la pantalla. Tampoco acepta cifras de resultado: solo
+    parametros de un cambio, que validar_parametros() vuelve a comprobar.
+    """
+
+    intent: Intent
+    factor: float | None = None
+    cultivo: str | None = None
+    campania: int | None = None
+    prioridad: str | None = None
+    descripcion: str
+    confianza: float
+
+
+_SISTEMA = """Interpretas lo que un agricultor peruano pregunta sobre su campania y lo conviertes en un cambio estructurado.
+
+Intents y sus parametros:
+- ajustar_riego: factor (0.1 a 1.5). "30 % menos riego" es 0.7; "el doble" es 1.5.
+- excluir_cultivo: cultivo (uno del catalogo).
+- fijar_cultivo_campania: cultivo (del catalogo) y campania (1, 2 o 3).
+- cambiar_prioridad: prioridad (agua, suelo o economia).
+- explicar: sin parametros.
+
+Reglas:
+- Usa solo cultivos del catalogo que se te da. Si menciona uno que no esta, elige explicar con confianza baja.
+- descripcion: una linea en espanol llano, sin tecnicismos, diciendo que se va a recalcular.
+- confianza: 0 a 1. Por debajo de 0.5 si la pregunta es ambigua.
+- Nunca inventes rendimientos, precios ni margenes. Solo parametros del cambio."""
+
+
+def interpretar_por_llm(texto: str, catalogo: set[str]) -> Interpretacion | None:
+    """Interpreta con el modelo; None si no se pudo o si la salida no valida.
+
+    Reglas de operacion acordadas: salida obligada al esquema Interpretacion y
+    tiempo maximo de ocho segundos. Ante cualquier fallo se cae al interprete
+    por reglas; nunca se deja al agricultor sin salida.
+
+    Nota: el acuerdo original decia "temperatura 0". La API ya no acepta ese
+    parametro: ahora se obtiene lo mismo obligando el esquema de salida.
     """
     if not CONFIG.anthropic_api_key:
         return None
-    return None
+
+    from app.api.cambios import etiqueta_de, validar_parametros
+    from app.llm.cliente import responder
+
+    salida = responder(
+        sistema=_SISTEMA,
+        mensaje=f"Catalogo de cultivos: {sorted(catalogo)}\n\nPregunta: {texto}",
+        esquema=_SalidaLLM,
+    )
+    if salida is None:
+        return None
+
+    parametros: dict = {}
+    if salida.intent is Intent.ajustar_riego and salida.factor is not None:
+        parametros = {"factor": round(float(salida.factor), 2)}
+    elif salida.intent is Intent.excluir_cultivo and salida.cultivo:
+        parametros = {"cultivo": salida.cultivo, "motivo": "decision_del_agricultor"}
+    elif salida.intent is Intent.fijar_cultivo_campania and salida.cultivo and salida.campania:
+        parametros = {"cultivo": salida.cultivo, "campania": int(salida.campania)}
+    elif salida.intent is Intent.cambiar_prioridad and salida.prioridad:
+        parametros = {"prioridad": salida.prioridad}
+    elif salida.intent is not Intent.explicar:
+        return None  # dijo un intent pero no sus parametros
+
+    # El modelo es una fuente no confiable: sus parametros pasan por el mismo
+    # validador que los de la pantalla.
+    try:
+        parametros = validar_parametros(salida.intent, parametros, catalogo)
+        etiqueta = etiqueta_de(salida.intent, parametros)
+    except Exception:  # noqa: BLE001 - ErrorFieldShift o KeyError: en ambos casos caemos a reglas
+        log.info("el LLM devolvio parametros que no validan; se usan las reglas")
+        return None
+
+    return Interpretacion(
+        intent=salida.intent,
+        parametros=parametros,
+        descripcion=salida.descripcion.strip(),
+        etiqueta=etiqueta,
+        confianza=max(0.0, min(1.0, float(salida.confianza))),
+    )
 
 
 def interpretar(texto: str, catalogo: set[str]) -> tuple[Interpretacion | None, str]:
