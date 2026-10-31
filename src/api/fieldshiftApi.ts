@@ -1,6 +1,7 @@
-import type { AppliedChange, AssistantInterpretation, Comparison, EntryConditions } from '../types/fieldshift';
+import type { AppliedChange, AssistantInterpretation, Comparison, EntryConditions, Plot, PlotDraft } from '../types/fieldshift';
 import { normalizeApiError, normalizeComparison } from './normalizers';
-import { baseComparison, changedComparison } from '../mocks/data';
+import { baseComparison, changedComparison, demoPlot } from '../mocks/data';
+import { polygonAreaHa } from '../lib/plotGeometry';
 
 const API = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1').replace(/\/$/, '');
 const USE_MOCKS = String(import.meta.env.VITE_USE_LOCAL_MOCKS ?? 'true') === 'true';
@@ -15,6 +16,47 @@ async function request(path: string, init?: RequestInit) {
   const data = text ? JSON.parse(text) : null;
   if (!res.ok) throw normalizeApiError(data, res.status);
   return data;
+}
+
+/**
+ * Vista 01 -> POST /parcelas. El backend valida el poligono, calcula el area y
+ * devuelve datos ambientales sugeridos que el agricultor puede corregir.
+ * Acepta parcela sin geometria cuando el agricultor escribe las hectareas.
+ */
+export async function createPlot(draft: PlotDraft): Promise<Plot> {
+  if (USE_MOCKS) {
+    await sleep(500);
+    return {
+      ...demoPlot,
+      locality: draft.locality || demoPlot.locality,
+      // Respetamos el poligono dibujado para que el area mostrada en Vista 01
+      // sea la misma que viaja a Vista 02 tambien en modo mock.
+      areaHa: draft.declaredAreaHa ?? (draft.points.length >= 3 ? Number(polygonAreaHa(draft.points).toFixed(2)) : demoPlot.areaHa),
+    };
+  }
+  const body = {
+    geometria: draft.points.length >= 3
+      ? { type: 'Polygon', coordinates: [[...draft.points.map((p) => [p.x, p.y]), [draft.points[0].x, draft.points[0].y]]] }
+      : null,
+    area_declarada_ha: draft.declaredAreaHa ?? null,
+    localidad: draft.locality ?? null,
+  };
+  const raw = await request('/parcelas', { method: 'POST', body: JSON.stringify(body) });
+  const s = raw?.sugerencias ?? raw?.suggestions ?? {};
+  return {
+    id: String(raw?.parcela_id ?? raw?.plot_id ?? raw?.id ?? ''),
+    areaHa: Number(raw?.area_ha ?? raw?.areaHa ?? draft.declaredAreaHa ?? 0),
+    locality: raw?.localidad ?? raw?.locality,
+    cellId: raw?.celda_id ?? raw?.cell_id,
+    suggestions: {
+      rainfallMm: s?.lluvia_media_campania_mm?.valor ?? s?.rainfall_mm,
+      rainfallSource: s?.lluvia_media_campania_mm?.fuente ?? s?.rainfall_source,
+      soilTexture: s?.suelo?.textura ?? s?.soil?.texture,
+      fieldCapacityMm: s?.suelo?.capacidad_campo_mm ?? s?.soil?.field_capacity_mm,
+      soilSource: s?.suelo?.fuente ?? s?.soil?.source,
+      soilUncertainty: s?.suelo?.incertidumbre ?? s?.soil?.uncertainty,
+    },
+  };
 }
 
 export async function createComparison(conditions: EntryConditions): Promise<Comparison> {

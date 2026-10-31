@@ -1,4 +1,4 @@
-import type { Comparison } from '../types/fieldshift';
+import type { Comparison, Plot } from '../types/fieldshift';
 
 export const baseComparison: Comparison = {
   id: 'cmp_demo_base', plotId: 'parcela_1', areaHa: 3.5, priority: 'economy', status: 'ready', activeChanges: [], sourceResult: 'mock',
@@ -18,4 +18,19 @@ export const changedComparison: Comparison = {
     {...baseComparison.alternatives[1],margin:{min:2400,max:2900,currency:'PEN',basis:'ha'},water:{metric:'demand',value:180,unit:'mm'}},
     {...baseComparison.alternatives[2],margin:{min:2650,max:3100,currency:'PEN',basis:'ha'},water:{metric:'demand',value:210,unit:'mm'}},
   ]
+};
+
+export const demoPlot: Plot = {
+  id: 'parcela_1',
+  areaHa: 1.84,
+  locality: 'Huánuco',
+  cellId: 'hco_0412',
+  suggestions: {
+    rainfallMm: 612,
+    rainfallSource: 'NASA GPM IMERG 2015–2025',
+    soilTexture: 'Franco',
+    fieldCapacityMm: 142,
+    soilSource: 'SoilGrids v2.0',
+    soilUncertainty: 'media',
+  },
 };

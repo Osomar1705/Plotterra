@@ -1,6 +1,10 @@
-# FieldShift NSC Frontend — Vista 02 (Opciones)
+# FieldShift NSC Frontend
 
-Implementación React + TypeScript de la parte del **Integrante 2**: comparación de alternativas, prueba de escenarios y asistente.
+Implementación React + TypeScript del recorrido del agricultor.
+
+- **Vista 01 — Parcela** (Integrante 1): entrada de la parcela y condiciones.
+- **Vista 02 — Opciones** (Integrante 2): comparación de alternativas, escenarios y asistente.
+- **Vista 03 — Plan** (Integrante 3): pasaporte de campaña, pendiente.
 
 ## Qué incluye
 
@@ -33,6 +37,7 @@ VITE_USE_LOCAL_MOCKS=false
 
 Backend esperado:
 
+- `POST /parcelas`
 - `POST /comparaciones`
 - `GET /comparaciones/{id}`
 - `POST /comparaciones/{id}/cambios`
@@ -41,6 +46,57 @@ Backend esperado:
 - Vista 03 puede usar `GET /comparaciones/{id}/alternativas/{id}/pasaporte`
 
 El normalizador soporta nombres de campos comunes en español/inglés para facilitar la primera integración, pero una vez congelados los schemas Pydantic conviene eliminar aliases innecesarios.
+
+
+## Vista 01 — Parcela (Integrante 1)
+
+Captura el terreno y las condiciones, y entrega el contexto a Opciones.
+
+### Qué incluye
+
+- Mapa con dibujo de polígono: añadir puntos, deshacer el último, borrar y cerrar el contorno.
+- Área calculada en hectáreas en vivo, junto al polígono y no en un campo aparte.
+- Validación de geometría en cliente: mínimo tres puntos, sin lados cruzados, superficie entre 0.05 y 50 ha.
+- Salida alternativa para quien no puede dibujar en el celular: escribir las hectáreas a mano.
+- Condiciones: cultivo anterior (con «No lo sé»), fecha de inicio, agua disponible, cultivos permitidos con motivo de exclusión, prioridad y plan habitual opcional.
+- Los seis estados: mapa vacío, dibujando, parcela cerrada, contorno inválido, cálculo en curso y ubicación rechazada.
+- Acción principal que dice qué falta en vez de fallar al pulsarla; en móvil queda fija al pie.
+
+### Estados y mensajes
+
+| Estado | Qué cambia | Acción principal |
+| --- | --- | --- |
+| Mapa vacío | Tarjeta de ayuda, «Editar» y «Borrar» apagados | Bloqueada: «Falta dibujar tu parcela» |
+| Dibujando | Línea abierta, contador de puntos, «Deshacer último punto» | «Cerrar parcela» |
+| Parcela cerrada | Polígono relleno y superficie en hectáreas | «Comparar mis opciones» |
+| Contorno inválido | Polígono en rojo con el cruce señalado | Bloqueada: «Corrige el contorno de tu parcela» |
+| Cálculo en curso | Capa sobre el contenido, sin porcentaje inventado | Deshabilitada |
+| Ubicación rechazada | Búsqueda por localidad y «Escribir hectáreas» | Bloqueada: «Falta ubicar tu parcela» |
+
+### Backend que consume
+
+`POST /parcelas` con la geometría o la superficie declarada. Devuelve `parcela_id`, `area_ha` y
+sugerencias ambientales corregibles. En modo mock se respeta el área del polígono dibujado.
+
+### Entrega a Vista 02
+
+Al pulsar «Comparar mis opciones» se guarda el contexto y se navega:
+
+```ts
+saveEntryConditions({ plotId, areaHa, startDate, previousCrop, waterMode,
+  irrigationMm, allowedCrops, excludedCrops, priority, horizon: 3 });
+window.history.pushState({}, '', '/opciones');
+window.dispatchEvent(new PopStateEvent('popstate'));
+```
+
+`excludedCrops` lleva el motivo que dio el agricultor (`sin_comprador`, `no_en_mi_zona`,
+`no_quiero`): es su experiencia entrando como dato y puede reaparecer en la explicación del plan.
+
+### Pendiente
+
+- El mapa es un lienzo SVG con geometría propia. Al integrar un mapa real, se reemplaza
+  `src/lib/plotGeometry.ts` por el cálculo geodésico y la vista no cambia.
+- La captura satelital real de la zona piloto sustituye al fondo dibujado.
 
 ## Integración con Vista 01
 
@@ -110,10 +166,14 @@ src/
     fieldshiftApi.ts    # llamadas HTTP / mocks
     normalizers.ts      # backend -> modelo UI
   components/
+    EntryPage.tsx       # Vista 01
+    PlotMap.tsx         # mapa y dibujo del poligono
     ComparisonPage.tsx
     AlternativeCard.tsx
     AssistantDrawer.tsx
     Icons.tsx
+  lib/
+    plotGeometry.ts     # area, auto-interseccion y validacion
   integration/
     entryContext.ts     # contrato con Vista 01
   mocks/
