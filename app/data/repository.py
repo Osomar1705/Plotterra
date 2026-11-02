@@ -14,6 +14,7 @@ from typing import Any
 
 from app.config import CONFIG, Config
 from app.data.identificadores import nuevo_id
+from app.engine.suelo_hidrico import laminas_mm
 from app.engine.contrato import Datasets, EtapaCultivo, FichaCultivo, Suelo
 
 
@@ -88,11 +89,15 @@ class Repositorio:
         for clave, s in suelos.items():
             if clave.startswith("_"):
                 continue
+            # Si la pedotransferencia ya existe, manda lo derivado de la textura
+            # medida. Mientras devuelva None, valen los valores declarados.
+            derivadas = laminas_mm(s.get("textura_medida", {}), s["profundidad_cm"])
+            cc, pm = derivadas if derivadas else (s["capacidad_campo_mm"], s["punto_marchitez_mm"])
             self._suelos[clave] = Suelo(
                 celda_id=s["celda_id"],
                 textura=s["textura"],
-                capacidad_campo_mm=s["capacidad_campo_mm"],
-                punto_marchitez_mm=s["punto_marchitez_mm"],
+                capacidad_campo_mm=cc,
+                punto_marchitez_mm=pm,
                 profundidad_cm=s["profundidad_cm"],
                 materia_organica_pct=s["materia_organica_pct"],
                 fuente=s["fuente"],
