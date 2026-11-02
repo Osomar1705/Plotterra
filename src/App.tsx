@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { EntryPage } from './components/EntryPage';
 import { ComparisonPage } from './components/ComparisonPage';
+import { DecisionRoutesPage } from './features/routes/DecisionRoutesPage';
 
 /**
  * Router minimo para poder recorrer Parcela -> Opciones sin dependencias.
@@ -18,14 +19,15 @@ export default function App() {
 
   if (path.startsWith('/opciones')) return <ComparisonPage />;
   if (path.startsWith('/plan')) {
-    // Vista 03 (Integrante 3). Mientras no exista, se muestra el handoff recibido.
+    // Vista 03 (Integrante 3). El handoff llega por query params desde Opciones.
     const p = new URLSearchParams(window.location.search);
+    const campaignIndex = Number.parseInt(p.get('campaignIndex') ?? '0', 10);
     return (
-      <div className="page-center">
-        <h2>Vista 03 — Pasaporte de campaña</h2>
-        <p>Pendiente del Integrante 3.</p>
-        <small>comparisonId: {p.get('comparisonId') ?? '—'} · alternativeId: {p.get('alternativeId') ?? '—'}</small>
-      </div>
+      <DecisionRoutesPage
+        comparisonId={p.get('comparisonId')}
+        alternativeId={p.get('alternativeId')}
+        campaignIndex={Number.isFinite(campaignIndex) ? Math.max(0, campaignIndex) : 0}
+      />
     );
   }
   return <EntryPage />;

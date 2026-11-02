@@ -1,11 +1,19 @@
-import type { AppliedChange, AssistantInterpretation, Comparison, EntryConditions, Plot, PlotDraft } from '../types/fieldshift';
-import { normalizeApiError, normalizeComparison } from './normalizers';
-import { baseComparison, changedComparison, demoPlot } from '../mocks/data';
+import type { AlternativePassport, AppliedChange, AssistantInterpretation, Comparison, EntryConditions, Plot, PlotDraft } from '../types/fieldshift';
+import { normalizeAlternativePassport, normalizeApiError, normalizeComparison } from './normalizers';
+import { baseComparison, changedComparison, demoPassports, demoPlot } from '../mocks/data';
 import { polygonAreaHa } from '../lib/plotGeometry';
 
 const API = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1').replace(/\/$/, '');
 const USE_MOCKS = String(import.meta.env.VITE_USE_LOCAL_MOCKS ?? 'true') === 'true';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Indica si la app corre contra datos locales. Las vistas lo usan para decidir
+ * si pueden abrirse sin un comparisonId real en la URL.
+ */
+export function isUsingMocks(): boolean {
+  return USE_MOCKS;
+}
 
 async function request(path: string, init?: RequestInit) {
   const res = await fetch(`${API}${path}`, {
@@ -105,4 +113,24 @@ export async function interpretAssistant(comparisonId: string, message: string):
     needsConfirmation: raw?.needs_confirmation ?? raw?.requiere_confirmacion ?? true,
     clarification: raw?.clarification ?? raw?.aclaracion ?? raw?.mensaje,
   };
+}
+
+/**
+ * Vista 03 -> GET /comparaciones/{id}/alternativas/{id}/pasaporte.
+ * Trazabilidad de una alternativa: de donde sale cada indicador, con sus
+ * fuentes y supuestos, para que el agricultor pueda auditar la recomendacion.
+ */
+export async function getAlternativePassport(comparisonId: string, alternativeId: string): Promise<AlternativePassport> {
+  if (USE_MOCKS) {
+    await sleep(400);
+    const demo = demoPassports[alternativeId];
+    if (demo) return demo;
+    // Sin pasaporte de demo devolvemos la envoltura vacia: la vista ya sabe
+    // mostrar "el backend no devolvio el desglose" en lugar de romperse.
+    return { alternativeId, comparisonId, sourceResult: 'mock', metrics: [], sources: [], assumptions: [] };
+  }
+  const raw = await request(
+    `/comparaciones/${encodeURIComponent(comparisonId)}/alternativas/${encodeURIComponent(alternativeId)}/pasaporte`,
+  );
+  return normalizeAlternativePassport(raw, alternativeId);
 }
