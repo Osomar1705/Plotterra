@@ -5,6 +5,7 @@ cargado.
 """
 from __future__ import annotations
 
+import csv
 import json
 import sqlite3
 from datetime import datetime, timezone
@@ -100,6 +101,7 @@ class Repositorio:
             )
 
         self._cobertura = cobertura
+        self._clima: list[dict] | None = None
 
     @property
     def fichas(self) -> dict[str, FichaCultivo]:
@@ -148,8 +150,26 @@ class Repositorio:
             localidad=celda["localidad"],
             lluvia_media_campania_mm=celda["lluvia_media_campania_mm"],
             version_datasets=self.version_datasets,
-            clima_diario=None,
+            clima_diario=self._clima_diario(),
         )
+
+    def _clima_diario(self) -> list[dict] | None:
+        """Serie diaria real; None si el CSV no esta y el motor de ejemplo basta."""
+        if self._clima is not None:
+            return self._clima
+        ruta = Path(self.config.datasets_dir) / "clima_diario.csv"
+        if not ruta.exists():
+            return None
+        with ruta.open(encoding="utf-8") as fh:
+            self._clima = [
+                {
+                    "fecha": f["fecha"],
+                    "lluvia_mm": float(f["lluvia_mm"]),
+                    "et0_mm": float(f["et0_mm"]),
+                }
+                for f in csv.DictReader(fh)
+            ]
+        return self._clima
 
     def fuente_clima(self, celda_id: str) -> str:
         celda = next((c for c in self.celdas if c["celda_id"] == celda_id), None)

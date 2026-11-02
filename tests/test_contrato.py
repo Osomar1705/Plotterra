@@ -62,13 +62,12 @@ def test_comparacion_devuelve_tres_alternativas_con_unidades(cliente, condicione
     assert alt["economia"]["margen_soles_ha_mediana"] <= alt["economia"]["margen_soles_ha_p90"]
     assert 0 <= alt["suelo"]["indice"] <= 1
     assert len(alt["riesgo"]["detalle_por_campania"]) == 3
-    # Con la semilla provisional faltan tres datos criticos, asi que la calidad
-    # es pobre y el dato critico se declara. Cuando lleguen los datasets de
-    # Roger esto debe subir a limitada y luego a completa.
-    assert alt["calidad_informacion"]["nivel"] == "pobre"
+    # Ya existe la serie climatica diaria (NASA POWER), asi que faltan dos
+    # datos criticos y la calidad es limitada. Sube a completa cuando lleguen
+    # el analisis de suelo local y las fichas validadas.
+    assert alt["calidad_informacion"]["nivel"] == "limitada"
     assert set(alt["calidad_informacion"]["faltantes"]) == {
         "analisis_suelo_local",
-        "serie_climatica_diaria",
         "fichas_de_cultivo_validadas",
     }
     assert alt["calidad_informacion"]["dato_critico"] == "analisis_suelo_local"
