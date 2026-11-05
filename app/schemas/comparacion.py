@@ -3,10 +3,10 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import Field
+from pydantic import Field, computed_field
 
 from app.schemas.comun import (
-    Base,
+    BaseSalida as Base,
     EstadoComparacion,
     Etapa,
     Nivel,
@@ -56,11 +56,35 @@ class Agua(Base):
     deficit_mm_p90: float
     campanias_con_deficit: int
 
+    # El contrato con frontend pide que el TIPO de indicador hidrico viaje desde
+    # aqui, para que la etiqueta no lo adivine. Demanda, deficit y riego
+    # aportado no son sinonimos: esta tarjeta muestra deficit.
+    @computed_field
+    @property
+    def metrica(self) -> str:
+        return "deficit"
+
+    @computed_field
+    @property
+    def valor(self) -> float:
+        return self.deficit_mm_mediana
+
+    @computed_field
+    @property
+    def unidad(self) -> str:
+        return "mm"
+
 
 class Suelo(Base):
     indice: float = Field(ge=0, le=1)
     nivel: NivelSuelo
     razon: str
+
+    @computed_field
+    @property
+    def compatibilidad(self) -> str:
+        """Alias legible del nivel. El indice NO es fertilidad medida."""
+        return self.nivel.value
 
 
 class RiesgoCampania(Base):
@@ -95,6 +119,47 @@ class Alternativa(Base):
     riesgo: Riesgo
     calidad_informacion: CalidadInformacion
 
+    # --- Alias para el frontend. Son vistas de los campos de arriba, no datos
+    # nuevos: el contrato canonico no cambia, solo se le agregan campos.
+    @computed_field
+    @property
+    def tipo(self) -> str:
+        """Alias de `criterio`. El frontend decide con el la tarjeta que pinta."""
+        return self.criterio.value
+
+    @computed_field
+    @property
+    def campanas(self) -> list[dict]:
+        return [
+            {
+                "orden": c.campania,
+                "cultivo": c.cultivo,
+                "ventana": f"{c.siembra} a {c.cosecha}",
+                "siembra": c.siembra,
+                "cosecha": c.cosecha,
+            }
+            for c in self.secuencia
+        ]
+
+    @computed_field
+    @property
+    def margen(self) -> dict:
+        return {
+            "mediana": self.economia.margen_soles_ha_mediana,
+            "minimo": self.economia.margen_soles_ha_p10,
+            "maximo": self.economia.margen_soles_ha_p90,
+            "moneda": self.economia.moneda,
+            "base": "ha",
+        }
+
+    @computed_field
+    @property
+    def calidad_datos(self) -> dict:
+        return {
+            "nivel": self.calidad_informacion.nivel.value,
+            "brecha_principal": self.calidad_informacion.dato_critico,
+        }
+
 
 class PlanHabitualEvaluado(Base):
     evaluado: bool
@@ -127,12 +192,20 @@ class RespuestaComparacion(Base):
     comparacion_id: str = Field(examples=["cmp_3a7d"])
     estado: EstadoComparacion = EstadoComparacion.listo
     parcela_id: str
+    area_ha: float | None = Field(default=None, description="Area de la parcela, para la cabecera.")
     generado_en: datetime
     motor: Motor
     derivada_de: str | None = None
     escenarios_aplicados: list[CambioAplicado] = Field(default_factory=list)
     alternativas: list[Alternativa]
     plan_habitual: PlanHabitualEvaluado
+
+    @computed_field
+    @property
+    def prioridad(self) -> str | None:
+        """La prioridad elegida, tomada de la alternativa destacada."""
+        destacada = next((a for a in self.alternativas if a.destacada), None)
+        return destacada.criterio.value if destacada else None
     descartadas: Descartadas
     resumen_del_cambio: ResumenDelCambio | None = None
 

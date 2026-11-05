@@ -52,6 +52,17 @@ CONDICIONES = {
 }
 
 
+def solo_campos_conocidos(modelo, d: dict[str, Any]) -> dict[str, Any]:
+    """Descarta lo que el modelo no declara.
+
+    El frontend manda campos suyos (dataQualityHint, etiquetas de UI) que no son
+    parte del contrato. Rechazar la peticion entera por eso seria fragil: cada
+    campo nuevo de su lado romperia el backend. Se ignoran y se sigue.
+    """
+    conocidos = set(modelo.model_fields)
+    return {k: v for k, v in d.items() if k in conocidos}
+
+
 def normalizar_condiciones(cuerpo: dict[str, Any]) -> dict[str, Any]:
     """Acepta el objeto del frontend y devuelve el canonico."""
     d = dict(cuerpo)
@@ -164,7 +175,7 @@ def validar(modelo, cuerpo: dict):
     from app.schemas.errores import CodigoError
 
     try:
-        return modelo.model_validate(cuerpo)
+        return modelo.model_validate(solo_campos_conocidos(modelo, cuerpo))
     except ValidationError as exc:
         primero = exc.errors()[0]
         campo = ".".join(str(x) for x in primero.get("loc", ())) or None

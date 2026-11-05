@@ -17,6 +17,18 @@ class Base(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
 
+class BaseSalida(BaseModel):
+    """Modelo de salida: ignora campos desconocidos al releer.
+
+    Las respuestas se guardan volcadas en SQLite y se vuelven a validar al
+    recuperarlas. Ese volcado incluye los campos calculados (alias para el
+    frontend), que no se pueden asignar: con extra="forbid" la relectura
+    fallaria. Prohibir extras solo tiene sentido en lo que entra del exterior.
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+
 class Prioridad(str, Enum):
     economia = "economia"
     agua = "agua"

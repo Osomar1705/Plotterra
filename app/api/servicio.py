@@ -88,6 +88,7 @@ def correr_comparacion(
     respuesta = RespuestaComparacion(
         comparacion_id=comparacion_id,
         parcela_id=cond.parcela_id,
+        area_ha=parcela["area_ha"],
         generado_en=datetime.fromisoformat(ahora_iso()),
         derivada_de=derivada_de,
         motor=Motor(

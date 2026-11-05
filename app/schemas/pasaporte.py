@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from app.schemas.comun import Base
+from app.schemas.comun import BaseSalida as Base
 from app.schemas.comparacion import (
     Agua,
     CalidadInformacion,

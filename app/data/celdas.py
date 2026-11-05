@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import csv
 import json
+import unicodedata
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -44,6 +45,11 @@ def _punto_en_geometria(lon: float, lat: float, geom: dict[str, Any]) -> bool:
             if not any(_punto_en_anillo(lon, lat, hueco) for hueco in poli[1:]):
                 return True
     return False
+
+
+def _sin_tildes(texto: str) -> str:
+    plano = unicodedata.normalize("NFD", texto.strip().lower())
+    return "".join(c for c in plano if unicodedata.category(c) != "Mn")
 
 
 def _texto_textura(arena: float, arcilla: float) -> str:
@@ -142,11 +148,24 @@ class CatalogoCeldas:
         return None
 
     def por_localidad(self, localidad: str | None) -> dict[str, Any] | None:
+        """Busca el distrito tolerando tildes, mayusculas y sufijos.
+
+        El frontend manda cosas como "Huanuco, Peru": se queda con lo anterior a
+        la coma y compara sin tildes. Primero exacto, luego por prefijo, para
+        que "Ambo" no gane sobre "Ambo" exacto si ambos existen.
+        """
         if not localidad:
             return None
-        objetivo = localidad.strip().lower()
-        for celda in self._celdas.values():
-            if celda["localidad"].strip().lower() == objetivo:
+        objetivo = _sin_tildes(localidad.split(",")[0])
+        if not objetivo:
+            return None
+        celdas = list(self._celdas.values())
+        for celda in celdas:
+            if _sin_tildes(celda["localidad"]) == objetivo:
+                return celda
+        for celda in celdas:
+            nombre = _sin_tildes(celda["localidad"])
+            if nombre.startswith(objetivo) or objetivo.startswith(nombre):
                 return celda
         return None
 
