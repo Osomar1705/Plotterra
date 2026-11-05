@@ -1,0 +1,12 @@
+archivo,variables,fuente,resolucion,periodo,url
+clima_diario,"tmed_c, tmin_c, tmax_c, humedad_rel_pct, presion_kpa","NASA POWER (AG, diario), corregido a la altura mediana de las chacras del distrito con SRTM (0.0065 °C/m)","~55 km, llevado a la altura de las chacras",2013-2025,https://power.larc.nasa.gov
+clima_diario,"viento_m_s, radiacion_mj_m2, lluvia_power_mm","NASA POWER (AG, diario)",~55 km,2013-2025,https://power.larc.nasa.gov
+clima_diario,et0_mm,Calculada con FAO-56 Penman-Monteith con las variables corregidas,distrito,2013-2025,FAO-56
+clima_diario,lluvia_imerg_mm,"NASA GPM IMERG V07 (Final hasta 2025-09, Late después), píxeles sobre chacras. Quiebre desde 2019: preferir CHIRPS para niveles",~11 km,2013-2025,https://gpm.nasa.gov
+clima_diario,"smap_raiz_m3m3, smap_superficie_m3m3",NASA SMAP L4 (SPL4SMGP v008),9 km,abr-2015 a 2025,https://nsidc.org/data/spl4smgp
+lluvia_chirps_mensual,lluvia_chirps_mm,"CHIRPS v2.0 mensual (UCSB), píxeles sobre chacras. Lluvia recomendada",~5.5 km,2013-2025,https://www.chc.ucsb.edu/data/chirps
+suelo_distritos,"ph, arena, limo, arcilla, carbono, densidad, agua útil","ISRIC SoilGrids 2.0, solo sobre superficie agrícola, 0-30 cm ponderado por espesor",250 m,estático,https://soilgrids.org
+celdas_distritos,"geometría, altura_chacras_m",Límites INEI (servicio OEFA); altura NASA SRTMGL3 sobre chacras,90 m,estático,https://lpdaac.usgs.gov
+superficie_agricola_huanuco,geometría,"Mapa Nacional de Superficie Agrícola 2024, MIDAGRI (RM 0026-2025-MIDAGRI)","1:10,000",2024,https://siea.midagri.gob.pe
+oni_mensual,"oni_anomalia_c, fase","NOAA CPC, índice ONI (El Niño)",Pacífico ecuatorial,2010-2026,https://www.cpc.ncep.noaa.gov
+parcela_demo/ndvi_serie,ndvi,"NASA HLS v2.0 (Landsat 8/9 + Sentinel-2), mediana 3x3 píxeles sin nubes",30 m,2015-2026,https://lpdaac.usgs.gov/products/hlsl30v002

@@ -6,6 +6,7 @@ import json
 from fastapi import APIRouter
 
 from app.api import cambios as cambios_mod
+from app.api.compat import normalizar_cambio, normalizar_condiciones, validar
 from app.api.errors import ErrorFieldShift
 from app.api.servicio import correr_comparacion, resumen_del_cambio
 from app.data.identificadores import nuevo_id
@@ -66,7 +67,8 @@ def _condiciones_de(comparacion_id: str) -> tuple[CondicionesComparacion, list[d
     response_model=RespuestaComparacion,
     summary="Ejecuta el stress test y devuelve las tres alternativas",
 )
-def crear_comparacion(condiciones: CondicionesComparacion) -> RespuestaComparacion:
+def crear_comparacion(cuerpo: dict) -> RespuestaComparacion:
+    condiciones = validar(CondicionesComparacion, normalizar_condiciones(cuerpo))
     return correr_comparacion(condiciones)
 
 
@@ -134,7 +136,8 @@ def pasaporte(comparacion_id: str, alternativa_id: str) -> Pasaporte:
     response_model=RespuestaComparacion,
     summary="Aplica un cambio estructurado y devuelve la comparacion derivada",
 )
-def aplicar_cambio(comparacion_id: str, cambio: CambioCrear) -> RespuestaComparacion:
+def aplicar_cambio(comparacion_id: str, cuerpo: dict) -> RespuestaComparacion:
+    cambio = validar(CambioCrear, normalizar_cambio(cuerpo))
     anterior = _recuperar(comparacion_id)
     condiciones, cambios_previos = _condiciones_de(comparacion_id)
 

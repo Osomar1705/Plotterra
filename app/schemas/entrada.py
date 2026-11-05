@@ -52,7 +52,7 @@ class ParcelaCreada(Base):
     parcela_id: str = Field(examples=["prc_8f21"])
     sesion_id: str = Field(examples=["ses_7c01"])
     area_ha: float
-    celda_id: str = Field(examples=["hco_0412"])
+    celda_id: str = Field(examples=["100201"], description="Ubigeo INEI del distrito.")
     localidad: str
     origen_area: str = Field(description="dibujada o declarada.")
     sugerencias: Sugerencias

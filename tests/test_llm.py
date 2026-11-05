@@ -105,7 +105,7 @@ def test_pasaporte_cae_a_plantilla_si_falla_el_llm(cliente, monkeypatch):
     from app.engine.contrato import Condiciones
     from app.mocks.motor_ejemplo import ejecutar_comparacion
 
-    datasets = REPO.datasets_de("hco_0412")
+    datasets = REPO.datasets_de("100201")
     cond = Condiciones(
         parcela_id="p_prueba",
         area_ha=1.0,

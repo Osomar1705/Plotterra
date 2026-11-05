@@ -71,7 +71,8 @@ def catalogo() -> Catalogo:
             CeldaCobertura(
                 celda_id=c["celda_id"],
                 localidad=c["localidad"],
-                lluvia_media_campania_mm=c["lluvia_media_campania_mm"],
+                lluvia_media_campania_mm=c.get("lluvia_media_campania_mm")
+                or REPO.lluvia_media_campania_mm(c["celda_id"]),
                 fuente_clima=c["fuente_clima"],
             )
             for c in REPO.celdas

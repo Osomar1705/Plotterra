@@ -1,0 +1,23 @@
+{
+  "nombre": "ambo_chacra",
+  "lat": -10.112943,
+  "lon": -76.175316,
+  "ubigeo": "100201",
+  "distrito": "AMBO",
+  "provincia": "AMBO",
+  "altura_m": 2670,
+  "altura_celda_power_m": 3404,
+  "ajuste_temp_c": 4.77,
+  "tmed_c": 14.7,
+  "tmin_c": 10.6,
+  "dias_helada_por_anio": 0.0,
+  "et0_mm_dia": 3.69,
+  "lluvia_imerg_mm_anio": 866,
+  "smap_raiz_media_m3m3": 0.23,
+  "suelo_0_30": {
+    "ph": 6.3,
+    "arcilla_pct": 25.9,
+    "arena_pct": 40.0
+  },
+  "nota": "Parcela de ejemplo elegida en Google Maps (chacras en ladera); no confirmada con el agricultor."
+}

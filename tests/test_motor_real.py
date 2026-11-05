@@ -16,7 +16,7 @@ TODOS = ["papa", "quinua", "haba", "cebada", "avena", "tarwi"]
 @pytest.fixture(scope="module")
 def datasets():
     REPO.arrancar()
-    d = REPO.datasets_de("hco_0412")
+    d = REPO.datasets_de("100201")
     if d.clima_diario is None:
         pytest.skip("datasets/clima_diario.csv no esta presente")
     return d

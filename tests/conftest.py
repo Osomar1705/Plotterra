@@ -30,7 +30,8 @@ def parcela(cliente):
         json={
             "geometria": {
                 "type": "Polygon",
-                "coordinates": [[[-76.242, -9.931], [-76.239, -9.931], [-76.239, -9.934], [-76.242, -9.934], [-76.242, -9.931]]],
+                # Chacra de ejemplo del paquete datos-1.0, dentro de la superficie agricola de Ambo.
+                "coordinates": [[[-76.1760, -10.1123], [-76.1746, -10.1123], [-76.1746, -10.1136], [-76.1760, -10.1136], [-76.1760, -10.1123]]],
             }
         },
     )

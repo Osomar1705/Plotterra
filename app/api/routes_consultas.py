@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from app.api.compat import normalizar_consulta, validar
 from app.api.errors import ErrorFieldShift
 from app.data.repository import REPO
 from app.llm.intent import SUGERENCIAS, interpretar
@@ -22,7 +23,8 @@ router = APIRouter(tags=["consultas"])
     response_model=RespuestaConsulta,
     summary="Interpreta una pregunta en lenguaje natural sin aplicarla",
 )
-def crear_consulta(consulta: ConsultaCrear) -> RespuestaConsulta:
+def crear_consulta(cuerpo: dict) -> RespuestaConsulta:
+    consulta = validar(ConsultaCrear, normalizar_consulta(cuerpo))
     if REPO.respuesta(consulta.comparacion_id) is None:
         raise ErrorFieldShift(
             CodigoError.NO_ENCONTRADO,

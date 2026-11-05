@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from app.config import CONFIG, Config
+from app.data.celdas import CatalogoCeldas
 from app.data.identificadores import nuevo_id
 from app.engine.suelo_hidrico import laminas_mm
 from app.engine.contrato import Datasets, EtapaCultivo, FichaCultivo, Suelo
@@ -33,6 +34,7 @@ class Repositorio:
         self._suelos: dict[str, Suelo] | None = None
         self._cobertura: dict[str, Any] | None = None
         self._version_datasets: str = "desconocida"
+        self._catalogo = CatalogoCeldas(Path(config.datasets_dir))
         self._conn: sqlite3.Connection | None = None
 
     # ---------------------------------------------------------------- arranque
@@ -107,6 +109,9 @@ class Repositorio:
 
         self._cobertura = cobertura
         self._clima: list[dict] | None = None
+        # El paquete distrital, si esta, reemplaza la celda unica.
+        if self._catalogo.cargar():
+            self._version_datasets = self._catalogo.version
 
     @property
     def fichas(self) -> dict[str, FichaCultivo]:
@@ -120,6 +125,8 @@ class Repositorio:
     @property
     def celdas(self) -> list[dict[str, Any]]:
         assert self._cobertura is not None, "repositorio sin arrancar"
+        if self._catalogo.disponible:
+            return self._catalogo.celdas()
         return self._cobertura["celdas"]
 
     @property
@@ -128,6 +135,8 @@ class Repositorio:
         return self._cobertura["parcela_demostrativa"]
 
     def celda_por_punto(self, lon: float, lat: float) -> dict[str, Any] | None:
+        if self._catalogo.disponible:
+            return self._catalogo.por_punto(lon, lat)
         for celda in self.celdas:
             b = celda["bbox"]
             if b["lon_min"] <= lon <= b["lon_max"] and b["lat_min"] <= lat <= b["lat_max"]:
@@ -137,6 +146,8 @@ class Repositorio:
     def celda_por_localidad(self, localidad: str | None) -> dict[str, Any] | None:
         if not localidad:
             return None
+        if self._catalogo.disponible:
+            return self._catalogo.por_localidad(localidad)
         objetivo = localidad.strip().lower()
         for celda in self.celdas:
             if celda["localidad"].strip().lower() == objetivo:
@@ -145,6 +156,20 @@ class Repositorio:
 
     def datasets_de(self, celda_id: str) -> Datasets:
         assert self._suelos is not None
+        if self._catalogo.disponible:
+            celda = self._catalogo.celda(celda_id)
+            suelo = self._catalogo.suelo(celda_id)
+            if celda is None or suelo is None:
+                raise DatosNoDisponibles(f"celda {celda_id} sin datasets preparados")
+            return Datasets(
+                fichas=self.fichas,
+                suelo=suelo,
+                celda_id=celda_id,
+                localidad=celda["localidad"],
+                lluvia_media_campania_mm=self._catalogo.lluvia_media_campania_mm(celda_id),
+                version_datasets=self.version_datasets,
+                clima_diario=self._catalogo.clima(celda_id),
+            )
         celda = next((c for c in self.celdas if c["celda_id"] == celda_id), None)
         if celda is None or celda_id not in self._suelos:
             raise DatosNoDisponibles(f"celda {celda_id} sin datasets preparados")
@@ -176,7 +201,17 @@ class Repositorio:
             ]
         return self._clima
 
+    def lluvia_media_campania_mm(self, celda_id: str) -> float:
+        """Media de campania del distrito. 0 si la celda no tiene serie."""
+        if self._catalogo.disponible:
+            return self._catalogo.lluvia_media_campania_mm(celda_id)
+        celda = next((c for c in self.celdas if c["celda_id"] == celda_id), None)
+        return float(celda["lluvia_media_campania_mm"]) if celda else 0.0
+
     def fuente_clima(self, celda_id: str) -> str:
+        if self._catalogo.disponible:
+            c = self._catalogo.celda(celda_id)
+            return c["fuente_clima"] if c else "sin fuente declarada"
         celda = next((c for c in self.celdas if c["celda_id"] == celda_id), None)
         return celda["fuente_clima"] if celda else "sin fuente declarada"
 

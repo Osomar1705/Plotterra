@@ -8,7 +8,7 @@ def test_health_carga_los_datasets(cliente):
     datos = cliente.get(f"{BASE}/health").json()
     assert datos["estado"] == "ok"
     assert datos["cultivos_cargados"] == 6
-    assert "hco_0412" in datos["celdas_con_cobertura"]
+    assert "100201" in datos["celdas_con_cobertura"], "Ambo debe estar entre las celdas cubiertas"
 
 
 def test_catalogo_trae_limites_y_marca_provisionales(cliente):
@@ -25,7 +25,7 @@ def test_parcela_calcula_area_y_sugiere_datos_revisables(parcela):
     assert parcela["parcela_id"].startswith("prc_")
     assert parcela["sesion_id"].startswith("ses_")
     assert 0.05 <= parcela["area_ha"] <= 50
-    assert parcela["celda_id"] == "hco_0412"
+    assert parcela["celda_id"] == "100201"
     assert parcela["origen_area"] == "dibujada"
     assert parcela["sugerencias"]["suelo"]["editable"] is True
 
@@ -66,11 +66,8 @@ def test_comparacion_devuelve_tres_alternativas_con_unidades(cliente, condicione
     # datos criticos y la calidad es limitada. Sube a completa cuando lleguen
     # el analisis de suelo local y las fichas validadas.
     assert alt["calidad_informacion"]["nivel"] == "limitada"
-    assert set(alt["calidad_informacion"]["faltantes"]) == {
-        "analisis_suelo_local",
-        "fichas_de_cultivo_validadas",
-    }
-    assert alt["calidad_informacion"]["dato_critico"] == "analisis_suelo_local"
+    assert set(alt["calidad_informacion"]["faltantes"]) == {"fichas_de_cultivo_validadas"}
+    assert alt["calidad_informacion"]["dato_critico"] == "fichas_de_cultivo_validadas"
 
     # El cultivo excluido no aparece en ninguna secuencia.
     assert all("cebada" not in s for s in secuencias)

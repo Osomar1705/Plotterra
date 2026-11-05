@@ -64,11 +64,11 @@ def test_el_riego_reduce_el_deficit():
 
 
 def test_invariantes_con_clima_real():
-    """Sobre la serie real de hco_0412: ningun resultado fuera de rango fisico."""
+    """Sobre la serie real de Ambo (100201): ningun resultado fuera de rango fisico."""
     from app.data.repository import REPO
 
     REPO.arrancar()
-    datasets = REPO.datasets_de("hco_0412")
+    datasets = REPO.datasets_de("100201")
     serie = datasets.clima_diario
     if serie is None:
         pytest.skip("datasets/clima_diario.csv no esta presente")
