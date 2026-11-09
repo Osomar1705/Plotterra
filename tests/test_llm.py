@@ -125,3 +125,29 @@ def test_pasaporte_cae_a_plantilla_si_falla_el_llm(cliente, monkeypatch):
     exp = explain.redactar(alternativa)
     assert exp.redactado_por == "plantilla"
     assert exp.por_que_conviene
+
+
+def test_entiende_las_preguntas_de_lluvia_y_precio(monkeypatch):
+    """Las dos preguntas nuevas, sin LLM: tienen que salir por reglas."""
+    _clave(monkeypatch, None)
+    casos = [
+        ("y si llueve menos?", Intent.ajustar_lluvia),
+        ("y si llueve 40% menos", Intent.ajustar_lluvia),
+        ("va a ser un ano seco", Intent.ajustar_lluvia),
+        ("y si baja el precio un 25%", Intent.ajustar_precio),
+        ("y si tengo 30% menos riego?", Intent.ajustar_riego),
+    ]
+    for texto, esperado in casos:
+        interpretacion, quien = intent_mod.interpretar(texto, CATALOGO)
+        assert interpretacion is not None, f"no entendio: {texto}"
+        assert interpretacion.intent is esperado, f"{texto} -> {interpretacion.intent}"
+        assert quien == "reglas"
+
+
+def test_la_lluvia_no_se_confunde_con_el_riego(monkeypatch):
+    """"Llueve menos" habla de agua pero no es lo mismo que regar menos."""
+    _clave(monkeypatch, None)
+    lluvia, _ = intent_mod.interpretar("y si llueve 30% menos", CATALOGO)
+    riego, _ = intent_mod.interpretar("y si riego 30% menos", CATALOGO)
+    assert lluvia.intent is Intent.ajustar_lluvia
+    assert riego.intent is Intent.ajustar_riego

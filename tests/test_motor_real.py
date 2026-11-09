@@ -118,3 +118,36 @@ def test_dentro_del_presupuesto(datasets):
     ejecutar_comparacion(_condiciones(), datasets)
     duracion_ms = (time.perf_counter() - inicio) * 1000
     assert duracion_ms < 8000, f"tardo {duracion_ms:.0f} ms, el presupuesto es 8000"
+
+
+def test_cada_campania_trae_sus_propias_metricas(datasets):
+    """La Vista 03 cambia las cifras al tocar cada nodo del abanico."""
+    r = ejecutar_comparacion(_condiciones(), datasets)
+    for alternativa in r.alternativas:
+        for campania in alternativa.secuencia:
+            m = campania.metricas
+            assert m is not None, f"campania {campania.campania} sin metricas"
+            assert m.demanda_mm > 0
+            assert 0 <= m.deficit_mm <= m.demanda_mm
+            assert m.rendimiento_t_ha >= 0
+        distintas = {c.metricas.rendimiento_t_ha for c in alternativa.secuencia}
+        assert len(distintas) > 1 or len({c.cultivo for c in alternativa.secuencia}) == 1, (
+            "cultivos distintos deberian rendir distinto"
+        )
+
+
+def test_menos_lluvia_sube_el_deficit(datasets):
+    """La pregunta central de la demo. El cambio de riego se satura; este no."""
+    normal = ejecutar_comparacion(_condiciones(), datasets)
+    seco = ejecutar_comparacion(_condiciones(factor_lluvia=0.6), datasets)
+    d_normal = min(a.agua.deficit_mm_mediana for a in normal.alternativas)
+    d_seco = min(a.agua.deficit_mm_mediana for a in seco.alternativas)
+    assert d_seco > d_normal, f"con menos lluvia el deficit debe subir: {d_normal} -> {d_seco}"
+
+
+def test_menos_precio_baja_el_margen(datasets):
+    normal = ejecutar_comparacion(_condiciones(), datasets)
+    barato = ejecutar_comparacion(_condiciones(factor_precio=0.5), datasets)
+    m_normal = max(a.economia.margen_soles_ha_mediana for a in normal.alternativas)
+    m_barato = max(a.economia.margen_soles_ha_mediana for a in barato.alternativas)
+    assert m_barato < m_normal

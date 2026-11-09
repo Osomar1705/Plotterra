@@ -15,6 +15,8 @@ from app.schemas.comun import Base, OrigenCambio
 
 class Intent(str, Enum):
     ajustar_riego = "ajustar_riego"
+    ajustar_lluvia = "ajustar_lluvia"
+    ajustar_precio = "ajustar_precio"
     excluir_cultivo = "excluir_cultivo"
     fijar_cultivo_campania = "fijar_cultivo_campania"
     cambiar_prioridad = "cambiar_prioridad"

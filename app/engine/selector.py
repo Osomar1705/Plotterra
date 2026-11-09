@@ -88,6 +88,7 @@ def _a_alternativa(m: dict[str, Any], criterio: str, destacada: bool) -> Alterna
         secuencia=m["secuencia"],
         economia=Economia(
             margen_soles_ha_mediana=m["margen_mediana"],
+            margen_soles_ha_promedio=m["margen_promedio"],
             margen_soles_ha_p10=m["margen_p10"],
             margen_soles_ha_p90=m["margen_p90"],
             cvar_10_soles_ha=m["cvar_10"],

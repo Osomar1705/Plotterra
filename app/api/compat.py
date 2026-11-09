@@ -21,6 +21,11 @@ MODOS_AGUA = {
 INTENTS = {
     "irrigation": "ajustar_riego",
     "riego": "ajustar_riego",
+    "rainfall": "ajustar_lluvia",
+    "lluvia": "ajustar_lluvia",
+    "price": "ajustar_precio",
+    "precio": "ajustar_precio",
+    "first_crop": "fijar_cultivo_campania",
     "exclude_crop": "excluir_cultivo",
     "exclusion": "excluir_cultivo",
     "fix_crop": "fijar_cultivo_campania",

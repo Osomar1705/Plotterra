@@ -20,6 +20,8 @@ from app.schemas.errores import CodigoError
 
 ETIQUETAS = {
     Intent.ajustar_riego: "riego {signo}{pct} %",
+    Intent.ajustar_lluvia: "lluvia {signo}{pct} %",
+    Intent.ajustar_precio: "precio {signo}{pct} %",
     Intent.excluir_cultivo: "sin {cultivo}",
     Intent.fijar_cultivo_campania: "{cultivo} en campania {campania}",
     Intent.cambiar_prioridad: "prioridad {prioridad}",
@@ -28,6 +30,10 @@ ETIQUETAS = {
 
 def etiqueta_de(intent: Intent, parametros: dict[str, Any]) -> str:
     if intent is Intent.ajustar_riego:
+        factor = float(parametros["factor"])
+        pct = round(abs(1 - factor) * 100)
+        return ETIQUETAS[intent].format(signo="-" if factor < 1 else "+", pct=pct)
+    if intent in (Intent.ajustar_lluvia, Intent.ajustar_precio):
         factor = float(parametros["factor"])
         pct = round(abs(1 - factor) * 100)
         return ETIQUETAS[intent].format(signo="-" if factor < 1 else "+", pct=pct)
@@ -43,6 +49,27 @@ def etiqueta_de(intent: Intent, parametros: dict[str, Any]) -> str:
 def validar_parametros(intent: Intent, parametros: dict[str, Any], catalogo: set[str]) -> dict[str, Any]:
     """Valida los parametros del intent antes de disparar un recalculo."""
     p = dict(parametros)
+    if intent in (Intent.ajustar_lluvia, Intent.ajustar_precio):
+        nombre = "lluvia" if intent is Intent.ajustar_lluvia else "precio"
+        tope = 2.0 if intent is Intent.ajustar_lluvia else 3.0
+        try:
+            factor = float(p["factor"])
+        except (KeyError, TypeError, ValueError):
+            raise ErrorFieldShift(
+                CodigoError.ENTRADA_INVALIDA,
+                f"{intent.value} necesita un factor numerico",
+                campo="parametros.factor",
+                mensaje_agricultor=f"No entendimos cuanto cambiar la {nombre}. Prueba con otro valor.",
+            ) from None
+        if not (0.1 <= factor <= tope):
+            raise ErrorFieldShift(
+                CodigoError.ENTRADA_INVALIDA,
+                f"factor {factor} fuera del rango 0.1-{tope}",
+                campo="parametros.factor",
+                mensaje_agricultor=f"Ese cambio de {nombre} es demasiado extremo para simularlo.",
+            )
+        return {"factor": round(factor, 2)}
+
     if intent is Intent.ajustar_riego:
         try:
             factor = float(p["factor"])
@@ -104,6 +131,12 @@ def aplicar(condiciones: dict[str, Any], intent: Intent, parametros: dict[str, A
         if nuevas["agua"]["lamina_mm_campania"] <= 0:
             nuevas["agua"]["modo"] = "secano"
             nuevas["agua"]["lamina_mm_campania"] = None
+
+    elif intent in (Intent.ajustar_lluvia, Intent.ajustar_precio):
+        # Se acumula: dos cambios de -20 % dejan 0.64, no 0.8. Es lo que espera
+        # alguien que aplica dos etiquetas seguidas sin deshacer la primera.
+        campo = "factor_lluvia" if intent is Intent.ajustar_lluvia else "factor_precio"
+        nuevas[campo] = round(float(nuevas.get(campo, 1.0)) * float(parametros["factor"]), 3)
 
     elif intent is Intent.excluir_cultivo:
         cultivo = parametros["cultivo"]

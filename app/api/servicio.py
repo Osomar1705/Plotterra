@@ -37,6 +37,8 @@ def _condiciones_motor(cond: CondicionesComparacion, permitidos: list[str], area
         horizonte_campanias=cond.horizonte_campanias,
         n_escenarios=cond.escenarios.n,
         semilla=cond.escenarios.semilla,
+        factor_lluvia=cond.factor_lluvia,
+        factor_precio=cond.factor_precio,
     )
 
 
