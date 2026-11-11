@@ -7,6 +7,7 @@ import { createPlot } from '../api/fieldshiftApi';
 import { saveEntryConditions } from '../integration/entryContext';
 import { PlotMap, type MapMode } from './PlotMap';
 import { checkPolygon, formatHa } from '../lib/plotGeometry';
+import { DEMO_PLOT_LOCALITY, DEMO_PLOT_POINTS } from '../lib/demoPlot';
 import {
   AlertIcon, CalendarIcon, CheckIcon, ClockIcon, CoinsIcon, InfoIcon,
   LeafIcon, PlusIcon, RainIcon, SproutIcon, WaterIcon,
@@ -44,7 +45,7 @@ export function EntryPage() {
   const [denied, setDenied] = useState(false);
   const [typedArea, setTypedArea] = useState<string>('');
   const [useTypedArea, setUseTypedArea] = useState(false);
-  const [locality, setLocality] = useState('Huánuco, Perú');
+  const [locality, setLocality] = useState('Ambo, Huánuco');
 
   // --- condiciones ---
   const [previousCrop, setPreviousCrop] = useState('Papa');
@@ -88,22 +89,29 @@ export function EntryPage() {
     return null;
   })();
 
-  function addPoint(p: PlotPoint) {
+  function addPoint(p: PlotPoint, closesShape = false) {
     if (closed) setClosed(false);
     if (!drawing) setDrawing(true);
     if (denied) setDenied(false);
     if (useTypedArea) setUseTypedArea(false);
     const prev = pointsRef.current;
-    // Tocar cerca del primer punto cierra el contorno, como en cualquier editor de mapas.
-    if (prev.length >= 3) {
-      const first = prev[0];
-      if (Math.hypot(first.x - p.x, first.y - p.y) < 14) {
-        setClosed(true);
-        setDrawing(false);
-        return;
-      }
+    // Tocar el primer punto cierra el contorno, como en cualquier editor de mapas.
+    // El mapa decide la cercania en pixeles, porque en grados depende del zoom.
+    if (closesShape && prev.length >= 3) {
+      setClosed(true);
+      setDrawing(false);
+      return;
     }
     setPoints([...prev, p]);
+  }
+
+  function loadDemoPlot() {
+    setPoints([...DEMO_PLOT_POINTS]);
+    setClosed(true);
+    setDrawing(false);
+    setDenied(false);
+    setUseTypedArea(false);
+    setLocality(DEMO_PLOT_LOCALITY);
   }
 
   function closePolygon() {
@@ -205,6 +213,8 @@ export function EntryPage() {
               onUndoPoint={() => { setPoints(points.slice(0, -1)); setClosed(false); setDrawing(true); }}
               onClear={() => { setPoints([]); setClosed(false); setDrawing(false); setUseTypedArea(false); }}
               onTypeArea={() => { setUseTypedArea(true); setDrawing(false); setClosed(false); }}
+              onUseDemo={loadDemoPlot}
+              onLocationDenied={() => setDenied(true)}
             />
 
             {useTypedArea && (

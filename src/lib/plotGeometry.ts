@@ -1,26 +1,27 @@
 import type { PlotPoint } from '../types/fieldshift';
 
-/**
- * El lienzo del mapa mide 400x300 unidades. Esta constante traduce esas unidades
- * a hectareas para que el area mostrada sea verosimil en la demo. Cuando exista
- * un mapa real con proyeccion, se reemplaza por el calculo geodesico y el resto
- * de la vista no cambia.
- */
-const HA_PER_SQUARE_UNIT = 0.0002;
+/** Radio medio de la Tierra en metros (WGS84). */
+const EARTH_RADIUS_M = 6371008.8;
 
 export const MIN_AREA_HA = 0.05;
 export const MAX_AREA_HA = 50;
 
-/** Area del poligono por la formula del cordon de zapato, en hectareas. */
+const rad = (deg: number) => (deg * Math.PI) / 180;
+
+/**
+ * Area geodesica del poligono en hectareas. Los puntos van en grados
+ * (x = longitud, y = latitud). Usa el area sobre la esfera, suficiente para
+ * parcelas: el error es muy inferior al de dibujar el contorno con el dedo.
+ */
 export function polygonAreaHa(points: PlotPoint[]): number {
   if (points.length < 3) return 0;
   let sum = 0;
   for (let i = 0; i < points.length; i++) {
     const a = points[i];
     const b = points[(i + 1) % points.length];
-    sum += a.x * b.y - b.x * a.y;
+    sum += rad(b.x - a.x) * (2 + Math.sin(rad(a.y)) + Math.sin(rad(b.y)));
   }
-  return Math.abs(sum / 2) * HA_PER_SQUARE_UNIT;
+  return Math.abs((sum * EARTH_RADIUS_M * EARTH_RADIUS_M) / 2) / 10000;
 }
 
 function onSegment(p: PlotPoint, q: PlotPoint, r: PlotPoint) {

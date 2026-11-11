@@ -137,6 +137,7 @@ export type WaterMode = 'rainfed' | 'scheduled' | 'irrigated';
 
 export type ExclusionReason = 'sin_comprador' | 'no_en_mi_zona' | 'no_quiero';
 
+/** Vertice de la parcela en grados: x = longitud, y = latitud (orden GeoJSON). */
 export interface PlotPoint { x: number; y: number }
 
 export interface ExcludedCrop {
