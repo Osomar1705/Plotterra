@@ -140,26 +140,43 @@ def normalizar_cambio(cuerpo: dict[str, Any]) -> dict[str, Any]:
                 d["intent"] = d.pop(alias)
                 break
 
+    # El mapeo va antes de leer los parametros: que significa `value` depende
+    # del intent ya traducido.
+    if d.get("intent") in INTENTS:
+        d["intent"] = INTENTS[d["intent"]]
+
     if "parametros" not in d:
-        # El frontend manda {operation, value, unit} para el riego.
+        # El frontend manda {operation, value, unit}. Que significa `value`
+        # depende del tipo: un porcentaje para riego, lluvia y precio; un
+        # nombre de cultivo o de prioridad para los demas.
         operacion = d.pop("operation", None) or d.pop("operacion", None)
         valor = d.pop("value", None)
         if valor is None:
             valor = d.pop("valor", None)
         unidad = d.pop("unit", None) or d.pop("unidad", None)
-        if valor is not None:
-            v = float(valor)
-            if unidad in ("percent", "porcentaje", "%"):
-                v = v / 100
-            if operacion in ("reduce", "reducir", "bajar"):
-                d["parametros"] = {"factor": round(1 - v, 2)}
-            elif operacion in ("increase", "aumentar", "subir"):
-                d["parametros"] = {"factor": round(1 + v, 2)}
-            else:
-                d["parametros"] = {"factor": round(v, 2)}
+        campania = d.pop("campania", None) or d.pop("campaign", None)
+        tipo = d.get("intent")
 
-    if d.get("intent") in INTENTS:
-        d["intent"] = INTENTS[d["intent"]]
+        if tipo == "excluir_cultivo" and valor:
+            d["parametros"] = {"cultivo": str(valor), "motivo": "decision_del_agricultor"}
+        elif tipo == "fijar_cultivo_campania" and valor:
+            d["parametros"] = {"cultivo": str(valor), "campania": int(campania or 1)}
+        elif tipo == "cambiar_prioridad" and valor:
+            d["parametros"] = {"prioridad": str(valor)}
+        elif valor is not None:
+            try:
+                v = float(valor)
+            except (TypeError, ValueError):
+                v = None
+            if v is not None:
+                if unidad in ("percent", "porcentaje", "%"):
+                    v = v / 100
+                if operacion in ("reduce", "reducir", "bajar"):
+                    d["parametros"] = {"factor": round(1 - v, 2)}
+                elif operacion in ("increase", "aumentar", "subir"):
+                    d["parametros"] = {"factor": round(1 + v, 2)}
+                else:
+                    d["parametros"] = {"factor": round(v, 2)}
 
     d.pop("id", None)
     d.pop("label", None)
