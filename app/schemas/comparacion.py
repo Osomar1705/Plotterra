@@ -233,6 +233,14 @@ class RespuestaComparacion(Base):
 
     @computed_field
     @property
+    def status(self) -> str:
+        """Alias en ingles de `estado`. La Vista 03 lo compara con "ready"."""
+        return {"listo": "ready", "calculando": "processing", "error": "failed"}.get(
+            self.estado.value, "ready"
+        )
+
+    @computed_field
+    @property
     def prioridad(self) -> str | None:
         """La prioridad elegida, tomada de la alternativa destacada."""
         destacada = next((a for a in self.alternativas if a.destacada), None)
