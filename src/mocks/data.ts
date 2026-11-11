@@ -1,4 +1,4 @@
-import type { Comparison, Plot } from '../types/fieldshift';
+import type { AlternativePassport, Comparison, Plot } from '../types/fieldshift';
 
 export const baseComparison: Comparison = {
   id: 'cmp_demo_base', plotId: 'parcela_1', areaHa: 3.5, priority: 'economy', status: 'ready', activeChanges: [], sourceResult: 'mock',
@@ -32,5 +32,36 @@ export const demoPlot: Plot = {
     fieldCapacityMm: 142,
     soilSource: 'SoilGrids v2.0',
     soilUncertainty: 'media',
+  },
+};
+
+/**
+ * Pasaporte de demostracion. Los valores son sinteticos: sirven para probar la
+ * interfaz de trazabilidad, no son recomendaciones agronomicas validadas.
+ * Incluye a proposito un indicador sin dato para ejercitar ese estado en la vista.
+ */
+export const demoPassports: Record<string, AlternativePassport> = {
+  alt_economy: {
+    alternativeId: 'alt_economy',
+    comparisonId: 'cmp_demo_base',
+    sourceResult: 'mock',
+    engineVersion: 'motor-demo-0.4',
+    datasetVersion: 'datos-demo-2026.10',
+    metrics: [
+      { id: 'margin', label: 'Margen estimado', value: 3350, unit: 'PEN/ha', status: 'mock',
+        definition: 'Ingreso bruto menos costos directos de la campaña.', source: 'Precios de referencia MIDAGRI 2025' },
+      { id: 'water_demand', label: 'Demanda de agua', value: 340, unit: 'mm', status: 'mock',
+        definition: 'Evapotranspiración del cultivo acumulada en la campaña.', source: 'NASA GPM IMERG 2015–2025' },
+      { id: 'rotation', label: 'Compatibilidad de rotación', value: 'Compatible', status: 'mock',
+        definition: 'Grado de compatibilidad agronómica con el cultivo previo.', source: 'SoilGrids v2.0' },
+      { id: 'yield_gap', label: 'Brecha de rendimiento', value: null, status: 'unavailable',
+        definition: 'Diferencia entre el rendimiento potencial y el esperado.' },
+    ],
+    sources: ['NASA GPM IMERG 2015–2025', 'SoilGrids v2.0', 'Precios de referencia MIDAGRI 2025'],
+    assumptions: [
+      'Los valores son sintéticos y sirven para probar la interfaz.',
+      'No se consideran eventos climáticos extremos dentro del horizonte.',
+      'Los precios se asumen constantes durante toda la campaña.',
+    ],
   },
 };

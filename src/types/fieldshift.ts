@@ -1,11 +1,38 @@
 export type AlternativeType = 'economy' | 'water' | 'soil';
+/** El motor puede devolver una alternativa cuyo criterio no logra identificar. */
+export type AlternativeKind = AlternativeType | 'unknown';
 export type ComparisonStatus = 'ready' | 'processing' | 'failed';
 export type RiskLevel = 'low' | 'medium' | 'high' | 'unknown';
 export type DataQualityLevel = 'sufficient' | 'limited' | 'insufficient' | 'unknown';
 
+/** Estado de un indicador: la vista distingue dato real, provisional, demo y ausente. */
+export type MetricStatus = 'available' | 'provisional' | 'mock' | 'unavailable';
+
+/**
+ * Indicador suelto. `value` es null cuando el motor no lo devolvio: la vista
+ * muestra "No disponible" en lugar de rellenar con un cero enganoso.
+ */
+export interface MetricValue {
+  label?: string;
+  value: number | string | null;
+  unit?: string;
+  status: MetricStatus;
+  period?: string;
+}
+
+export interface CampaignMetrics {
+  yield?: MetricValue;
+  water?: MetricValue;
+  economy?: MetricValue;
+  soil?: MetricValue;
+}
+
 export interface Campaign {
+  id?: string;
   crop: string;
   window: string;
+  /** Desglose por campana. Ausente si el backend solo devuelve agregados de la ruta. */
+  metrics?: CampaignMetrics;
 }
 
 export interface AppliedChange {
@@ -19,10 +46,12 @@ export interface AppliedChange {
 
 export interface Alternative {
   id: string;
-  type: AlternativeType;
+  /** Nombre propio devuelto por el motor; si falta, la vista usa el de routeMeta. */
+  name?: string;
+  type: AlternativeKind;
   campaigns: Campaign[];
-  margin: { min: number; max: number; currency: string; basis: string };
-  water: { metric: string; value: number; unit: string };
+  margin: { min: number | null; max: number | null; currency: string; basis: string; period?: string };
+  water: { metric: string; value: number | null; unit: string; period?: string };
   soil: { compatibility: string };
   risk: { level: RiskLevel; mainCause?: string | null };
   dataQuality: { level: DataQualityLevel; mainGap?: string | null };
@@ -39,6 +68,36 @@ export interface Comparison {
   sourceResult?: 'mock' | 'calculado' | 'cache' | string;
   parentComparisonId?: string;
   runId?: string;
+  /** Trazabilidad: version del motor de calculo y del dataset usados. */
+  engineVersion?: string;
+  datasetVersion?: string;
+}
+
+/** Un indicador del pasaporte, con su definicion y fuente para auditarlo. */
+export interface PassportMetric {
+  id: string;
+  label: string;
+  value: number | string | null;
+  unit?: string;
+  definition?: string;
+  source?: string;
+  status: MetricStatus;
+}
+
+/**
+ * Pasaporte de trazabilidad de una alternativa: de donde sale cada numero.
+ * `sources` y `assumptions` son siempre arrays para que la vista pueda
+ * consultar .length sin comprobar null.
+ */
+export interface AlternativePassport {
+  alternativeId: string;
+  comparisonId?: string;
+  sourceResult?: string;
+  engineVersion?: string;
+  datasetVersion?: string;
+  metrics: PassportMetric[];
+  sources: string[];
+  assumptions: string[];
 }
 
 export interface FieldShiftApiError {
