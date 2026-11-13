@@ -14,8 +14,9 @@ escenarios sobre datos medidos:
 
 | Dato | Fuente | Cobertura |
 | --- | --- | --- |
-| Clima diario | NASA POWER + IMERG, llevado a la altura de las chacras | 84 distritos × 4.748 días (2013-2025) |
-| Lluvia | CHIRPS | mensual por distrito |
+| Clima diario | NASA POWER, llevado a la altura de las chacras (ET0 y días de lluvia) | 84 distritos × 4.748 días (2013-2025) |
+| Lluvia | CHIRPS: fija el total de cada mes | mensual por distrito |
+| Verdor | NASA HLS (Landsat 8/9 + Sentinel-2, 30 m) | chacra de ejemplo, 2015-2026 |
 | Suelo | ISRIC SoilGrids 2.0, solo sobre superficie agrícola | 0-30 cm, con incertidumbre |
 | Límites y chacras | INEI + MIDAGRI (Mapa Nacional de Superficie Agrícola 2024) | Huánuco completo |
 
@@ -59,6 +60,7 @@ Todos cuelgan de `/api/v1`.
 | `GET /health` | Estado, motor activo y celdas con cobertura |
 | `GET /catalogo` | Cultivos, prioridades, unidades y límites |
 | `POST /parcelas` | Registra el terreno; devuelve área, distrito y sugerencias de clima y suelo |
+| `GET /parcelas/{id}/verdor` | NDVI de satélite (NASA HLS): confirma que el terreno es una chacra |
 | `POST /comparaciones` | El cálculo: condiciones entran, tres alternativas salen |
 | `GET /comparaciones/{id}` | Recupera una comparación |
 | `GET /comparaciones/{id}/alternativas/{id}/pasaporte` | De dónde sale cada número |
