@@ -106,4 +106,4 @@ def verdor_de_parcela(parcela_id: str) -> dict:
             campo="parcela_id",
             mensaje_agricultor="No encontramos esa parcela. Vuelve a dibujarla.",
         )
-    return {"parcela_id": parcela_id, **VERDOR.para(parcela["geometria"])}
+    return {"parcela_id": parcela_id, **VERDOR.para(parcela["geometria"], parcela.get("celda_id"))}

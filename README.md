@@ -60,7 +60,7 @@ Todos cuelgan de `/api/v1`.
 | `GET /health` | Estado, motor activo y celdas con cobertura |
 | `GET /catalogo` | Cultivos, prioridades, unidades y límites |
 | `POST /parcelas` | Registra el terreno; devuelve área, distrito y sugerencias de clima y suelo |
-| `GET /parcelas/{id}/verdor` | NDVI de satélite (NASA HLS): confirma que el terreno es una chacra |
+| `GET /parcelas/{id}/verdor` | NDVI de satélite (NASA HLS): confirma que el terreno es una chacra; para cualquier parcela agrega el verdor de las chacras de su distrito y, en Ambo, el estrés de la vegetación (ECOSTRESS) |
 | `POST /comparaciones` | El cálculo: condiciones entran, tres alternativas salen |
 | `GET /comparaciones/{id}` | Recupera una comparación |
 | `GET /comparaciones/{id}/alternativas/{id}/pasaporte` | De dónde sale cada número |

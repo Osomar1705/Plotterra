@@ -65,10 +65,130 @@ def clasificar(valores: list[float]) -> tuple[str, str]:
     return "dudoso", "El verdor de tu terreno cambia poco: no podemos confirmar que sea una chacra."
 
 
+MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
+         "septiembre", "octubre", "noviembre", "diciembre"]
+
+
+def _meses_texto(meses: list[int]) -> str:
+    """[12, 1, 2, 3] -> "de diciembre a marzo"; meses sueltos -> "julio y septiembre"."""
+    conjunto = sorted(set(meses))
+    if not conjunto:
+        return ""
+    if len(conjunto) >= 3 and len(conjunto) < 12:
+        # Buscar un bloque continuo que pueda cruzar diciembre-enero.
+        for inicio in conjunto:
+            bloque = [((inicio - 1 + k) % 12) + 1 for k in range(len(conjunto))]
+            if set(bloque) == set(conjunto):
+                return f"de {MESES[bloque[0] - 1]} a {MESES[bloque[-1] - 1]}"
+    nombres = [MESES[m - 1] for m in conjunto]
+    return nombres[0] if len(nombres) == 1 else ", ".join(nombres[:-1]) + " y " + nombres[-1]
+
+
+class ContextoSatelital:
+    """Verdor de las chacras de cada distrito (HLS) y estres de la vegetacion (ECOSTRESS).
+
+    A diferencia de la serie de la chacra de ejemplo, esto ya esta calculado
+    para los 84 distritos, asi que cualquier parcela de Huanuco tiene su
+    contexto sin clave de Earthdata. Es el verdor de las chacras del distrito en
+    un punto representativo, NO el de la parcela: la respuesta lo dice.
+    Lo genera fieldshift_datos/scripts/verdor_estres_backend.py.
+    """
+
+    def __init__(self, directorio: Path) -> None:
+        self.directorio = Path(directorio)
+        self._cargado = False
+        self.verdor: dict[str, Any] = {}
+        self.meta_verdor: dict[str, Any] = {}
+        self.estres: dict[str, Any] | None = None
+
+    def _cargar(self) -> None:
+        if self._cargado:
+            return
+        self._cargado = True
+        v = self.directorio / "verdor_distritos.json"
+        if v.exists():
+            datos = json.loads(v.read_text(encoding="utf-8"))
+            self.verdor = datos.get("distritos", {})
+            self.meta_verdor = datos.get("_meta", {})
+        e = self.directorio / "ecostress_ambo.json"
+        if e.exists():
+            self.estres = json.loads(e.read_text(encoding="utf-8"))
+
+    def distrito(self, celda_id: str | None) -> dict[str, Any] | None:
+        self._cargar()
+        d = self.verdor.get(str(celda_id)) if celda_id else None
+        if d is None:
+            return None
+        verdes, secos = d["meses_verdes"], d["meses_mas_secos"]
+        return {
+            "nivel": "distrito",
+            "celda_id": str(celda_id),
+            "distrito": d["distrito"],
+            "mensaje_agricultor": (
+                f"En las chacras de {d['distrito'].title()} el satelite ve el campo mas verde en "
+                f"{_meses_texto(sorted(verdes))} y mas seco en {_meses_texto(sorted(secos))}. "
+                "Es el distrito, no tu parcela exacta."
+            ),
+            "ciclo_tipico": d["ciclo_tipico"],
+            "amplitud_ciclo": d["amplitud_ciclo"],
+            "mes_mas_verde": d["mes_mas_verde"],
+            "mes_mas_seco": d["mes_mas_seco"],
+            "meses_verdes": verdes,
+            "meses_mas_secos": secos,
+            "ndvi_epoca_seca_jul_sep": d["ndvi_epoca_seca_jul_sep"],
+            "campanas": d["campanas"],
+            "imagenes_despejadas": d["imagenes_despejadas"],
+            "escenas_revisadas": d["escenas_revisadas"],
+            "desde": d["desde"],
+            "hasta": d["hasta"],
+            "sitio": d["sitio"],
+            "fuente": self.meta_verdor.get("fuente", ""),
+            "alcance": self.meta_verdor.get("alcance", ""),
+        }
+
+    def estres_vegetacion(self, celda_id: str | None) -> dict[str, Any] | None:
+        """ESI de ECOSTRESS. Solo hay sitios medidos en Ambo: fuera de ahi, None."""
+        self._cargar()
+        e = self.estres
+        if not e or str(celda_id) not in e["_meta"].get("ubigeos", []):
+            return None
+        peores = e["meses_con_mas_estres"]
+        return {
+            "nivel": "distrito",
+            "indicador": "ESI",
+            "mensaje_agricultor": (
+                f"Desde el espacio, las plantas de las chacras de Ambo muestran mas falta de agua en "
+                f"{_meses_texto(sorted(peores))}: es la epoca seca."
+            ),
+            "lectura": e["_meta"]["lectura"],
+            "por_mes": e["por_mes"],
+            "meses_con_mas_estres": peores,
+            "meses_sin_datos": e["meses_sin_datos"],
+            "sitios": e["sitios"],
+            "observaciones": e["observaciones"],
+            "desde": e["desde"],
+            "hasta": e["hasta"],
+            "fuente": e["_meta"]["fuente"],
+            "alcance": e["_meta"]["alcance"],
+        }
+
+    def para(self, celda_id: str | None) -> dict[str, Any]:
+        """Bloques que se suman a la respuesta de verdor, solo si hay datos."""
+        extra: dict[str, Any] = {}
+        d = self.distrito(celda_id)
+        if d is not None:
+            extra["verdor_distrito"] = d
+        s = self.estres_vegetacion(celda_id)
+        if s is not None:
+            extra["estres_vegetacion"] = s
+        return extra
+
+
 class SerieVerdor:
     """La serie medida de la chacra de ejemplo. Se lee una vez."""
 
     def __init__(self, directorio: Path) -> None:
+        self.contexto = ContextoSatelital(directorio)
         self.directorio = Path(directorio) / "parcela_demo"
         self._cargada = False
         self.punto: tuple[float, float] | None = None
@@ -111,7 +231,15 @@ class SerieVerdor:
                         }
                     )
 
-    def para(self, geometria: dict[str, Any] | None) -> dict[str, Any]:
+    def para(self, geometria: dict[str, Any] | None, celda_id: str | None = None) -> dict[str, Any]:
+        """Verificacion de la parcela + contexto satelital del distrito.
+
+        `disponible` sigue hablando solo de la parcela: si cae lejos del punto
+        medido es False, aunque el distrito si tenga verdor y estres.
+        """
+        return {**self._para_parcela(geometria), **self.contexto.para(celda_id)}
+
+    def _para_parcela(self, geometria: dict[str, Any] | None) -> dict[str, Any]:
         self._cargar()
         c = centro(geometria)
         if self.punto is None or not self.serie:

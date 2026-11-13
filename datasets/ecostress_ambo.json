@@ -1,0 +1,114 @@
+{
+ "_meta": {
+  "fuente": "NASA ECOSTRESS v002 L4T ESI (Evaporative Stress Index), 70 m; mediana de pixeles agricolas sin nubes en recortes de 7x7 pixeles",
+  "lectura": "ESI cerca de 1: la vegetacion transpira lo que podria. Mas bajo: le falta agua. Es seguimiento observado, no pronostico.",
+  "alcance": "8 sitios agricolas del distrito de Ambo y la chacra de ejemplo",
+  "ubigeos": [
+   "100201"
+  ],
+  "generado": "2026-11-12",
+  "script": "fieldshift_datos/scripts/verdor_estres_backend.py"
+ },
+ "sitios": 9,
+ "observaciones": 526,
+ "desde": "2018-08-07",
+ "hasta": "2026-09-21",
+ "por_mes": [
+  {
+   "mes": 1,
+   "esi_mediana": 0.763,
+   "esi_p10": 0.612,
+   "esi_p90": 0.86,
+   "observaciones": 51,
+   "pocas_observaciones": false
+  },
+  {
+   "mes": 2,
+   "esi_mediana": 0.534,
+   "esi_p10": 0.481,
+   "esi_p90": 0.651,
+   "observaciones": 7,
+   "pocas_observaciones": true
+  },
+  {
+   "mes": 3,
+   "esi_mediana": 0.796,
+   "esi_p10": 0.761,
+   "esi_p90": 0.924,
+   "observaciones": 49,
+   "pocas_observaciones": false
+  },
+  {
+   "mes": 4,
+   "esi_mediana": 0.779,
+   "esi_p10": 0.775,
+   "esi_p90": 0.781,
+   "observaciones": 3,
+   "pocas_observaciones": true
+  },
+  {
+   "mes": 5,
+   "esi_mediana": 0.771,
+   "esi_p10": 0.643,
+   "esi_p90": 0.895,
+   "observaciones": 69,
+   "pocas_observaciones": false
+  },
+  {
+   "mes": 6,
+   "esi_mediana": 0.751,
+   "esi_p10": 0.597,
+   "esi_p90": 0.88,
+   "observaciones": 9,
+   "pocas_observaciones": true
+  },
+  {
+   "mes": 7,
+   "esi_mediana": 0.57,
+   "esi_p10": 0.48,
+   "esi_p90": 0.752,
+   "observaciones": 133,
+   "pocas_observaciones": false
+  },
+  {
+   "mes": 8,
+   "esi_mediana": 0.531,
+   "esi_p10": 0.39,
+   "esi_p90": 0.69,
+   "observaciones": 31,
+   "pocas_observaciones": false
+  },
+  {
+   "mes": 9,
+   "esi_mediana": 0.477,
+   "esi_p10": 0.264,
+   "esi_p90": 0.83,
+   "observaciones": 100,
+   "pocas_observaciones": false
+  },
+  {
+   "mes": 10,
+   "esi_mediana": 0.779,
+   "esi_p10": 0.352,
+   "esi_p90": 0.839,
+   "observaciones": 24,
+   "pocas_observaciones": false
+  },
+  {
+   "mes": 11,
+   "esi_mediana": 0.713,
+   "esi_p10": 0.374,
+   "esi_p90": 0.89,
+   "observaciones": 50,
+   "pocas_observaciones": false
+  }
+ ],
+ "meses_con_mas_estres": [
+  9,
+  8,
+  7
+ ],
+ "meses_sin_datos": [
+  12
+ ]
+}
