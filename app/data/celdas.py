@@ -73,6 +73,7 @@ class CatalogoCeldas:
         self._celdas: dict[str, dict[str, Any]] = {}
         self._geometrias: dict[str, dict[str, Any]] = {}
         self._suelos: dict[str, Suelo] = {}
+        self._chirps: dict[tuple[str, str], float] | None = None
         self.version: str = "desconocida"
         self.provisional: bool = True
 
@@ -110,7 +111,7 @@ class CatalogoCeldas:
                 "provincia": p["provincia"].title(),
                 "area_agricola_ha": float(p.get("area_agricola_ha") or 0.0),
                 "altura_chacras_m": float(p.get("altura_chacras_m") or 0.0),
-                "fuente_clima": "NASA POWER y CHIRPS, llevados a la altura de las chacras",
+                "fuente_clima": "ET0 y dias de lluvia de NASA POWER; lluvia mensual de CHIRPS",
             }
             self._suelos[ubigeo] = self._suelo_de(ubigeo, fila)
         return self.disponible
@@ -169,9 +170,30 @@ class CatalogoCeldas:
                 return celda
         return None
 
+    def _chirps_mensual(self) -> dict[tuple[str, str], float]:
+        """(ubigeo, 'AAAA-MM') -> lluvia mensual de CHIRPS en mm. Se lee una vez."""
+        if self._chirps is None:
+            self._chirps = {}
+            ruta = self.directorio / "lluvia_chirps_mensual.csv"
+            if ruta.exists():
+                with ruta.open(encoding="utf-8-sig") as fh:
+                    for f in csv.DictReader(fh):
+                        self._chirps[(f["ubigeo"], f["fecha"][:7])] = float(f["lluvia_chirps_mm"])
+        return self._chirps
+
     @lru_cache(maxsize=16)
     def clima(self, celda_id: str) -> list[dict[str, float]] | None:
-        """Serie diaria del distrito. Se cachean los ultimos 16 consultados."""
+        """Serie diaria del distrito, con la lluvia ajustada a CHIRPS.
+
+        El parquet trae lluvia diaria de NASA POWER, pero esa serie tiene un
+        quiebre: desde 2019 cae a la mitad en todos los distritos, y ademas es
+        identica entre distritos vecinos porque viene de una malla gruesa. El
+        paquete de datos recomienda CHIRPS, que es mensual.
+
+        Se combinan: POWER dice QUE DIAS llueve y CHIRPS dice CUANTO llovio en
+        el mes. Cada dia se multiplica por (CHIRPS del mes / POWER del mes). Si
+        POWER no registra lluvia en un mes en que CHIRPS si, se reparte parejo.
+        """
         parquet = self.directorio / "clima_diario.parquet"
         if not parquet.exists():
             return None
@@ -181,14 +203,30 @@ class CatalogoCeldas:
         if datos.empty:
             return None
         datos = datos.sort_values("fecha")
-        return [
-            {
-                "fecha": f.strftime("%Y-%m-%d"),
-                "lluvia_mm": float(ll or 0.0),
-                "et0_mm": float(e or 0.0),
-            }
-            for f, ll, e in zip(datos["fecha"], datos["lluvia_power_mm"], datos["et0_mm"])
-        ]
+
+        fechas = [f.strftime("%Y-%m-%d") for f in datos["fecha"]]
+        power = [float(x or 0.0) for x in datos["lluvia_power_mm"]]
+        et0 = [float(x or 0.0) for x in datos["et0_mm"]]
+
+        chirps = self._chirps_mensual()
+        total_power: dict[str, float] = {}
+        dias_mes: dict[str, int] = {}
+        for f, ll in zip(fechas, power):
+            total_power[f[:7]] = total_power.get(f[:7], 0.0) + ll
+            dias_mes[f[:7]] = dias_mes.get(f[:7], 0) + 1
+
+        serie = []
+        for f, ll, e in zip(fechas, power, et0):
+            mes = f[:7]
+            objetivo = chirps.get((str(celda_id), mes))
+            if objetivo is None:
+                lluvia = ll  # sin CHIRPS para ese mes: queda el dato diario
+            elif total_power[mes] >= 0.5:
+                lluvia = ll * objetivo / total_power[mes]
+            else:
+                lluvia = objetivo / dias_mes[mes]
+            serie.append({"fecha": f, "lluvia_mm": round(lluvia, 3), "et0_mm": e})
+        return serie
 
     def lluvia_media_campania_mm(self, celda_id: str) -> float:
         """Lluvia media de una campania de 180 dias, de la serie del distrito."""

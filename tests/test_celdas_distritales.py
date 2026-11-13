@@ -69,3 +69,44 @@ def test_distritos_distintos_dan_resultados_distintos(repo):
     bajo = deficit("101105")   # Jacas Chico, 3821 m
     ambo = deficit(AMBO)       # Ambo, 3051 m
     assert bajo != ambo, "dos distritos a alturas muy distintas no pueden dar el mismo deficit"
+
+
+def test_la_lluvia_del_motor_es_la_de_chirps(repo):
+    """El total mensual debe ser el de CHIRPS, no el de NASA POWER.
+
+    La lluvia diaria de POWER cae a la mitad desde 2019 en todos los distritos
+    (un quiebre de la serie, no del clima) y es identica entre distritos
+    vecinos. El paquete de datos recomienda CHIRPS; POWER solo aporta que dias
+    llueve.
+    """
+    import csv
+    from collections import defaultdict
+    from pathlib import Path
+
+    chirps = {}
+    with Path("datasets/lluvia_chirps_mensual.csv").open(encoding="utf-8-sig") as fh:
+        for f in csv.DictReader(fh):
+            if f["ubigeo"] == AMBO:
+                chirps[f["fecha"][:7]] = float(f["lluvia_chirps_mm"])
+
+    por_mes = defaultdict(float)
+    for dia in repo.datasets_de(AMBO).clima_diario:
+        por_mes[dia["fecha"][:7]] += dia["lluvia_mm"]
+
+    assert len(por_mes) == len(chirps) == 156
+    for mes, total in por_mes.items():
+        assert total == pytest.approx(chirps[mes], abs=0.05), f"{mes}: {total} vs CHIRPS {chirps[mes]}"
+
+
+def test_la_lluvia_no_tiene_el_quiebre_de_2019(repo):
+    serie = repo.datasets_de(AMBO).clima_diario
+    antes = sum(d["lluvia_mm"] for d in serie if "2013" <= d["fecha"][:4] <= "2018") / 6
+    despues = sum(d["lluvia_mm"] for d in serie if d["fecha"][:4] >= "2019") / 7
+    assert despues > antes * 0.75, f"la lluvia cae de {antes:.0f} a {despues:.0f} mm/anio: eso es el quiebre de POWER"
+
+
+def test_distritos_vecinos_no_comparten_la_misma_lluvia(repo):
+    """Con POWER, Ambo y Jacas Chico tenian exactamente los mismos numeros."""
+    ambo = sum(d["lluvia_mm"] for d in repo.datasets_de(AMBO).clima_diario)
+    jacas = sum(d["lluvia_mm"] for d in repo.datasets_de("101105").clima_diario)
+    assert abs(ambo - jacas) > 100
