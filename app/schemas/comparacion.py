@@ -16,6 +16,10 @@ from app.schemas.comun import (
     Prioridad,
 )
 
+# Niveles canonicos -> claves que usa el frontend para rotular la tarjeta.
+NIVEL_RIESGO_EN = {"bajo": "low", "medio": "medium", "alto": "high"}
+NIVEL_CALIDAD_EN = {"completa": "sufficient", "limitada": "limited", "pobre": "insufficient"}
+
 
 class Motor(Base):
     version: str = Field(examples=["0.4.1"])
@@ -206,6 +210,26 @@ class Alternativa(Base):
         return {
             "nivel": self.calidad_informacion.nivel.value,
             "brecha_principal": self.calidad_informacion.dato_critico,
+        }
+
+    # La tarjeta del frontend rotula riesgo y calidad con claves en ingles
+    # (low/medium/high, sufficient/limited/insufficient). Con los niveles en
+    # espanol no encuentra la etiqueta y la fila sale en blanco. Su normalizador
+    # lee primero `risk` y `data_quality`, asi que estos alias ganan.
+    @computed_field
+    @property
+    def risk(self) -> dict:
+        return {
+            "level": NIVEL_RIESGO_EN[self.riesgo.nivel.value],
+            "main_cause": self.riesgo.principal,
+        }
+
+    @computed_field
+    @property
+    def data_quality(self) -> dict:
+        return {
+            "level": NIVEL_CALIDAD_EN[self.calidad_informacion.nivel.value],
+            "main_gap": self.calidad_informacion.dato_critico,
         }
 
 
