@@ -58,6 +58,12 @@ class FichaCultivo:
     provisional: bool
     fuente: str
     fija_nitrogeno: bool = False
+    provisional_campos: tuple[str, ...] = ()
+    """Que partes de la ficha no tienen fuente validada.
+
+    `provisional` dice si algo en la ficha lo es; esto dice QUE. Importa
+    porque los costos y los kc/ky se validan por separado y pesan distinto.
+    """
 
     @property
     def costo_total_soles_ha(self) -> float:

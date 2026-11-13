@@ -210,8 +210,13 @@ def _agregar(
         # eso su incertidumbre NO entra en el rango p10-p90, y hay que exponerla
         # aparte o el margen aparenta mas precision de la que tiene.
         "costos_soles_ha": round(costos_horizonte, 2),
+        # Provisional es la FICHA, no necesariamente sus costos: kc/ky y costos
+        # se validan por separado. Si la ficha no detalla que le falta, se
+        # asume lo prudente.
         "costos_provisionales": any(
-            fichas[c].provisional or "costos_soles_ha" in getattr(fichas[c], "provisional_campos", [])
+            "costos_soles_ha" in fichas[c].provisional_campos
+            if fichas[c].provisional_campos
+            else fichas[c].provisional
             for c in secuencia
         ),
         "margen_sensibilidad_costos": {

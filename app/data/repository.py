@@ -85,6 +85,7 @@ class Repositorio:
                 provisional=c.get("provisional", True),
                 fuente=c.get("fuente", "sin fuente declarada"),
                 fija_nitrogeno=c.get("fija_nitrogeno", False),
+                provisional_campos=tuple(c.get("provisional_campos", ())),
             )
 
         self._suelos = {}
