@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "version": "0.1.0-provisional",
+    "version": "0.2.0-ena-siea",
     "zona_piloto": "hco_0412",
-    "nota": "Semilla provisional del equipo de backend para desbloquear el contrato. La papa viene de la ficha INIA citada; los otros cinco cultivos llevan provisional=true y deben ser reemplazados por la version de Roger antes del dia 2.",
+    "nota": "Papa: ficha INIA citada. Los otros cinco cultivos ya usan rendimiento, ventana, duracion y precio medidos en Huanuco (ENA 2016-2025 y SIEA 2020-2023, preparados por Roger). Siguen provisional=true solo porque costos y kc/ky aun no tienen fuente local; ver provisional_campos de cada ficha.",
     "unidades": {
       "duracion_dias": "dias",
       "rendimiento_ref_t_ha": "t/ha",
@@ -29,89 +29,94 @@
   },
   "quinua": {
     "nombre": "Quinua", "variedad": "Blanca de Junin", "familia": "amaranthaceae",
-    "duracion_dias": 160,
-    "ventana_siembra": [{"desde": "09-20", "hasta": "11-30"}],
+    "duracion_dias": 200,
+    "ventana_siembra": [{"desde": "07-01", "hasta": "11-30"}],
     "etapas": [
-      {"nombre": "inicial", "dias": 30, "kc": 0.40, "ky": 0.40},
-      {"nombre": "desarrollo", "dias": 40, "kc": 0.75, "ky": 0.70},
-      {"nombre": "media", "dias": 55, "kc": 1.00, "ky": 1.00},
-      {"nombre": "final", "dias": 35, "kc": 0.55, "ky": 0.50}
+      {"nombre": "inicial", "dias": 38, "kc": 0.4, "ky": 0.4},
+      {"nombre": "desarrollo", "dias": 50, "kc": 0.75, "ky": 0.7},
+      {"nombre": "media", "dias": 68, "kc": 1.0, "ky": 1.0},
+      {"nombre": "final", "dias": 44, "kc": 0.55, "ky": 0.5}
     ],
-    "rendimiento_ref_t_ha": 1.6,
+    "rendimiento_ref_t_ha": 1.8,
     "costos_soles_ha": {"semilla": 450, "fertilizante": 1100, "jornales": 1800, "cosecha": 700, "otros": 300},
-    "precio_soles_kg": {"mediana": 4.20, "p10": 2.80, "p90": 6.10},
+    "precio_soles_kg": {"mediana": 5.31, "p10": 3.84, "p90": 5.81},
     "restricciones": {"no_repetir_familia_consecutiva": true, "min_campanias_descanso": 1},
     "provisional": true,
-    "fuente": "PROVISIONAL - valores de orden de magnitud, pendiente de Roger"
+    "fuente": "Rendimiento: p90 de INEI ENA 2016-2025 Huanuco, parcelas de un solo cultivo con flag ok (grano, n=115), mismo criterio que da 19.2 t/ha para la papa (ficha INIA: 18). Ventana: meses donde siembra el 73 % de esos productores. Duracion: meses siembra-cosecha de la ENA relativos a la papa. Precio: SIEA/MIDAGRI precio en chacra Huanuco 2020-2023 (p10/mediana/p90 mensual). Siguen provisionales: costos y kc/ky (orden de magnitud FAO-56/FAO-33).",
+    "provisional_campos": ["costos_soles_ha", "etapas.kc", "etapas.ky"]
   },
   "cebada": {
     "nombre": "Cebada", "variedad": "UNA-80", "familia": "poaceae",
-    "duracion_dias": 140,
-    "ventana_siembra": [{"desde": "10-01", "hasta": "12-20"}],
+    "duracion_dias": 165,
+    "ventana_siembra": [{"desde": "11-01", "hasta": "02-28"}],
     "etapas": [
-      {"nombre": "inicial", "dias": 25, "kc": 0.35, "ky": 0.35},
-      {"nombre": "desarrollo", "dias": 35, "kc": 0.75, "ky": 0.65},
-      {"nombre": "media", "dias": 50, "kc": 1.10, "ky": 1.00},
-      {"nombre": "final", "dias": 30, "kc": 0.45, "ky": 0.40}
+      {"nombre": "inicial", "dias": 29, "kc": 0.35, "ky": 0.35},
+      {"nombre": "desarrollo", "dias": 42, "kc": 0.75, "ky": 0.65},
+      {"nombre": "media", "dias": 59, "kc": 1.1, "ky": 1.0},
+      {"nombre": "final", "dias": 35, "kc": 0.45, "ky": 0.4}
     ],
-    "rendimiento_ref_t_ha": 2.2,
+    "rendimiento_ref_t_ha": 1.68,
     "costos_soles_ha": {"semilla": 380, "fertilizante": 900, "jornales": 1200, "cosecha": 600, "otros": 250},
-    "precio_soles_kg": {"mediana": 1.45, "p10": 1.05, "p90": 1.95},
+    "precio_soles_kg": {"mediana": 2.28, "p10": 1.97, "p90": 2.71},
     "restricciones": {"no_repetir_familia_consecutiva": true, "min_campanias_descanso": 0},
     "provisional": true,
-    "fuente": "PROVISIONAL - valores de orden de magnitud, pendiente de Roger"
+    "fuente": "Rendimiento: p90 de INEI ENA 2016-2025 Huanuco, parcelas de un solo cultivo con flag ok (grano, n=1195), mismo criterio que da 19.2 t/ha para la papa (ficha INIA: 18). Ventana: meses donde siembra el 87 % de esos productores. Duracion: meses siembra-cosecha de la ENA relativos a la papa. Precio: SIEA/MIDAGRI precio en chacra Huanuco 2020-2023 (p10/mediana/p90 mensual). Siguen provisionales: costos y kc/ky (orden de magnitud FAO-56/FAO-33).",
+    "provisional_campos": ["costos_soles_ha", "etapas.kc", "etapas.ky"]
   },
   "avena": {
     "nombre": "Avena forrajera", "variedad": "Mantaro 15", "familia": "poaceae",
-    "duracion_dias": 120,
-    "ventana_siembra": [{"desde": "10-01", "hasta": "01-15"}],
+    "duracion_dias": 140,
+    "ventana_siembra": [{"desde": "09-01", "hasta": "01-31"}],
     "etapas": [
-      {"nombre": "inicial", "dias": 20, "kc": 0.35, "ky": 0.30},
-      {"nombre": "desarrollo", "dias": 30, "kc": 0.70, "ky": 0.60},
-      {"nombre": "media", "dias": 45, "kc": 1.05, "ky": 0.95},
-      {"nombre": "final", "dias": 25, "kc": 0.50, "ky": 0.40}
+      {"nombre": "inicial", "dias": 23, "kc": 0.35, "ky": 0.3},
+      {"nombre": "desarrollo", "dias": 35, "kc": 0.7, "ky": 0.6},
+      {"nombre": "media", "dias": 53, "kc": 1.05, "ky": 0.95},
+      {"nombre": "final", "dias": 29, "kc": 0.5, "ky": 0.4}
     ],
-    "rendimiento_ref_t_ha": 30.0,
+    "rendimiento_ref_t_ha": 20.0,
     "costos_soles_ha": {"semilla": 300, "fertilizante": 700, "jornales": 900, "cosecha": 500, "otros": 200},
-    "precio_soles_kg": {"mediana": 0.18, "p10": 0.12, "p90": 0.26},
+    "precio_soles_kg": {"mediana": 0.15, "p10": 0.13, "p90": 0.21},
     "restricciones": {"no_repetir_familia_consecutiva": true, "min_campanias_descanso": 0},
     "provisional": true,
-    "fuente": "PROVISIONAL - rendimiento en materia verde, pendiente de Roger"
+    "fuente": "Rendimiento: p90 de INEI ENA 2016-2025 Huanuco, parcelas de un solo cultivo con flag ok (forraje en materia verde declarada, n=450), mismo criterio que da 19.2 t/ha para la papa (ficha INIA: 18). Ventana: meses donde siembra el 78 % de esos productores. Duracion: meses siembra-cosecha de la ENA relativos a la papa. Precio: SIEA/MIDAGRI precio en chacra Huanuco 2020-2023 (p10/mediana/p90 mensual). Siguen provisionales: costos y kc/ky (orden de magnitud FAO-56/FAO-33).",
+    "provisional_campos": ["costos_soles_ha", "etapas.kc", "etapas.ky"]
   },
   "haba": {
     "nombre": "Haba", "variedad": "Senorita", "familia": "fabaceae",
-    "duracion_dias": 150,
-    "ventana_siembra": [{"desde": "10-01", "hasta": "12-10"}],
+    "duracion_dias": 190,
+    "ventana_siembra": [{"desde": "09-01", "hasta": "11-30"}],
     "etapas": [
-      {"nombre": "inicial", "dias": 25, "kc": 0.45, "ky": 0.40},
-      {"nombre": "desarrollo", "dias": 35, "kc": 0.80, "ky": 0.75},
-      {"nombre": "media", "dias": 55, "kc": 1.10, "ky": 1.05},
-      {"nombre": "final", "dias": 35, "kc": 0.55, "ky": 0.50}
+      {"nombre": "inicial", "dias": 32, "kc": 0.45, "ky": 0.4},
+      {"nombre": "desarrollo", "dias": 44, "kc": 0.8, "ky": 0.75},
+      {"nombre": "media", "dias": 70, "kc": 1.1, "ky": 1.05},
+      {"nombre": "final", "dias": 44, "kc": 0.55, "ky": 0.5}
     ],
-    "rendimiento_ref_t_ha": 2.8,
+    "rendimiento_ref_t_ha": 1.64,
     "costos_soles_ha": {"semilla": 900, "fertilizante": 700, "jornales": 1600, "cosecha": 700, "otros": 250},
-    "precio_soles_kg": {"mediana": 2.30, "p10": 1.60, "p90": 3.20},
+    "precio_soles_kg": {"mediana": 2.89, "p10": 2.51, "p90": 3.54},
     "restricciones": {"no_repetir_familia_consecutiva": true, "min_campanias_descanso": 0},
     "fija_nitrogeno": true,
     "provisional": true,
-    "fuente": "PROVISIONAL - valores de orden de magnitud, pendiente de Roger"
+    "fuente": "Rendimiento: p90 de INEI ENA 2016-2025 Huanuco, parcelas de un solo cultivo con flag ok (grano seco, n=984), mismo criterio que da 19.2 t/ha para la papa (ficha INIA: 18). Ventana: meses donde siembra el 74 % de esos productores. Duracion: meses siembra-cosecha de la ENA relativos a la papa. Precio: SIEA/MIDAGRI precio en chacra Huanuco 2020-2023 (p10/mediana/p90 mensual). Siguen provisionales: costos y kc/ky (orden de magnitud FAO-56/FAO-33).",
+    "provisional_campos": ["costos_soles_ha", "etapas.kc", "etapas.ky"]
   },
   "tarwi": {
     "nombre": "Tarwi", "variedad": "Altagracia", "familia": "fabaceae",
-    "duracion_dias": 200,
-    "ventana_siembra": [{"desde": "09-15", "hasta": "11-15"}],
+    "duracion_dias": 190,
+    "ventana_siembra": [{"desde": "10-01", "hasta": "01-31"}],
     "etapas": [
-      {"nombre": "inicial", "dias": 35, "kc": 0.40, "ky": 0.35},
-      {"nombre": "desarrollo", "dias": 50, "kc": 0.75, "ky": 0.70},
-      {"nombre": "media", "dias": 70, "kc": 1.05, "ky": 1.00},
-      {"nombre": "final", "dias": 45, "kc": 0.50, "ky": 0.45}
+      {"nombre": "inicial", "dias": 33, "kc": 0.4, "ky": 0.35},
+      {"nombre": "desarrollo", "dias": 48, "kc": 0.75, "ky": 0.7},
+      {"nombre": "media", "dias": 66, "kc": 1.05, "ky": 1.0},
+      {"nombre": "final", "dias": 43, "kc": 0.5, "ky": 0.45}
     ],
-    "rendimiento_ref_t_ha": 1.3,
+    "rendimiento_ref_t_ha": 1.44,
     "costos_soles_ha": {"semilla": 420, "fertilizante": 500, "jornales": 1400, "cosecha": 650, "otros": 200},
-    "precio_soles_kg": {"mediana": 3.60, "p10": 2.40, "p90": 5.00},
+    "precio_soles_kg": {"mediana": 4.91, "p10": 3.55, "p90": 5.63},
     "restricciones": {"no_repetir_familia_consecutiva": true, "min_campanias_descanso": 0},
     "fija_nitrogeno": true,
     "provisional": true,
-    "fuente": "PROVISIONAL - valores de orden de magnitud, pendiente de Roger"
+    "fuente": "Rendimiento: p90 de INEI ENA 2016-2025 Huanuco, parcelas de un solo cultivo con flag ok (grano seco, n=379), mismo criterio que da 19.2 t/ha para la papa (ficha INIA: 18). Ventana: meses donde siembra el 75 % de esos productores. Duracion: meses siembra-cosecha de la ENA relativos a la papa. Precio: SIEA/MIDAGRI precio en chacra Huanuco 2020-2023 (p10/mediana/p90 mensual). Siguen provisionales: costos y kc/ky (orden de magnitud FAO-56/FAO-33).",
+    "provisional_campos": ["costos_soles_ha", "etapas.kc", "etapas.ky"]
   }
 }
