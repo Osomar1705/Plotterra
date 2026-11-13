@@ -161,7 +161,14 @@ def test_el_margen_declara_su_exposicion_a_los_costos(datasets):
     for a in r.alternativas:
         e = a.economia
         assert e.costos_soles_ha > 0, "hay que decir con que costos se calculo"
-        assert e.costos_provisionales is True, "hoy ningun cultivo tiene costos validados"
+        # Lo esperado sale de las fichas, no de una fecha: el flag debe apagarse
+        # solo el dia que los costos de la rotacion tengan fuente.
+        fichas = [datasets.fichas[c.cultivo] for c in a.secuencia]
+        esperado = any(
+            "costos_soles_ha" in f.provisional_campos if f.provisional_campos else f.provisional
+            for f in fichas
+        )
+        assert e.costos_provisionales is esperado
 
         s = e.margen_sensibilidad_costos
         assert s["si_costaran_25_mas"] < e.margen_soles_ha_mediana < s["si_costaran_25_menos"]
