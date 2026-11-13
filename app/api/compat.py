@@ -104,6 +104,27 @@ def normalizar_condiciones(cuerpo: dict[str, Any]) -> dict[str, Any]:
     if d.get("prioridad") in PRIORIDADES:
         d["prioridad"] = PRIORIDADES[d["prioridad"]]
 
+    # Los cultivos excluidos viajan como {crop, reason}: no basta con
+    # renombrar la lista, hay que traducir tambien sus campos.
+    excluidos = d.get("cultivos_excluidos")
+    if isinstance(excluidos, list):
+        traducidos = []
+        for e in excluidos:
+            if not isinstance(e, dict):
+                continue
+            cultivo = e.get("cultivo") or e.get("crop")
+            if not cultivo:
+                continue
+            traducidos.append(
+                {
+                    "cultivo": str(cultivo),
+                    "motivo": str(
+                        e.get("motivo") or e.get("reason") or "decision_del_agricultor"
+                    ),
+                }
+            )
+        d["cultivos_excluidos"] = traducidos
+
     # areaHa no viaja: el area la manda la parcela ya registrada.
     for sobra in ("areaHa", "area_ha"):
         d.pop(sobra, None)

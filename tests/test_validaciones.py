@@ -125,3 +125,45 @@ def test_comparacion_inexistente(cliente):
     r = cliente.get(f"{BASE}/comparaciones/cmp_nada")
     assert r.status_code == 404
     assert _error(r)["codigo"] == "NO_ENCONTRADO"
+
+
+def test_un_cuadrilatero_dibujado_a_mano_se_acepta():
+    """Los lados primero y ultimo comparten vertice: tocarse ahi no es cruzarse.
+
+    La comprobacion de cruces saltaba el par (0, ultimo) pero no (ultimo, 0),
+    asi que rechazaba cualquier parcela de cuatro esquinas dibujada en el mapa.
+    """
+    from app.api.validaciones import validar_poligono
+
+    dibujada = [
+        [-76.1800, -10.1100], [-76.1740, -10.1095],
+        [-76.1735, -10.1160], [-76.1795, -10.1150], [-76.1800, -10.1100],
+    ]
+    assert len(validar_poligono({"type": "Polygon", "coordinates": [dibujada]})) == 4
+
+
+def test_un_poligono_que_si_se_cruza_sigue_fallando():
+    from app.api.errors import ErrorFieldShift
+    from app.api.validaciones import validar_poligono
+
+    reloj_de_arena = [
+        [-76.18, -10.11], [-76.17, -10.12],
+        [-76.17, -10.11], [-76.18, -10.12], [-76.18, -10.11],
+    ]
+    with pytest.raises(ErrorFieldShift) as exc:
+        validar_poligono({"type": "Polygon", "coordinates": [reloj_de_arena]})
+    assert exc.value.codigo.value == "POLIGONO_INVALIDO"
+
+
+def test_los_cultivos_excluidos_llegan_con_los_nombres_del_frontend():
+    """El frontend manda {crop, reason}; el contrato pide {cultivo, motivo}."""
+    from app.api.compat import normalizar_condiciones, validar
+    from app.schemas.entrada import CondicionesComparacion
+
+    cuerpo = normalizar_condiciones({
+        "plotId": "prc_1", "startDate": "2026-12-01", "waterMode": "rainfed",
+        "allowedCrops": ["papa", "quinua", "haba"], "priority": "water", "horizon": 3,
+        "excludedCrops": [{"crop": "cebada", "reason": "sin_comprador"}],
+    })
+    cond = validar(CondicionesComparacion, cuerpo)
+    assert [(e.cultivo, e.motivo) for e in cond.cultivos_excluidos] == [("cebada", "sin_comprador")]

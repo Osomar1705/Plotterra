@@ -81,9 +81,13 @@ def validar_poligono(poligono: Any) -> list[tuple[float, float]]:
         )
 
     lados = list(zip(unicos, unicos[1:] + [unicos[0]]))
+    n = len(lados)
     for i, (a, b) in enumerate(lados):
         for j, (c, d) in enumerate(lados):
-            if abs(i - j) <= 1 or (i == 0 and j == len(lados) - 1):
+            # Dos lados contiguos comparten un vertice: tocarse ahi no es
+            # cruzarse. La vecindad es circular, asi que el ultimo lado es
+            # contiguo al primero en los DOS sentidos.
+            if i == j or (i + 1) % n == j or (j + 1) % n == i:
                 continue
             if _se_cruzan(a, b, c, d):
                 raise ErrorFieldShift(
