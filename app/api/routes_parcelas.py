@@ -5,7 +5,9 @@ from fastapi import APIRouter, Response, status
 
 from app.api.errors import ErrorFieldShift
 from app.api.validaciones import area_hectareas, validar_area, validar_entrada_parcela, validar_poligono
+from app.config import CONFIG
 from app.data.repository import REPO
+from app.data.verdor import SerieVerdor
 from app.schemas.entrada import (
     ParcelaCreada,
     ParcelaCrear,
@@ -16,6 +18,7 @@ from app.schemas.entrada import (
 from app.schemas.errores import CodigoError
 
 router = APIRouter(tags=["parcelas"])
+VERDOR = SerieVerdor(CONFIG.datasets_dir)
 
 
 @router.post(
@@ -83,3 +86,24 @@ def crear_parcela(entrada: ParcelaCrear, response: Response) -> ParcelaCreada:
             ),
         ),
     )
+
+
+@router.get(
+    "/parcelas/{parcela_id}/verdor",
+    summary="Verdor (NDVI) de la parcela visto desde satelite, con su clasificacion",
+)
+def verdor_de_parcela(parcela_id: str) -> dict:
+    """Confirma con imagenes de satelite que el terreno es una chacra.
+
+    Si la parcela no cae sobre el punto medido responde 200 con
+    disponible=false y el motivo: no es un error, es una limitacion declarada.
+    """
+    parcela = REPO.parcela(parcela_id)
+    if parcela is None:
+        raise ErrorFieldShift(
+            CodigoError.NO_ENCONTRADO,
+            f"parcela {parcela_id} inexistente",
+            campo="parcela_id",
+            mensaje_agricultor="No encontramos esa parcela. Vuelve a dibujarla.",
+        )
+    return {"parcela_id": parcela_id, **VERDOR.para(parcela["geometria"])}
