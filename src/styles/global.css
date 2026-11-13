@@ -119,3 +119,24 @@
   .submit-block{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:12px 14px;z-index:25;gap:6px}
   .submit-block .foot-note{display:none}
 }
+
+/* ===== Verdor de la parcela (NDVI) ===== */
+.greenness{margin-top:22px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:24px;align-items:center;box-shadow:0 2px 12px rgba(11,54,68,.03)}
+.greenness--off{display:flex;gap:10px;align-items:center;padding:12px 16px;color:var(--muted);font-size:13px;background:#f7faf8;box-shadow:none}
+.greenness--off p{margin:0}.greenness--off svg{color:var(--green);flex:none}
+.greenness-copy h2{font-family:Manrope,sans-serif;font-size:18px;color:var(--navy);margin:10px 0 4px}
+.greenness-copy p{margin:0;color:var(--text);font-size:14px;line-height:1.45}
+.greenness-copy dl{display:flex;gap:22px;margin:14px 0 8px}
+.greenness-copy dt{font-size:11px;color:var(--muted)}.greenness-copy dd{margin:2px 0 0;font-weight:700;color:var(--navy)}
+.greenness-copy small{color:var(--muted);font-size:11px;line-height:1.35;display:block}
+.greenness-badge{display:inline-flex;align-items:center;gap:6px;border-radius:20px;padding:6px 12px;font-size:12px;font-weight:700;background:var(--mint);color:var(--green)}
+.greenness-badge--sin_vegetacion,.greenness-badge--vegetacion_permanente,.greenness-badge--dudoso{background:var(--amber-bg);color:var(--amber)}
+.greenness-chart{margin:0}.greenness-chart svg{width:100%;height:auto;display:block}
+.greenness-grid{stroke:#e5ece9;stroke-width:1}
+.greenness-axis{fill:var(--muted);font-size:10px;font-family:'Source Sans 3',system-ui,sans-serif}
+.greenness-line{fill:none;stroke:var(--green);stroke-width:1.6;stroke-linejoin:round}
+.greenness-dot{fill:var(--green)}
+.greenness-chart figcaption{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px;font-size:11px;color:var(--muted)}
+.greenness-months{display:flex;gap:3px}
+.greenness-months i{font-style:normal;width:18px;height:18px;border-radius:4px;display:grid;place-items:center;background:var(--green);color:#fff;font-size:10px;font-weight:700}
+@media(max-width:1050px){.greenness{grid-template-columns:1fr}}

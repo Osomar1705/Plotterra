@@ -4,6 +4,7 @@ import { applyChange, createComparison, getComparison, interpretAssistant, undoC
 import { readEntryConditions, readQueryContext } from '../integration/entryContext';
 import { AlternativeCard } from './AlternativeCard';
 import { AssistantDrawer } from './AssistantDrawer';
+import { GreennessPanel } from './GreennessPanel';
 import { ChatIcon, FlaskIcon, LeafIcon, PinIcon, SproutIcon, WaterIcon } from './Icons';
 
 const quickChanges: AppliedChange[] = [
@@ -48,6 +49,8 @@ export function ComparisonPage(){
     <header className="topbar"><a className="brand" href="/"><LeafIcon/>FieldShift</a><nav className="steps"><span>1&nbsp; Parcela</span><strong>2&nbsp; Opciones</strong><span>3&nbsp; Plan</span></nav></header>
     <main className="comparison-page">
       <section className="hero-row"><div><h1>Tres formas de planificar tu próxima siembra</h1><p>{activeLabel?'Resultados actualizados según el escenario aplicado.':'Compara alternativas según lo que más te importa.'}</p></div><div className="parcel-meta"><div><PinIcon/>Parcela 1 · {area} ha</div><small>ⓘ Datos estimados por hectárea</small></div></section>
+
+      {comparison.plotId&&comparison.plotId!=='unknown'&&<GreennessPanel plotId={comparison.plotId}/>}
 
       {activeLabel&&<div className="updated-banner"><span>✓ Comparación actualizada · {activeLabel}</span><button onClick={undo}>Deshacer</button></div>}
       {error&&<div className="error-banner"><div><strong>{error.code}</strong><span>{error.farmerMessage}</span></div>{error.runId&&<small>run_id: {error.runId}</small>}</div>}

@@ -168,3 +168,23 @@ export interface PlotDraft {
   declaredAreaHa?: number;
   locality?: string;
 }
+
+// --- Verdor de la parcela (GET /parcelas/{id}/verdor) ---
+
+export type GreennessPattern = 'ciclo_de_cultivo' | 'sin_vegetacion' | 'vegetacion_permanente' | 'dudoso';
+
+export interface GreennessPoint { date: string; ndvi: number }
+
+export interface Greenness {
+  available: boolean;
+  /** Motivo cuando no hay verdor: sin_dibujo, fuera_del_punto_medido, sin_datos. */
+  reason?: string;
+  farmerMessage: string;
+  pattern?: GreennessPattern;
+  series: GreennessPoint[];
+  monthly: { month: number; ndvi: number }[];
+  clearImages?: number;
+  scenes?: number;
+  lastYear?: { min: number | null; max: number | null; images: number };
+  source?: string;
+}

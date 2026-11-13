@@ -1,4 +1,4 @@
-import type { AlternativePassport, AppliedChange, AssistantInterpretation, Comparison, EntryConditions, Plot, PlotDraft } from '../types/fieldshift';
+import type { AlternativePassport, AppliedChange, AssistantInterpretation, Comparison, EntryConditions, Greenness, Plot, PlotDraft } from '../types/fieldshift';
 import { normalizeAlternativePassport, normalizeApiError, normalizeComparison } from './normalizers';
 import { baseComparison, changedComparison, demoPassports, demoPlot } from '../mocks/data';
 import { polygonAreaHa } from '../lib/plotGeometry';
@@ -133,4 +133,33 @@ export async function getAlternativePassport(comparisonId: string, alternativeId
     `/comparaciones/${encodeURIComponent(comparisonId)}/alternativas/${encodeURIComponent(alternativeId)}/pasaporte`,
   );
   return normalizeAlternativePassport(raw, alternativeId);
+}
+
+
+/**
+ * Verdor de la parcela visto desde satelite (NDVI de NASA HLS). Confirma que el
+ * terreno es una chacra. Devuelve null en modo mock o si falla: es un dato que
+ * acompana la comparacion, nunca la bloquea.
+ */
+export async function getGreenness(plotId: string): Promise<Greenness | null> {
+  if (USE_MOCKS || !plotId) return null;
+  try {
+    const raw = await request(`/parcelas/${encodeURIComponent(plotId)}/verdor`);
+    return {
+      available: Boolean(raw?.disponible),
+      reason: raw?.motivo,
+      farmerMessage: String(raw?.mensaje_agricultor ?? ''),
+      pattern: raw?.patron,
+      series: (raw?.serie ?? []).map((p: any) => ({ date: String(p.fecha), ndvi: Number(p.ndvi) })),
+      monthly: (raw?.ciclo_tipico ?? []).map((m: any) => ({ month: Number(m.mes), ndvi: Number(m.ndvi_medio) })),
+      clearImages: raw?.imagenes_despejadas,
+      scenes: raw?.escenas_revisadas,
+      lastYear: raw?.ultimos_12_meses
+        ? { min: raw.ultimos_12_meses.ndvi_min, max: raw.ultimos_12_meses.ndvi_max, images: raw.ultimos_12_meses.imagenes }
+        : undefined,
+      source: raw?.fuente,
+    };
+  } catch {
+    return null;
+  }
 }
