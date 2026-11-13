@@ -22,6 +22,7 @@ from app.schemas.comparacion import (
     Alternativa,
     CalidadInformacion,
     CampaniaSecuencia,
+    MetricasCampania,
     Descartadas,
     Economia,
     PlanHabitualEvaluado,
@@ -153,13 +154,17 @@ def _evaluar(secuencia: tuple[str, ...], cond: Condiciones, ds: Datasets, rng: r
         "riesgo_nivel": Nivel.medio if peor.motivo else Nivel.bajo,
         "riesgo_principal": peor.motivo,
         "dias": [c["dias"] for c in campanias],
+        # Por campania: la Vista 03 las muestra al tocar cada nodo del abanico.
+        "campanias": campanias,
     }
 
 
 def _secuencia_fechas(ev: dict, cond: Condiciones, ds: Datasets) -> list[CampaniaSecuencia]:
     salida = []
     siembra = cond.fecha_inicio
-    for i, (cultivo, dias) in enumerate(zip(ev["secuencia"], ev["dias"]), start=1):
+    for i, (cultivo, dias, m) in enumerate(
+        zip(ev["secuencia"], ev["dias"], ev["campanias"]), start=1
+    ):
         cosecha = siembra + timedelta(days=dias)
         salida.append(
             CampaniaSecuencia(
@@ -168,6 +173,12 @@ def _secuencia_fechas(ev: dict, cond: Condiciones, ds: Datasets) -> list[Campani
                 siembra=siembra.isoformat(),
                 ventana_dias=15 if i % 2 else 20,
                 cosecha=cosecha.isoformat(),
+                metricas=MetricasCampania(
+                    rendimiento_t_ha=round(m["rend_t_ha"], 2),
+                    deficit_mm=round(m["deficit_mm"], 1),
+                    demanda_mm=round(m["demanda_mm"], 1),
+                    margen_soles_ha=round(m["margen"], 2),
+                ),
             )
         )
         siembra = date(cosecha.year + (1 if cosecha.month > 6 else 0), cond.fecha_inicio.month, cond.fecha_inicio.day)

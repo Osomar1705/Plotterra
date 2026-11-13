@@ -97,6 +97,11 @@ class Condiciones:
     horizonte_campanias: int
     n_escenarios: int
     semilla: int
+    # Factores que pide el agricultor ("y si llueve menos", "y si baja el
+    # precio"). Se multiplican SOBRE los del escenario, no lo reemplazan: el
+    # stress test sigue siendo stress test.
+    factor_lluvia: float = 1.0
+    factor_precio: float = 1.0
 
 
 @dataclass

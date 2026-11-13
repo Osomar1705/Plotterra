@@ -8,13 +8,15 @@ from __future__ import annotations
 
 from enum import Enum
 
-from pydantic import Field
+from pydantic import Field, computed_field
 
 from app.schemas.comun import Base, OrigenCambio
 
 
 class Intent(str, Enum):
     ajustar_riego = "ajustar_riego"
+    ajustar_lluvia = "ajustar_lluvia"
+    ajustar_precio = "ajustar_precio"
     excluir_cultivo = "excluir_cultivo"
     fijar_cultivo_campania = "fijar_cultivo_campania"
     cambiar_prioridad = "cambiar_prioridad"
@@ -34,6 +36,19 @@ class Interpretacion(Base):
     confianza: float = Field(ge=0, le=1)
 
 
+# Intent del motor -> el cambio que el frontend sabe reenviar a /cambios.
+# La vuelta (type/operation/value/unit -> intent/parametros) la hace compat.py,
+# asi que el objeto que se devuelve aqui es el mismo que acepta aplicar_cambio.
+_TIPO_FRONTEND = {
+    Intent.ajustar_riego: "irrigation",
+    Intent.ajustar_lluvia: "rainfall",
+    Intent.ajustar_precio: "price",
+    Intent.excluir_cultivo: "exclude_crop",
+    Intent.fijar_cultivo_campania: "first_crop",
+    Intent.cambiar_prioridad: "priority",
+}
+
+
 class RespuestaConsulta(Base):
     interpretacion: Interpretacion | None = None
     aplicable: bool
@@ -43,6 +58,49 @@ class RespuestaConsulta(Base):
         default_factory=list,
         description="Tres salidas cuando no se entiende la pregunta; nunca se deja al agricultor sin salida.",
     )
+
+    # --- Alias para el asistente del frontend. Lee `status` y `cambio` en la
+    # raiz; sin ellos daba "Reformular" aunque el backend hubiera entendido.
+    @computed_field
+    @property
+    def status(self) -> str:
+        return "understood" if self.interpretacion else "needs_clarification"
+
+    @computed_field
+    @property
+    def cambio(self) -> dict | None:
+        i = self.interpretacion
+        if i is None:
+            return None
+        tipo = _TIPO_FRONTEND.get(i.intent, i.intent.value)
+        base: dict = {"tipo": tipo, "type": tipo, "etiqueta": i.etiqueta, "label": i.etiqueta}
+
+        if "factor" in i.parametros:
+            factor = float(i.parametros["factor"])
+            base.update(
+                operacion="reduce" if factor < 1 else "increase",
+                operation="reduce" if factor < 1 else "increase",
+                valor=round(abs(1 - factor) * 100),
+                value=round(abs(1 - factor) * 100),
+                unidad="percent",
+                unit="percent",
+            )
+        else:
+            # excluir_cultivo, fijar_cultivo_campania y cambiar_prioridad viajan
+            # con su valor tal cual: el cultivo o la prioridad.
+            valor = i.parametros.get("cultivo") or i.parametros.get("prioridad")
+            base.update(operacion="set", operation="set", valor=valor, value=valor)
+            if "campania" in i.parametros:
+                base["campania"] = i.parametros["campania"]
+        return base
+
+    @computed_field
+    @property
+    def mensaje(self) -> str | None:
+        """Lo que el asistente muestra cuando no entendio."""
+        if self.interpretacion:
+            return self.interpretacion.descripcion
+        return "No entendimos la pregunta. Prueba con una de estas:"
 
 
 class CambioCrear(Base):

@@ -49,9 +49,54 @@ def _normalizar(texto: str) -> str:
     return re.sub(r"\s+", " ", sin_tildes).strip()
 
 
+def _factor_de(t: str) -> float | None:
+    """Saca el factor de frases como "30 % menos", "la mitad", "el doble"."""
+    sube = any(p in t for p in ("mas", "aumenta", "sube", "subir", "doble", "mejor"))
+    pct = re.search(r"(\d{1,3})\s*%", t)
+    if pct:
+        valor = int(pct.group(1)) / 100
+        factor = round(1 + valor, 2) if sube else round(1 - valor, 2)
+        return factor if 0.1 <= factor <= 2.0 else None
+    if "mitad" in t:
+        return 0.5
+    if "doble" in t:
+        return 2.0
+    if any(p in t for p in ("menos", "baja", "bajara", "cae", "caiga", "poca", "poco")):
+        return 0.7  # sin cifra: un recorte moderado, y la pantalla pide confirmacion
+    return None
+
+
 def interpretar_por_reglas(texto: str, catalogo: set[str]) -> Interpretacion | None:
     """Cubre los tres intents obligatorios mas cambiar_prioridad."""
     t = _normalizar(texto)
+
+    # ajustar_lluvia y ajustar_precio van primero: "y si llueve menos" habla de
+    # agua, y caeria en ajustar_riego si se evaluara despues.
+    for intent, palabras in (
+        (Intent.ajustar_lluvia, ("llueve", "lluvia", "lloviera", "llover", "seco", "sequia")),
+        (Intent.ajustar_precio, ("precio", "precios", "pagan", "vale", "cotiza", "baja el valor")),
+    ):
+        if any(p in t for p in palabras):
+            factor = _factor_de(t)
+            # "ano seco" no trae cifra pero si direccion: se asume un recorte
+            # moderado y la pantalla pide confirmacion antes de recalcular.
+            if factor is None and any(p in t for p in ("seco", "sequia")):
+                factor = 0.7
+            if factor is not None:
+                from app.api.cambios import etiqueta_de
+
+                nombre = "la lluvia" if intent is Intent.ajustar_lluvia else "el precio"
+                parametros = {"factor": factor}
+                return Interpretacion(
+                    intent=intent,
+                    parametros=parametros,
+                    descripcion=(
+                        f"{'Reducir' if factor < 1 else 'Aumentar'} {nombre} "
+                        f"un {round(abs(1 - factor) * 100)} % y volver a comparar"
+                    ),
+                    etiqueta=etiqueta_de(intent, parametros),
+                    confianza=0.84,
+                )
 
     # ajustar_riego: "30% menos riego", "la mitad de agua", "sin riego"
     if any(p in t for p in ("riego", "agua", "regar")):

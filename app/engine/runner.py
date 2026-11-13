@@ -30,7 +30,7 @@ from app.engine.economics import margen_soles_ha
 from app.engine.soil import indice_suelo
 from app.engine.water import balance_hidrico
 from app.engine.yield_ import rendimiento_t_ha
-from app.schemas.comparacion import CampaniaSecuencia, CalidadInformacion
+from app.schemas.comparacion import CalidadInformacion, CampaniaSecuencia, MetricasCampania
 from app.schemas.comun import Nivel, NivelCalidad
 
 # Deficit, en mm por campania, a partir del cual el riesgo sube de nivel.
@@ -104,7 +104,8 @@ def ejecutar_comparacion(condiciones: Condiciones, datasets: Datasets) -> Result
             inicio = rotations.siembra_de_campania(condiciones.fecha_inicio, posicion)
             for j, esc in enumerate(escenarios):
                 serie = _serie_del_anio(
-                    clima, esc["anio_base"], inicio, ficha.duracion_dias, esc["factor_lluvia"]
+                    clima, esc["anio_base"], inicio, ficha.duracion_dias,
+                    esc["factor_lluvia"] * condiciones.factor_lluvia,
                 )
                 if not serie:
                     continue
@@ -113,7 +114,9 @@ def ejecutar_comparacion(condiciones: Condiciones, datasets: Datasets) -> Result
                 )
                 rend = rendimiento_t_ha(ficha, balance)
                 tramos[(cultivo, posicion, j)] = {
-                    "margen": margen_soles_ha(ficha, rend, esc["factor_precio"]),
+                    "margen": margen_soles_ha(
+                        ficha, rend, esc["factor_precio"] * condiciones.factor_precio
+                    ),
                     "deficit": balance.deficit_mm,
                     "demanda": balance.demanda_mm,
                     "rendimiento": rend,
@@ -126,7 +129,9 @@ def ejecutar_comparacion(condiciones: Condiciones, datasets: Datasets) -> Result
         if m is not None
     ]
     for m in metricas:
-        m["secuencia_fechas"] = _secuencia_schema(condiciones, m["secuencia"], fichas)
+        m["secuencia_fechas"] = _secuencia_schema(
+            condiciones, m["secuencia"], fichas, m["metricas_campania"]
+        )
         m["secuencia_cultivos"] = m["secuencia"]
         m["secuencia"] = m["secuencia_fechas"]
 
@@ -152,7 +157,11 @@ def _agregar(
 ) -> dict[str, Any] | None:
     """Suma los tramos de la rotacion escenario por escenario."""
     margenes, deficits, demandas = [], [], []
-    deficit_por_campania: list[list[float]] = [[] for _ in secuencia]
+    # Una lista por campania y por metrica: la Vista 03 las muestra al tocar
+    # cada nodo del abanico.
+    por_campania: list[dict[str, list[float]]] = [
+        {"margen": [], "deficit": [], "demanda": [], "rendimiento": []} for _ in secuencia
+    ]
 
     for j in range(len(escenarios)):
         claves = [(c, i, j) for i, c in enumerate(secuencia)]
@@ -162,7 +171,8 @@ def _agregar(
         deficits.append(sum(tramos[k]["deficit"] for k in claves))
         demandas.append(sum(tramos[k]["demanda"] for k in claves))
         for i, k in enumerate(claves):
-            deficit_por_campania[i].append(tramos[k]["deficit"])
+            for metrica, serie in por_campania[i].items():
+                serie.append(tramos[k][metrica])
 
     if not margenes:
         return None
@@ -171,13 +181,19 @@ def _agregar(
     n_cola = max(1, len(margenes) // 10)
     indice, razon = indice_suelo(secuencia, fichas)
 
-    deficit_mediana_campania = [statistics.median(d) if d else 0.0 for d in deficit_por_campania]
+    metricas_campania = [
+        {m: round(statistics.median(v), 2) if v else 0.0 for m, v in campania.items()}
+        for campania in por_campania
+    ]
+    deficit_mediana_campania = [c["deficit"] for c in metricas_campania]
     riesgos = [_nivel_riesgo(d) for d in deficit_mediana_campania]
     peor = max(riesgos, key=lambda r: ("bajo", "medio", "alto").index(r[0].value))
 
     return {
         "secuencia": secuencia,
+        "metricas_campania": metricas_campania,
         "margen_mediana": round(statistics.median(margenes), 2),
+        "margen_promedio": round(statistics.fmean(margenes), 2),
         "margen_p10": round(_percentil(margenes, 10), 2),
         "margen_p90": round(_percentil(margenes, 90), 2),
         "cvar_10": round(sum(margenes[:n_cola]) / n_cola, 2),
@@ -224,8 +240,14 @@ def _calidad(secuencia: list[str], fichas: dict) -> CalidadInformacion:
     )
 
 
-def _secuencia_schema(condiciones: Condiciones, secuencia: list[str], fichas: dict) -> list[CampaniaSecuencia]:
+def _secuencia_schema(
+    condiciones: Condiciones,
+    secuencia: list[str],
+    fichas: dict,
+    metricas: list[dict[str, float]] | None = None,
+) -> list[CampaniaSecuencia]:
     fechas = rotations.fechas_de_campanias(condiciones, secuencia, fichas)
+    metricas = metricas or [{} for _ in secuencia]
     return [
         CampaniaSecuencia(
             campania=i + 1,
@@ -233,8 +255,16 @@ def _secuencia_schema(condiciones: Condiciones, secuencia: list[str], fichas: di
             siembra=siembra.isoformat(),
             ventana_dias=fichas[c].duracion_dias,
             cosecha=cosecha.isoformat(),
+            metricas=MetricasCampania(
+                rendimiento_t_ha=m.get("rendimiento", 0.0),
+                deficit_mm=m.get("deficit", 0.0),
+                demanda_mm=m.get("demanda", 0.0),
+                margen_soles_ha=m.get("margen", 0.0),
+            )
+            if m
+            else None,
         )
-        for i, (c, (siembra, cosecha)) in enumerate(zip(secuencia, fechas))
+        for i, (c, (siembra, cosecha), m) in enumerate(zip(secuencia, fechas, metricas))
     ]
 
 

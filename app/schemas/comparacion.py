@@ -27,18 +27,40 @@ class Motor(Base):
     fuente_resultado: str = Field(description="calculado, cache o mock.")
 
 
+class MetricasCampania(Base):
+    """Lo que rinde, gasta y deja ESA campania, no la rotacion entera.
+
+    La Vista 03 las necesita para que al tocar un nodo del abanico cambien sus
+    cifras. Son medianas sobre los escenarios, igual que las de la tarjeta.
+
+    Ojo al mostrarlas: la suma de los margenes por campania NO da el margen de
+    la rotacion. La mediana de las sumas no es la suma de las medianas, y la
+    diferencia puede ser grande. Cada cifra es correcta en su nivel; no hay que
+    presentarlas como si cuadraran.
+    """
+
+    rendimiento_t_ha: float
+    deficit_mm: float
+    demanda_mm: float
+    margen_soles_ha: float
+
+
 class CampaniaSecuencia(Base):
     campania: int = Field(ge=1, le=3)
     cultivo: str
     siembra: str = Field(description="Fecha ISO de siembra sugerida.")
     ventana_dias: int
     cosecha: str
+    metricas: MetricasCampania | None = None
 
 
 class Economia(Base):
     margen_soles_ha_mediana: float
     margen_soles_ha_p10: float
     margen_soles_ha_p90: float
+    margen_soles_ha_promedio: float = Field(
+        default=0.0, description="Promedio de los escenarios. La mediana sigue siendo la cifra principal."
+    )
     cvar_10_soles_ha: float = Field(
         description="Promedio del margen en el 10 % de escenarios con peor resultado."
     )
@@ -137,6 +159,13 @@ class Alternativa(Base):
                 "ventana": f"{c.siembra} a {c.cosecha}",
                 "siembra": c.siembra,
                 "cosecha": c.cosecha,
+                "metrics": None
+                if c.metricas is None
+                else {
+                    "yield": {"value": c.metricas.rendimiento_t_ha, "unit": "t/ha"},
+                    "water": {"value": c.metricas.deficit_mm, "unit": "mm"},
+                    "economy": {"value": c.metricas.margen_soles_ha, "unit": "S/ha"},
+                },
             }
             for c in self.secuencia
         ]
@@ -146,6 +175,8 @@ class Alternativa(Base):
     def margen(self) -> dict:
         return {
             "mediana": self.economia.margen_soles_ha_mediana,
+            "promedio": self.economia.margen_soles_ha_promedio,
+            "adverso": self.economia.cvar_10_soles_ha,
             "minimo": self.economia.margen_soles_ha_p10,
             "maximo": self.economia.margen_soles_ha_p90,
             "moneda": self.economia.moneda,
@@ -199,6 +230,14 @@ class RespuestaComparacion(Base):
     escenarios_aplicados: list[CambioAplicado] = Field(default_factory=list)
     alternativas: list[Alternativa]
     plan_habitual: PlanHabitualEvaluado
+
+    @computed_field
+    @property
+    def status(self) -> str:
+        """Alias en ingles de `estado`. La Vista 03 lo compara con "ready"."""
+        return {"listo": "ready", "calculando": "processing", "error": "failed"}.get(
+            self.estado.value, "ready"
+        )
 
     @computed_field
     @property

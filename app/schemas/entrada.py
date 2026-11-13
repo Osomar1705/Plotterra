@@ -90,6 +90,14 @@ class CondicionesComparacion(Base):
         description="Campania (1, 2 o 3) -> cultivo que el agricultor fija ahi. Lo escribe el intent fijar_cultivo_campania.",
         examples=[{"1": "papa"}],
     )
+    factor_lluvia: float = Field(
+        default=1.0, gt=0, le=2,
+        description="Multiplica la lluvia de todos los escenarios. 1.0 = clima historico.",
+    )
+    factor_precio: float = Field(
+        default=1.0, gt=0, le=3,
+        description="Multiplica el precio de venta. 1.0 = precio mediano de la ficha.",
+    )
     horizonte_campanias: int = Field(default=3, ge=1, le=3)
     escenarios: EscenariosEntrada = Field(default_factory=EscenariosEntrada)
 

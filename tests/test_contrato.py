@@ -115,3 +115,26 @@ def test_el_area_guardada_viene_redondeada(cliente, parcela):
     from app.data.repository import REPO
 
     assert REPO.parcela(parcela["parcela_id"])["area_ha"] == parcela["area_ha"]
+
+
+def test_la_respuesta_trae_los_alias_que_lee_el_frontend(cliente, condiciones):
+    """El frontend normaliza en ingles: sin estos alias pinta ceros o se bloquea."""
+    datos = cliente.post(f"{BASE}/comparaciones", json=condiciones).json()
+
+    # status: la Vista 03 solo dibuja si es "ready". Con "listo" se queda esperando.
+    assert datos["status"] == "ready"
+    assert datos["estado"] == "listo", "el campo canonico no cambia"
+    assert datos["prioridad"] in ("economia", "agua", "suelo")
+    assert datos["area_ha"] > 0
+
+    alt = datos["alternativas"][0]
+    assert alt["tipo"] in ("economia", "agua", "suelo")
+    assert set(alt["margen"]) >= {"mediana", "promedio", "adverso", "minimo", "maximo"}
+    assert alt["agua"]["metrica"] == "deficit"
+    assert alt["suelo"]["compatibilidad"]
+
+    # Metricas por campania: lo que hace que el abanico de la Vista 03 cambie.
+    for campana in alt["campanas"]:
+        assert campana["metrics"] is not None, "campana sin desglose"
+        assert campana["metrics"]["yield"]["unit"] == "t/ha"
+        assert campana["metrics"]["economy"]["unit"] == "S/ha"

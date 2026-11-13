@@ -126,3 +126,48 @@ def test_no_se_puede_fijar_un_cultivo_no_habilitado(cliente, condiciones):
     )
     assert r.status_code == 422
     assert r.json()["error"]["codigo"] == "CULTIVOS_INSUFICIENTES"
+
+
+def test_la_consulta_devuelve_un_cambio_que_el_frontend_puede_reenviar(cliente, condiciones):
+    """La cadena del asistente: preguntar, recibir el cambio, aplicarlo.
+
+    El asistente del frontend lee `status` y `cambio` en la raiz, y reenvia ese
+    mismo objeto a /cambios. Si alguna de las dos puntas no encaja, la pantalla
+    dice "Reformular" aunque el backend haya entendido.
+    """
+    comparacion = cliente.post(f"{BASE}/comparaciones", json=condiciones).json()
+    cid = comparacion["comparacion_id"]
+
+    preguntas = [
+        ("y si llueve 30% menos", "rainfall"),
+        ("y si baja el precio un 25%", "price"),
+        ("no puedo vender cebada", "exclude_crop"),
+        ("prefiero cuidar el agua", "priority"),
+    ]
+    for texto, tipo_esperado in preguntas:
+        r = cliente.post(f"{BASE}/consultas", json={"comparison_id": cid, "consulta": texto})
+        assert r.status_code == 200, r.text
+        datos = r.json()
+        assert datos["status"] == "understood", f"no entendio: {texto}"
+        cambio = datos["cambio"]
+        assert cambio["type"] == tipo_esperado, f"{texto} -> {cambio['type']}"
+        assert cambio["label"], "la etiqueta la calcula el backend, no la pantalla"
+
+        # Y ese mismo objeto tiene que servir para aplicar el cambio.
+        aplicado = cliente.post(f"{BASE}/comparaciones/{cid}/cambios", json={"cambio": cambio})
+        assert aplicado.status_code == 200, f"{texto}: {aplicado.text[:200]}"
+        derivada = aplicado.json()
+        assert derivada["derivada_de"] == cid
+        assert derivada["escenarios_aplicados"][-1]["etiqueta"] == cambio["label"]
+
+
+def test_una_pregunta_fuera_de_alcance_no_inventa(cliente, condiciones):
+    comparacion = cliente.post(f"{BASE}/comparaciones", json=condiciones).json()
+    r = cliente.post(
+        f"{BASE}/consultas",
+        json={"comparison_id": comparacion["comparacion_id"], "consulta": "cuanto cuesta un tractor"},
+    )
+    datos = r.json()
+    assert datos["status"] == "needs_clarification"
+    assert datos["cambio"] is None
+    assert len(datos["sugerencias"]) == 3, "nunca se deja al agricultor sin salida"
