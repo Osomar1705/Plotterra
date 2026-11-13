@@ -21,11 +21,11 @@
       {"nombre": "final", "dias": 45, "kc": 0.75, "ky": 0.60}
     ],
     "rendimiento_ref_t_ha": 18.0,
-    "costos_soles_ha": {"semilla": 2800, "fertilizante": 1900, "jornales": 2400, "cosecha": 900, "otros": 400},
+    "costos_soles_ha": {"semilla": 1130, "fertilizante": 1635, "jornales": 1893, "cosecha": 0, "otros": 2251},
     "precio_soles_kg": {"mediana": 0.95, "p10": 0.62, "p90": 1.35},
     "restricciones": {"no_repetir_familia_consecutiva": true, "min_campanias_descanso": 1},
     "provisional": false,
-    "fuente": "INIA ficha tecnica 2023; precios MIDAGRI 2021-2025"
+    "fuente": "Rendimiento y etapas: INIA ficha tecnica 2023. Precios: MIDAGRI 2021-2025. Costos: INEI 2021, Costos de produccion en base a la ENA 2018, Cuadro 4, total de UA pequenas sin arrendamiento, la cosecha va dentro de jornales (mismo criterio que los otros cinco cultivos; antes S/ 8 400 de la ficha INIA)."
   },
   "quinua": {
     "nombre": "Quinua", "variedad": "Blanca de Junin", "familia": "amaranthaceae",
