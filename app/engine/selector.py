@@ -95,6 +95,9 @@ def _a_alternativa(m: dict[str, Any], criterio: str, destacada: bool) -> Alterna
             horizonte_campanias=len(m["secuencia"]),
             margen_parcial=m["margen_parcial"],
             costos_incluidos=m["costos_incluidos"],
+            costos_soles_ha=m["costos_soles_ha"],
+            costos_provisionales=m["costos_provisionales"],
+            margen_sensibilidad_costos=m["margen_sensibilidad_costos"],
         ),
         agua=Agua(
             demanda_mm=m["demanda_mm"],

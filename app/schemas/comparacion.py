@@ -69,6 +69,23 @@ class Economia(Base):
     margen_parcial: bool = Field(
         description="True cuando el margen no incluye todos los costos; la tarjeta debe rotularlo."
     )
+    costos_soles_ha: float = Field(
+        default=0.0, description="Costos de campania usados en el calculo, sumados en el horizonte."
+    )
+    costos_provisionales: bool = Field(
+        default=True,
+        description=(
+            "True cuando los costos no tienen fuente local validada. Importa: el rango "
+            "p10-p90 recoge la variacion de clima y precio, NO la de costos."
+        ),
+    )
+    margen_sensibilidad_costos: dict = Field(
+        default_factory=dict,
+        description=(
+            "Que le pasa al margen si los costos estuvieran mal por +-25 %. Mientras "
+            "los costos sean provisionales, esta banda suele ser mas ancha que p10-p90."
+        ),
+    )
     costos_incluidos: list[str]
 
 

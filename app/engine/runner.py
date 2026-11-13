@@ -179,6 +179,7 @@ def _agregar(
 
     margenes.sort()
     n_cola = max(1, len(margenes) // 10)
+    costos_horizonte = sum(fichas[c].costo_total_soles_ha for c in secuencia)
     indice, razon = indice_suelo(secuencia, fichas)
 
     metricas_campania = [
@@ -205,6 +206,19 @@ def _agregar(
         "razon_suelo": razon,
         "margen_parcial": True,
         "costos_incluidos": sorted(next(iter(fichas.values())).costos_soles_ha),
+        # Los costos no varian entre escenarios: son el mismo numero siempre. Por
+        # eso su incertidumbre NO entra en el rango p10-p90, y hay que exponerla
+        # aparte o el margen aparenta mas precision de la que tiene.
+        "costos_soles_ha": round(costos_horizonte, 2),
+        "costos_provisionales": any(
+            fichas[c].provisional or "costos_soles_ha" in getattr(fichas[c], "provisional_campos", [])
+            for c in secuencia
+        ),
+        "margen_sensibilidad_costos": {
+            "supuesto": "los costos podrian estar mal por +-25 %",
+            "si_costaran_25_menos": round(statistics.median(margenes) + costos_horizonte * 0.25, 2),
+            "si_costaran_25_mas": round(statistics.median(margenes) - costos_horizonte * 0.25, 2),
+        },
         "riesgo_nivel": peor[0],
         "riesgo_principal": peor[1],
         "riesgo_por_campania": riesgos,

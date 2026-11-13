@@ -151,3 +151,21 @@ def test_menos_precio_baja_el_margen(datasets):
     m_normal = max(a.economia.margen_soles_ha_mediana for a in normal.alternativas)
     m_barato = max(a.economia.margen_soles_ha_mediana for a in barato.alternativas)
     assert m_barato < m_normal
+
+
+def test_el_margen_declara_su_exposicion_a_los_costos(datasets):
+    """Los costos no varian entre escenarios, asi que su incertidumbre no esta
+    en el rango p10-p90. Si no se expone aparte, el margen aparenta mas
+    precision de la que tiene."""
+    r = ejecutar_comparacion(_condiciones(prioridad="economia"), datasets)
+    for a in r.alternativas:
+        e = a.economia
+        assert e.costos_soles_ha > 0, "hay que decir con que costos se calculo"
+        assert e.costos_provisionales is True, "hoy ningun cultivo tiene costos validados"
+
+        s = e.margen_sensibilidad_costos
+        assert s["si_costaran_25_mas"] < e.margen_soles_ha_mediana < s["si_costaran_25_menos"]
+
+        # La banda por costos debe ser proporcional a los costos, no al azar.
+        banda = s["si_costaran_25_menos"] - s["si_costaran_25_mas"]
+        assert banda == pytest.approx(e.costos_soles_ha * 0.5, rel=0.01)
