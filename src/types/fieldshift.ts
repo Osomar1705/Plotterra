@@ -46,6 +46,10 @@ export interface ScenarioMeta {
   family: ScenarioFamily;
   climateYears: string[];
   baseId?: string;
+  /** Factores del escenario (1 = sin cambio). El motor real los sortea por futuro. */
+  rainFactor?: number;
+  irrigationFactor?: number;
+  priceFactor?: number;
 }
 
 export interface Outcomes {

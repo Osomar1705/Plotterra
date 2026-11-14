@@ -180,6 +180,9 @@ function normalizeScenarios(rows: any) {
     family: (FAMILIES.includes(first(r, 'familia', 'family')) ? first(r, 'familia', 'family') : 'tipica'),
     climateYears: first(r, 'anios_clima', 'climateYears') ?? [],
     baseId: first(r, 'futuro_base', 'baseId'),
+    rainFactor: num(first(r, 'factor_lluvia', 'rainFactor')) ?? undefined,
+    irrigationFactor: num(first(r, 'factor_riego', 'irrigationFactor')) ?? undefined,
+    priceFactor: num(first(r, 'factor_precio', 'priceFactor')) ?? undefined,
   }));
 }
 
