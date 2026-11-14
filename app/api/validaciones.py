@@ -6,7 +6,7 @@ condiciones que recibe ya son coherentes.
 from __future__ import annotations
 
 import math
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from app.api.errors import ErrorFieldShift
@@ -128,6 +128,20 @@ def validar_entrada_parcela(entrada: ParcelaCrear) -> None:
 
 
 # ---------------------------------------------------------------- condiciones
+# Peru no tiene horario de verano: UTC-5 todo el anio. Fijo en vez de zoneinfo
+# para no depender de tzdata en la imagen slim.
+HORA_PERU = timezone(timedelta(hours=-5), "America/Lima")
+
+
+def hoy_en_peru() -> date:
+    """El servidor corre en UTC; el agricultor, en Peru.
+
+    Con date.today() en UTC, desde las 19:00 de Lima el servidor ya esta en el
+    dia siguiente y rechazaba como pasada la fecha de hoy del agricultor.
+    """
+    return datetime.now(HORA_PERU).date()
+
+
 def _dentro_de_ventana(dia: date, desde: str, hasta: str) -> bool:
     md = (dia.month, dia.day)
     d_m, d_d = (int(x) for x in desde.split("-"))
@@ -157,7 +171,7 @@ def validar_condiciones(
     hoy: date | None = None,
 ) -> list[str]:
     """Devuelve los cultivos permitidos ya depurados. Lanza al primer fallo."""
-    hoy = hoy or date.today()
+    hoy = hoy or hoy_en_peru()
 
     desconocidos = [c for c in cond.cultivos_permitidos if c not in fichas]
     if desconocidos:

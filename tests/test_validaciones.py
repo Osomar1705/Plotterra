@@ -204,3 +204,19 @@ def test_cambio_de_prioridad_con_nombre_del_frontend():
 
     d = normalizar_cambio({"cambio": {"type": "priority", "value": "water"}})
     assert d["intent"] == "cambiar_prioridad" and d["parametros"] == {"prioridad": "agua"}
+
+
+def test_hoy_se_cuenta_en_hora_de_peru(monkeypatch):
+    """A las 21:00 de Lima el servidor en UTC ya esta en el dia siguiente."""
+    from datetime import datetime, timezone
+
+    import app.api.validaciones as v
+
+    class Reloj(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            utc = datetime(2026, 11, 14, 2, 0, tzinfo=timezone.utc)  # 21:00 del 13 en Lima
+            return utc.astimezone(tz) if tz else utc
+
+    monkeypatch.setattr(v, "datetime", Reloj)
+    assert v.hoy_en_peru() == date(2026, 11, 13)

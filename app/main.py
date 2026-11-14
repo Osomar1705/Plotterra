@@ -6,6 +6,7 @@ y solo se le agregan campos, nunca se renombran.
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -58,10 +59,14 @@ app = FastAPI(
     lifespan=ciclo_de_vida,
 )
 
-# El frontend corre en otro origen durante el hackathon.
+# El frontend corre en otro origen: local, Vercel o Render. Un dominio propio se
+# agrega con FIELDSHIFT_CORS_EXTRA (regex) sin tocar codigo.
+_ORIGENES = r"https?://(localhost|127\.0\.0\.1)(:\d+)?|https://.*\.vercel\.app|https://.*\.onrender\.com"
+_EXTRA = os.getenv("FIELDSHIFT_CORS_EXTRA", "").strip()
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?|https://.*\.vercel\.app",
+    allow_origin_regex=f"{_ORIGENES}|{_EXTRA}" if _EXTRA else _ORIGENES,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

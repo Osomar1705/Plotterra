@@ -8,9 +8,14 @@ services:
     plan: free
     healthCheckPath: /api/v1/health
     envVars:
+      # real = motor con los datasets. mock solo sirve para probar el contrato.
       - key: FIELDSHIFT_MOTOR
-        value: mock
+        value: real
       - key: FIELDSHIFT_DB
         value: /srv/datos/fieldshift.sqlite3
+      # Sin clave el chat usa el interprete por reglas y todo lo demas funciona.
       - key: ANTHROPIC_API_KEY
+        sync: false
+      # Regex de origenes extra para CORS (dominio propio). Vacio = local, *.vercel.app y *.onrender.com.
+      - key: FIELDSHIFT_CORS_EXTRA
         sync: false
