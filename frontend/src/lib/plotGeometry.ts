@@ -31,7 +31,7 @@ function onSegment(p: PlotPoint, q: PlotPoint, r: PlotPoint) {
 
 function orientation(p: PlotPoint, q: PlotPoint, r: PlotPoint) {
   const v = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
-  if (Math.abs(v) < 1e-9) return 0;
+  if (Math.abs(v) < 1e-14) return 0;
   return v > 0 ? 1 : 2;
 }
 
@@ -52,20 +52,29 @@ function segmentsCross(p1: PlotPoint, q1: PlotPoint, p2: PlotPoint, q2: PlotPoin
  * Detecta si el contorno se cruza consigo mismo y devuelve el punto aproximado
  * del cruce, para poder senalarlo en el mapa en lugar de decir solo "invalido".
  */
-export function findSelfIntersection(points: PlotPoint[]): PlotPoint | null {
+export function findSelfIntersection(points: PlotPoint[], closed = true): PlotPoint | null {
   const n = points.length;
   if (n < 4) return null;
-  for (let i = 0; i < n; i++) {
+  const edges = closed ? n : n - 1;
+  for (let i = 0; i < edges; i++) {
     const a1 = points[i];
     const a2 = points[(i + 1) % n];
-    for (let j = i + 1; j < n; j++) {
+    for (let j = i + 1; j < edges; j++) {
       if (j === i) continue;
-      const adjacent = (j === i + 1) || (i === 0 && j === n - 1);
+      const adjacent = (j === i + 1) || (closed && i === 0 && j === n - 1);
       if (adjacent) continue;
       const b1 = points[j];
       const b2 = points[(j + 1) % n];
       if (segmentsCross(a1, a2, b1, b2)) {
-        return { x: (a1.x + a2.x + b1.x + b2.x) / 4, y: (a1.y + a2.y + b1.y + b2.y) / 4 };
+        const dx = a2.x - a1.x, dy = a2.y - a1.y;
+        const ex = b2.x - b1.x, ey = b2.y - b1.y;
+        const denominator = dx * ey - dy * ex;
+        if (Math.abs(denominator) > 1e-16) {
+          const t = ((b1.x - a1.x) * ey - (b1.y - a1.y) * ex) / denominator;
+          return { x: a1.x + t * dx, y: a1.y + t * dy };
+        }
+        // Solapamiento colineal: señala un extremo que pertenece a ambos segmentos.
+        return [a1, a2, b1, b2].find(p => onSegment(a1, p, a2) && onSegment(b1, p, b2)) ?? b1;
       }
     }
   }
@@ -87,7 +96,7 @@ export function checkPolygon(points: PlotPoint[]): PolygonCheck {
   if (crossing) {
     return {
       valid: false, areaHa, crossing, code: 'POLIGONO_INVALIDO',
-      farmerMessage: 'El contorno se cruza. Deshaz el último punto o vuelve a dibujar la parcela.',
+      farmerMessage: 'El contorno se cruza. Pulsa Deshacer o vuelve a dibujar la parcela.',
     };
   }
   if (points.length >= 3 && (areaHa < MIN_AREA_HA || areaHa > MAX_AREA_HA)) {

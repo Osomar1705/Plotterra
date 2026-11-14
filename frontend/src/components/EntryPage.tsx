@@ -9,6 +9,7 @@ import { saveEntryConditions } from '../integration/entryContext';
 import { PlotMap, type MapMode } from './PlotMap';
 import { AndeanLandscape, CropIllustration } from './CropIllustration';
 import { checkPolygon, formatHa } from '../lib/plotGeometry';
+import '../styles/parcel-experience.css';
 import { DEMO_PLOT_LOCALITY, DEMO_PLOT_POINTS } from '../lib/demoPlot';
 import {
   AlertIcon, CalendarIcon, CheckIcon, ClockIcon, CoinsIcon, InfoIcon,
@@ -71,6 +72,14 @@ export function EntryPage() {
   const [extraOpen, setExtraOpen] = useState(false);
   const [usualPlan, setUsualPlan] = useState('');
 
+  const [mobilePanel, setMobilePanel] = useState<'map' | 'conditions'>('map');
+  const panelHeading = useRef<HTMLHeadingElement>(null);
+
+  function showPanel(panel: 'map' | 'conditions') {
+    setMobilePanel(panel);
+    requestAnimationFrame(() => panelHeading.current?.focus());
+  }
+
   // --- envio ---
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<FieldShiftApiError | null>(null);
@@ -88,16 +97,18 @@ export function EntryPage() {
     return 'empty';
   })();
 
-  const hasPlot = useTypedArea ? areaHa > 0 : (mode === 'ready' && check.valid);
+  const hasPlot = useTypedArea ? Number.isFinite(areaHa) && areaHa >= 0.05 && areaHa <= 50 : (mode === 'ready' && check.valid);
 
   /** Lo que falta para poder comparar. El boton lo dice en vez de fallar al pulsarlo. */
   const blocker = (() => {
     if (mode === 'invalid') return 'Corrige el contorno de tu parcela';
     if (mode === 'drawing' && points.length < 3) return 'Faltan puntos para cerrar el contorno';
     if (mode === 'drawing') return 'Cierra el contorno de tu parcela';
+    if (useTypedArea && !hasPlot) return 'Escribe una superficie entre 0,05 y 50 hectáreas';
     if (!hasPlot) return denied ? 'Falta ubicar tu parcela' : 'Falta dibujar tu parcela';
+    if (!startDate || startDate < todayIso()) return 'Elige hoy o una fecha posterior para sembrar';
     if (allowedCrops.length < 2) return 'Habilita al menos dos cultivos';
-    if (waterMode !== 'rainfed' && !(Number(irrigationMm) > 0)) return 'Indica cuánta agua de riego tienes';
+    if (waterMode !== 'rainfed' && !(Number(irrigationMm) > 0 && Number(irrigationMm) <= 1200)) return 'Indica un riego mayor que 0 y hasta 1200 mm por campaña';
     return null;
   })();
 
@@ -180,13 +191,14 @@ export function EntryPage() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell parcel-experience" data-mobile-panel={mobilePanel}>
       <header className="topbar">
         <a className="brand" href="/"><LeafIcon />FieldShift</a>
         <nav className="steps"><strong>1&nbsp; Parcela</strong><span>2&nbsp; Opciones</span><span>3&nbsp; Plan</span></nav>
       </header>
 
       <main className="entry-page">
+        <h2 className="parcel-sr-only" ref={panelHeading} tabIndex={-1}>{mobilePanel === 'map' ? 'Ubica tu parcela' : 'Prepara tu campaña'}</h2>
         <section className="hero-row entry-hero">
           <AndeanLandscape className="entry-hero-art" tone="day" />
           <div>
@@ -214,16 +226,25 @@ export function EntryPage() {
           </div>
         )}
 
+        <nav className="parcel-mobile-nav" aria-label="Preparar la parcela">
+          <button type="button" aria-current={mobilePanel === 'map' ? 'step' : undefined} onClick={() => showPanel('map')}>1. Tu parcela{hasPlot ? ' ✓' : ''}</button>
+          <button type="button" aria-current={mobilePanel === 'conditions' ? 'step' : undefined} onClick={() => showPanel('conditions')}>2. Tu campaña</button>
+        </nav>
         <div className="entry-grid">
-          <div className="entry-map-col">
+          <section className="entry-map-col" aria-label="Tu parcela">
+            <div className="parcel-section-title"><span>01</span><h2>Ubica y dibuja tu parcela</h2></div>
             <PlotMap
               mode={mode}
-              points={points}
+              points={useTypedArea ? [] : points}
               areaHa={areaHa}
-              crossing={check.crossing}
+              crossing={useTypedArea ? null : check.crossing}
               locality={locality}
               onLocality={setLocality}
               onAddPoint={addPoint}
+              onReplacePoints={(next, isClosed) => {
+                setPoints(next); setClosed(isClosed); setDrawing(!isClosed);
+                setDenied(false); setUseTypedArea(false);
+              }}
               onStartDraw={() => { setDrawing(true); setClosed(false); setDenied(false); setUseTypedArea(false); }}
               onUndoPoint={() => { setPoints(points.slice(0, -1)); setClosed(false); setDrawing(true); }}
               onClear={() => { setPoints([]); setClosed(false); setDrawing(false); setUseTypedArea(false); }}
@@ -258,18 +279,20 @@ export function EntryPage() {
                 No puedo usar mi ubicación
               </button>
             )}
-          </div>
+            <button type="button" className="primary-btn parcel-next" disabled={!hasPlot} onClick={() => showPanel('conditions')}>Continuar con mi campaña →</button>
+          </section>
 
-          <div className="entry-fields">
-            <div className="field">
-              <label>Cultivo anterior</label>
+          <section className="entry-fields" aria-label="Condiciones de la campaña">
+            <div className="parcel-section-title"><span>02</span><h2>Prepara tu campaña</h2></div>
+            <details className="parcel-question" name="campaign-questions" open><summary><span>1</span>¿Qué sembraste antes?</summary><div className="parcel-question-body"><div className="field">
+              <label htmlFor="previous-crop">Cultivo anterior</label>
               <div className="field-row2 field-row2--demo">
-                <select value={previousCrop} disabled={unknownPrevious} onChange={(e) => setPreviousCrop(e.target.value)}>
+                <select id="previous-crop" value={previousCrop} disabled={unknownPrevious} onChange={(e) => setPreviousCrop(e.target.value)}>
                   {CROPS.map((c) => <option key={c}>{c}</option>)}
                 </select>
                 <div className="input-with-icon demo-secondary">
                   <CalendarIcon size={16} />
-                  <input type="date" min={todayIso()} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                  <input aria-label="Fecha de inicio de la siembra" type="date" min={todayIso()} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                 </div>
               </div>
               <label className="checkline demo-secondary">
@@ -281,16 +304,16 @@ export function EntryPage() {
                   <InfoIcon size={14} />Sin este dato, la calidad de la información bajará a limitada.
                 </p>
               )}
-            </div>
+            </div></div></details>
 
-            <div className="field">
+            <details className="parcel-question" name="campaign-questions"><summary><span>2</span>¿Cómo recibe agua tu parcela?</summary><div className="parcel-question-body"><div className="field">
               <label>Agua disponible</label>
               <div className="segmented">
                 {WATER_MODES.map((m) => (
                   <button
                     key={m.id} type="button"
                     className={waterMode === m.id ? 'seg seg--on' : 'seg'}
-                    onClick={() => setWaterMode(m.id)}
+                    aria-pressed={waterMode === m.id} onClick={() => setWaterMode(m.id)}
                   >
                     {m.id === 'rainfed' ? <RainIcon size={16} /> : m.id === 'scheduled' ? <ClockIcon size={16} /> : <WaterIcon size={16} />}
                     <strong>{m.label}</strong>
@@ -307,15 +330,16 @@ export function EntryPage() {
                   <span>mm por campaña</span>
                 </div>
               )}
-            </div>
+              {waterMode !== 'rainfed' && <p className="field-help">1 mm equivale a 1 litro de agua por metro cuadrado. Indica el total de riego para una campaña.</p>}
+            </div></div></details>
 
-            <div className="field demo-secondary">
+            <details className="parcel-question" name="campaign-questions"><summary><span>3</span>¿Qué cultivos puedes sembrar?</summary><div className="parcel-question-body"><div className="field">
               <label>Cultivos que puedes sembrar</label>
               <div className="chips">
                 {CROPS.map((c) => {
                   const ex = excluded.find((e) => e.crop === c);
                   return (
-                    <button key={c} type="button" className={ex ? 'chip chip--off chip--crop' : 'chip chip--crop'} onClick={() => toggleCrop(c)}>
+                    <button key={c} type="button" className={ex ? 'chip chip--off chip--crop' : 'chip chip--crop'} aria-pressed={!ex} onClick={() => toggleCrop(c)}>
                       <CropIllustration crop={c} size={26} />{c}{ex && <small>{REASONS.find((r) => r.id === ex.reason)?.label}</small>}
                     </button>
                   );
@@ -338,16 +362,16 @@ export function EntryPage() {
                   <AlertIcon size={14} />Con un solo cultivo no se puede armar una rotación. Habilita al menos uno más.
                 </p>
               )}
-            </div>
+            </div></div></details>
 
-            <div className="field">
+            <details className="parcel-question" name="campaign-questions"><summary><span>4</span>¿Qué quieres cuidar más?</summary><div className="parcel-question-body"><div className="field">
               <label>¿Qué te importa más esta campaña?</label>
               <div className="priority-grid">
                 {PRIORITIES.map((p) => (
                   <button
                     key={p.id} type="button"
                     className={priority === p.id ? 'priority-card priority-card--on' : 'priority-card'}
-                    onClick={() => setPriority(p.id)}
+                    aria-pressed={priority === p.id} onClick={() => setPriority(p.id)}
                   >
                     {p.id === 'economy' ? <CoinsIcon /> : p.id === 'water' ? <WaterIcon /> : <SproutIcon />}
                     <strong>{p.label}</strong>
@@ -355,10 +379,10 @@ export function EntryPage() {
                   </button>
                 ))}
               </div>
-            </div>
+            </div></div></details>
 
-            <div className="disclosure demo-secondary">
-              <button type="button" className="disclosure-head" onClick={() => setExtraOpen(!extraOpen)}>
+            <div className="disclosure">
+              <button type="button" className="disclosure-head" aria-expanded={extraOpen} onClick={() => setExtraOpen(!extraOpen)}>
                 <span><PlusIcon size={16} />Mi plan habitual y datos adicionales</span>
                 <small>Opcional · mejora la precisión</small>
               </button>
@@ -375,13 +399,14 @@ export function EntryPage() {
             </div>
 
             <div className="submit-block">
+              <button type="button" className="link-btn parcel-back" onClick={() => showPanel('map')}>← Volver a mi parcela</button>
               <button type="button" className="primary-btn wide" disabled={!!blocker || submitting} onClick={submit}>
                 {submitting ? 'Comparando…' : 'Comparar mis opciones'}
               </button>
               {blocker && <p className="cta-why">{blocker}</p>}
               <p className="foot-note">NASA + MIDAGRI · Los datos ambientales se incorporan automáticamente al análisis.</p>
             </div>
-          </div>
+          </section>
         </div>
       </main>
 

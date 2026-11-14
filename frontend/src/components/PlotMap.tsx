@@ -5,6 +5,8 @@ import type { PlotPoint } from '../types/fieldshift';
 import { formatHa } from '../lib/plotGeometry';
 import { INITIAL_VIEW } from '../lib/demoPlot';
 import { PinIcon, UndoIcon, PencilIcon, TrashIcon } from './Icons';
+import { installPlotDrawing, type TraceStatus } from '../lib/plotDrawing';
+import '../styles/plot-drawing.css';
 
 export type MapMode = 'empty' | 'drawing' | 'ready' | 'invalid' | 'denied';
 
@@ -17,6 +19,7 @@ interface Props {
   onLocality: (v: string) => void;
   /** closesShape = el toque cayo sobre el primer punto y cierra el contorno. */
   onAddPoint: (p: PlotPoint, closesShape?: boolean) => void;
+  onReplacePoints: (points: PlotPoint[], closed: boolean) => void;
   onStartDraw: () => void;
   onUndoPoint: () => void;
   onClear: () => void;
@@ -25,8 +28,6 @@ interface Props {
   onLocationDenied: () => void;
 }
 
-/** Distancia en pixeles para considerar que el toque cae sobre el primer punto. */
-const CLOSE_RADIUS_PX = 18;
 const GREEN = '#00a37a';
 const RED = '#e5484d';
 
@@ -39,6 +40,12 @@ const toLatLng = (p: PlotPoint): L.LatLngTuple => [p.y, p.x];
 export function PlotMap(props: Props) {
   const { mode, points, areaHa, crossing } = props;
   const drawable = mode !== 'ready';
+  const [tool, setTool] = useState<'draw' | 'move'>('move');
+  const activeDraw = tool === 'draw' && drawable;
+  const [traceStatus, setTraceStatus] = useState<TraceStatus>({ tracing: false, nearStart: false });
+  const [undoCount, setUndoCount] = useState(0);
+  const history = useRef<{ points: PlotPoint[]; closed: boolean }[]>([]);
+  const drawingRef = useRef<ReturnType<typeof installPlotDrawing> | null>(null);
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const shapeLayer = useRef<L.LayerGroup | null>(null);
@@ -57,39 +64,81 @@ export function PlotMap(props: Props) {
     L.tileLayer(LABELS_URL, { maxZoom: 19, maxNativeZoom: 17, opacity: 0.85 }).addTo(map);
     shapeLayer.current = L.layerGroup().addTo(map);
 
-    map.on('click', (ev: L.LeafletMouseEvent) => {
-      const p = latest.current;
-      if (p.mode === 'ready') return;
-      const first = p.points[0];
-      if (first && p.points.length >= 3) {
-        const a = map.latLngToContainerPoint(toLatLng(first));
-        const b = map.latLngToContainerPoint(ev.latlng);
-        if (a.distanceTo(b) <= CLOSE_RADIUS_PX) {
-          p.onAddPoint(first, true);
-          return;
-        }
-      }
-      // Un doble toque en el mismo sitio no debe crear un punto repetido.
-      const last = p.points[p.points.length - 1];
-      if (last && map.latLngToContainerPoint(toLatLng(last)).distanceTo(map.latLngToContainerPoint(ev.latlng)) < 6) return;
-      p.onAddPoint({ x: ev.latlng.lng, y: ev.latlng.lat });
+    drawingRef.current = installPlotDrawing(map, container.current, {
+      getState: () => latest.current,
+      onPoint: (point, close) => {
+        remember();
+        latest.current.onAddPoint(point, close);
+      },
+      onTrace: (next, closed) => {
+        remember();
+        latest.current.onReplacePoints(next, closed);
+      },
+      onStatus: setTraceStatus,
+      onNotice: setNotice,
     });
 
     mapRef.current = map;
     // El contenedor puede medir distinto al montar (rejilla, fuentes): se recalcula.
-    const t = window.setTimeout(() => map.invalidateSize(), 150);
+    // Cambios de ventana, orientación y panel móvil: Leaflet necesita el tamaño real.
+    let resizeFrame = 0;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = requestAnimationFrame(() => {
+        if (container.current?.clientWidth && container.current.clientHeight) {
+          map.invalidateSize({ pan: false });
+          const current = latest.current;
+          if (current.mode === 'ready' && current.points.length >= 3) {
+            map.fitBounds(L.latLngBounds(current.points.map(toLatLng)), {
+              padding: [32, 32], maxZoom: 17, animate: false,
+            });
+          }
+        }
+      });
+    });
+    observer.observe(container.current);
     return () => {
-      window.clearTimeout(t);
+      observer.disconnect();
+      cancelAnimationFrame(resizeFrame);
       // Si se sale de la Vista 01 durante una animacion de zoom (por ejemplo
       // justo despues de "Usar chacra de ejemplo"), Leaflet termina la
       // animacion 250 ms despues sobre un mapa ya destruido y lanza
       // "_leaflet_pos". Con la bandera en false ese cierre no hace nada.
+      drawingRef.current?.destroy();
+      drawingRef.current = null;
       map.stop();
       (map as unknown as { _animatingZoom: boolean })._animatingZoom = false;
       map.remove();
       mapRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    drawingRef.current?.setEnabled(activeDraw);
+  }, [activeDraw]);
+
+  function remember() {
+    const p = latest.current;
+    history.current = [...history.current.slice(-29), {
+      points: p.points.map(point => ({ ...point })), closed: p.mode === 'ready' || p.mode === 'invalid',
+    }];
+    setUndoCount(history.current.length);
+  }
+
+  function resetHistory() { history.current = []; setUndoCount(0); setNotice(null); }
+  function startDrawing() { setTool('draw'); setNotice(null); props.onStartDraw(); }
+  function clear() { drawingRef.current?.cancel(); resetHistory(); setTool('draw'); props.onClear(); props.onStartDraw(); }
+  function undo() {
+    drawingRef.current?.cancel();
+    const previous = history.current.pop();
+    setUndoCount(history.current.length);
+    setNotice(null);
+    if (previous) {
+      setTool(previous.closed ? 'move' : 'draw');
+      props.onReplacePoints(previous.points, previous.closed);
+    } else { setTool('draw'); props.onUndoPoint(); }
+  }
+  function useDemo() { drawingRef.current?.cancel(); resetHistory(); setTool('move'); props.onUseDemo(); }
 
   // Redibuja el contorno cada vez que cambian los puntos o el estado.
   useEffect(() => {
@@ -100,16 +149,18 @@ export function PlotMap(props: Props) {
     const color = mode === 'invalid' ? RED : GREEN;
     const latlngs = points.map(toLatLng);
     if (latlngs.length > 1) {
-      if (closed) L.polygon(latlngs, { color, weight: 3, fillColor: color, fillOpacity: 0.28 }).addTo(layer);
-      else L.polyline(latlngs, { color, weight: 3, dashArray: '6 6' }).addTo(layer);
+      if (closed) L.polygon(latlngs, { color, weight: 3, fillColor: color, fillOpacity: 0.28, interactive: false }).addTo(layer);
+      else L.polyline(latlngs, { color, weight: 3, dashArray: '6 6', interactive: false }).addTo(layer);
     }
     points.forEach((p, i) => {
+      if (points.length > 24 && i !== 0 && i !== points.length - 1) return;
       L.circleMarker(toLatLng(p), {
         radius: i === 0 && !closed ? 8 : 5, color: '#fff', weight: 2, fillColor: color, fillOpacity: 1,
         interactive: false,
       }).addTo(layer);
     });
     if (crossing) L.circleMarker(toLatLng(crossing), { radius: 12, color: RED, weight: 3, fill: false, interactive: false }).addTo(layer);
+    if (!closed && latlngs.length) L.circleMarker(latlngs[latlngs.length - 1], { radius: 11, color: GREEN, weight: 2, fillOpacity: 0.12, interactive: false }).addTo(layer);
   }, [points, mode, crossing]);
 
   // Una parcela ya cerrada (por ejemplo la de ejemplo) se encuadra en pantalla.
@@ -163,13 +214,14 @@ export function PlotMap(props: Props) {
   }
 
   return (
-    <div className="plot-map">
+    <div className="plot-map" data-map-mode={mode}>
       <div className="plot-canvas">
         <div
           ref={container}
-          className={drawable ? 'map-leaflet map-leaflet--drawing' : 'map-leaflet'}
+          className={activeDraw ? 'map-leaflet map-leaflet--drawing' : 'map-leaflet'}
           role="application"
           aria-label="Mapa satelital para dibujar el contorno de la parcela"
+          aria-describedby="plot-drawing-help"
         />
 
         <form className="map-search" onSubmit={search}>
@@ -183,28 +235,28 @@ export function PlotMap(props: Props) {
           <button type="submit" className="map-search-btn" disabled={searching}>{searching ? 'Buscando…' : 'Buscar'}</button>
         </form>
 
-        <div className="map-quick">
-          <button type="button" className="map-chip" onClick={locate} disabled={locating}>{locating ? 'Ubicando…' : 'Usar mi ubicación'}</button>
-          <button type="button" className="map-chip map-chip--accent" onClick={props.onUseDemo}>Usar chacra de ejemplo de Ambo</button>
-        </div>
 
-        {notice && <p className="map-notice">{notice}</p>}
 
-        {(mode === 'ready' || mode === 'invalid') && points.length >= 3 && (
+        {notice && <p className="map-notice" role="status">{notice}</p>}
+
+        {mode === 'ready' && points.length >= 3 && (
           <div className="map-badge">
             <strong>{formatHa(areaHa)}</strong>
             <span>calculada</span>
           </div>
         )}
+        {mode === 'invalid' && (
+          <div className="map-badge"><strong>Revisa el contorno</strong><span>{crossing ? 'Se cruza' : 'Superficie fuera de rango'}</span></div>
+        )}
         {mode === 'drawing' && points.length > 0 && (
-          <div className="map-badge"><strong>{points.length}</strong><span>{points.length === 1 ? 'punto' : 'puntos'}</span></div>
+          <div className="map-badge"><strong>Trazo abierto</strong><span>Continúa o cierra</span></div>
         )}
 
         {mode === 'empty' && (
           <div className="map-hint">
             <div>
-              <p>Acerca el mapa hasta ver tu terreno. Luego selecciona el perímetro para dibujarlo.</p>
-              <button type="button" className="primary-btn" onClick={props.onStartDraw}>Dibujar parcela</button>
+              <p>Busca tu zona y acerca el mapa hasta ver tu chacra. Luego mantén pulsado el mapa y sigue su borde, o marca las esquinas.</p>
+              <button type="button" className="primary-btn" onClick={startDrawing}>Dibujar parcela</button>
             </div>
           </div>
         )}
@@ -213,37 +265,49 @@ export function PlotMap(props: Props) {
             <div>
               <p>No pudimos usar tu ubicación. Busca tu localidad o escribe cuántas hectáreas tiene tu parcela.</p>
               <div className="map-hint-actions">
-                <button type="button" className="primary-btn" onClick={props.onStartDraw}>Dibujar parcela</button>
+                <button type="button" className="primary-btn" onClick={startDrawing}>Dibujar parcela</button>
                 <button type="button" className="ghost-btn" onClick={props.onTypeArea}>Escribir hectáreas</button>
               </div>
             </div>
           </div>
         )}
-        {mode === 'drawing' && (
-          <p className="map-tip">Toca cada esquina. Toca el primer punto para cerrar la parcela.</p>
+        {activeDraw && (
+          <p className={`map-tip map-draw-tip${traceStatus.nearStart ? ' map-draw-tip--close' : ''}`}>
+            {mode === 'invalid' ? 'Pulsa Deshacer para corregir la última pasada o Borrar para empezar de nuevo.' : traceStatus.tracing
+              ? traceStatus.nearStart ? 'Suelta para cerrar el contorno' : 'Sigue el borde y vuelve al círculo de inicio · Esc cancela'
+              : points.length ? 'Continúa desde el último punto o marca otra esquina' : 'Mantén pulsado el mapa y traza el borde · También puedes marcar esquinas'}
+          </p>
         )}
       </div>
 
-      <div className="map-tools">
-        <button type="button" className={mode === 'drawing' ? 'tool tool--on' : 'tool'} onClick={props.onStartDraw} disabled={mode === 'ready'}>
-          <PencilIcon size={16} />Dibujar
+      <div className="map-tools map-drawing-tools" aria-label="Herramientas del contorno">
+        <div className="map-drawing-switch" role="group" aria-label="Acción sobre el mapa">
+          <button type="button" className={activeDraw ? 'tool tool--on' : 'tool'} aria-pressed={activeDraw} onClick={startDrawing}>
+            <PencilIcon size={16} />{mode === 'ready' && points.length ? 'Editar contorno' : 'Dibujar'}
+          </button>
+          <button type="button" className={!activeDraw ? 'tool tool--on' : 'tool'} aria-pressed={!activeDraw} onClick={() => { drawingRef.current?.cancel(); setTool('move'); setNotice(null); }}>
+            <span aria-hidden="true">↔</span>Mover mapa
+          </button>
+        </div>
+        <button type="button" className="tool" onClick={undo} disabled={!undoCount && !points.length}>
+          <UndoIcon size={16} />Deshacer
         </button>
-        <button type="button" className="tool" onClick={props.onStartDraw} disabled={mode !== 'ready'}>
-          <PencilIcon size={16} />Editar
-        </button>
-        <button type="button" className="tool" onClick={props.onClear} disabled={points.length === 0}>
+        <button type="button" className="tool" onClick={clear} disabled={!points.length && !traceStatus.tracing}>
           <TrashIcon size={16} />Borrar
         </button>
-        {drawable && points.length > 0 && (
-          <button type="button" className="tool tool--ghost" onClick={props.onUndoPoint}>
-            <UndoIcon size={16} />Deshacer último punto
-          </button>
-        )}
-        <span className="tools-spacer" />
-        <button type="button" className="tool tool--ghost" onClick={props.onTypeArea}>
-          No puedo dibujarla, prefiero escribir las hectáreas
+        <button type="button" className="tool tool--ghost map-area-fallback" onClick={() => { drawingRef.current?.cancel(); setTool('move'); resetHistory(); props.onTypeArea(); }}>
+          Prefiero escribir las hectáreas
         </button>
       </div>
+        <div className="map-quick">
+          <button type="button" className="map-chip" onClick={locate} disabled={locating}>{locating ? 'Ubicando…' : 'Usar mi ubicación'}</button>
+          <button type="button" className="map-chip map-chip--accent" onClick={useDemo}>Parcela de ejemplo de Ambo</button>
+        </div>
+      <p className="map-drawing-help" id="plot-drawing-help">
+        {activeDraw
+          ? 'Traza sin levantar el dedo o el clic y suelta cerca del inicio para cerrar. Si queda abierto, continúa desde el último punto o pulsa Cerrar parcela.'
+          : 'Mueve y acerca el mapa para ubicar tu chacra. Pulsa Dibujar para trazar su borde o marcar las esquinas.'}
+      </p>
     </div>
   );
 }
