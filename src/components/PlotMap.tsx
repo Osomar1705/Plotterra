@@ -203,7 +203,7 @@ export function PlotMap(props: Props) {
         {mode === 'empty' && (
           <div className="map-hint">
             <div>
-              <p>Busca tu zona y acerca el mapa hasta ver tu chacra. Luego toca sus esquinas para dibujarla.</p>
+              <p>Acerca el mapa hasta ver tu terreno. Luego selecciona el perimetro para dibujarla.</p>
               <button type="button" className="primary-btn" onClick={props.onStartDraw}>Dibujar parcela</button>
             </div>
           </div>
