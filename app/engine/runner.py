@@ -137,6 +137,7 @@ def ejecutar_comparacion(condiciones: Condiciones, datasets: Datasets) -> Result
 
     # --- paso 5: seleccion
     alternativas, dominadas = selector.seleccionar(metricas, condiciones.prioridad)
+    escenarios_expuestos = _futuros_comunes(alternativas, escenarios)
 
     return ResultadoMotor(
         alternativas=alternativas,
@@ -146,7 +147,29 @@ def ejecutar_comparacion(condiciones: Condiciones, datasets: Datasets) -> Result
         ),
         rotaciones_evaluadas=len(validas),
         escenarios_evaluados=len(escenarios),
+        escenarios=escenarios_expuestos,
     )
+
+
+def _futuros_comunes(alternativas: list, escenarios: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Deja en cada alternativa solo los escenarios simulados en las tres.
+
+    Un escenario cuyo ano base es el ultimo del clima disponible no alcanza a
+    cubrir campanias que terminan al ano siguiente: no se simula. Para que el
+    indice j sea el mismo futuro en todas las tarjetas, se quitan los
+    escenarios que falten en cualquiera. Devuelve la lista de escenarios que
+    quedo, en el mismo orden que los margenes.
+    """
+    con_futuros = [a for a in alternativas if a.futuros is not None]
+    if not con_futuros:
+        return []
+    comunes = [
+        j for j in range(len(escenarios))
+        if all(a.futuros.margen_por_escenario[j] is not None for a in con_futuros)
+    ]
+    for a in con_futuros:
+        a.futuros.margen_por_escenario = [a.futuros.margen_por_escenario[j] for j in comunes]
+    return [escenarios[j] for j in comunes]
 
 
 def _agregar(
@@ -157,6 +180,8 @@ def _agregar(
 ) -> dict[str, Any] | None:
     """Suma los tramos de la rotacion escenario por escenario."""
     margenes, deficits, demandas = [], [], []
+    familias: list[str] = []
+    margen_de: dict[int, float] = {}
     # Una lista por campania y por metrica: la Vista 03 las muestra al tocar
     # cada nodo del abanico.
     por_campania: list[dict[str, list[float]]] = [
@@ -168,6 +193,8 @@ def _agregar(
         if any(k not in tramos for k in claves):
             continue
         margenes.append(sum(tramos[k]["margen"] for k in claves))
+        familias.append(escenarios[j]["familia"])
+        margen_de[j] = margenes[-1]
         deficits.append(sum(tramos[k]["deficit"] for k in claves))
         demandas.append(sum(tramos[k]["demanda"] for k in claves))
         for i, k in enumerate(claves):
@@ -176,6 +203,14 @@ def _agregar(
 
     if not margenes:
         return None
+
+    # Antes de ordenar: el margen de cada escenario en el orden de `escenarios`,
+    # con None donde el escenario no se pudo simular (ver _futuros_comunes).
+    en_orden = [round(margen_de[j], 2) if j in margen_de else None for j in range(len(escenarios))]
+    por_familia: dict[str, list[float]] = {}
+    for f, x in zip(familias, margenes):
+        por_familia.setdefault(f, []).append(x)
+    medio_por_familia = {f: round(statistics.fmean(v), 2) for f, v in por_familia.items()}
 
     margenes.sort()
     n_cola = max(1, len(margenes) // 10)
@@ -228,6 +263,8 @@ def _agregar(
         "riesgo_principal": peor[1],
         "riesgo_por_campania": riesgos,
         "calidad": _calidad(secuencia, fichas),
+        "margenes_por_escenario": en_orden,
+        "margen_medio_por_familia": medio_por_familia,
     }
 
 

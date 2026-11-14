@@ -120,6 +120,9 @@ class ResultadoMotor:
     rotaciones_evaluadas: int
     escenarios_evaluados: int
     version_motor: str = VERSION_MOTOR
+    # Los escenarios en el orden en que se simularon. futuros.margen_por_escenario
+    # de cada alternativa sigue este orden: el indice j es el mismo futuro en todas.
+    escenarios: list[dict[str, Any]] = field(default_factory=list)
 
 
 # --------------------------------------------------------------------------
