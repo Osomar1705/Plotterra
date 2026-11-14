@@ -87,7 +87,12 @@ def ejecutar_comparacion(condiciones: Condiciones, datasets: Datasets) -> Result
             "el motor real necesita clima diario; datasets.clima_diario llego en None"
         )
     clima = _indexar_clima(datasets.clima_diario)
-    anios = sorted({y for (y, _, _) in clima})
+    todos = {y for (y, _, _) in clima}
+    # Una campania que cruza fin de anio sigue en el anio siguiente del clima
+    # historico. Si el anio base es el ultimo disponible, ese tramo no existe y
+    # el escenario se perdia (unos 10 de 100). Solo se sortean anios con el
+    # siguiente completo; si no hubiera ninguno, se usan todos.
+    anios = sorted(y for y in todos if (y + 1) in todos) or sorted(todos)
 
     # --- paso 2: escenarios
     escenarios = scenarios.generar_escenarios(condiciones.n_escenarios, condiciones.semilla, anios)

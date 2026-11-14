@@ -213,6 +213,7 @@ def test_solo_se_exponen_futuros_simulados_en_las_tres(datasets):
         datasets,
     )
     n = len(r.escenarios)
-    assert n > 0
+    # Con el sorteo limitado a anios con el siguiente completo, no se pierde ninguno.
+    assert n == 100
     assert all(len(a.futuros.margen_por_escenario) == n for a in r.alternativas)
     assert all(None not in a.futuros.margen_por_escenario for a in r.alternativas)
