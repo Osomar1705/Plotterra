@@ -200,11 +200,18 @@ function markBestOf(alternatives: Alternative[]) {
   const n = withOutcomes[0].outcomes!.marginByScenario.length;
   if (withOutcomes.some((a) => a.outcomes!.marginByScenario.length !== n)) return;
   const best = new Map(withOutcomes.map((a) => [a, 0]));
+  const ranks = new Map(withOutcomes.map((a) => [a, [] as number[]]));
   for (let j = 0; j < n; j++) {
-    const top = Math.max(...withOutcomes.map((a) => a.outcomes!.marginByScenario[j]));
-    for (const a of withOutcomes) if (a.outcomes!.marginByScenario[j] === top) best.set(a, best.get(a)! + 1);
+    const values = withOutcomes.map((a) => a.outcomes!.marginByScenario[j]);
+    const top = Math.max(...values);
+    for (const a of withOutcomes) {
+      const v = a.outcomes!.marginByScenario[j];
+      if (v === top) best.set(a, best.get(a)! + 1);
+      // Cuantas opciones dejan mas que esta en ese futuro (los empates comparten puesto).
+      ranks.get(a)!.push(values.filter((x) => x > v).length);
+    }
   }
-  for (const a of withOutcomes) a.outcomes!.best = best.get(a);
+  for (const a of withOutcomes) { a.outcomes!.best = best.get(a); a.outcomes!.rankByScenario = ranks.get(a); }
 }
 
 export function normalizeComparison(raw: any): Comparison {

@@ -51,7 +51,7 @@ export function FuturesPanel({ comparison, open, onClose }: { comparison: Compar
               <div className="fp-seq">{alt.campaigns.map((c, i) => <span key={i}><CropIllustration crop={c.cropId ?? c.crop} size={22} />{c.crop}</span>)}</div>
               <p className="fp-big">{!usual && s.best !== undefined ? <>La mejor en <b>{s.best}</b> de {s.total}</> : <>Gana en <b>{s.wins}</b> de {s.total}</>}</p>
               <p className={`fp-profit ${s.losses > 0 ? 'neg' : ''}`}>{profitLine(s)}</p>
-              <FuturesGrid values={alt.outcomes!.marginByScenario} scenarios={comparison.scenarios} size="full" order={order}
+              <FuturesGrid values={alt.outcomes!.marginByScenario} ranks={usual ? undefined : alt.outcomes!.rankByScenario} scenarios={comparison.scenarios} size="full" order={order}
                 highlightIndex={hover} onHoverIndex={setHover}
                 ariaLabel={`${title}: ${profitLine(s).toLowerCase()} futuros`} />
               <dl className="fp-stats">

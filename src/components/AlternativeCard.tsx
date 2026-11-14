@@ -60,7 +60,7 @@ export function AlternativeCard({alternative,priority,onOpenPlan,scenarios,hover
 
     {o && s ? <div className="oc-fut">
       <div className="oc-fut-grid" style={{visibility: hideGrid ? 'hidden' : 'visible'}}>
-        <FuturesGrid values={o.marginByScenario} scenarios={scenarios} size="mini" cellPx={9} order="value"
+        <FuturesGrid values={o.marginByScenario} ranks={o.rankByScenario} scenarios={scenarios} size="mini" cellPx={9} order="value"
           highlightIndex={hoveredScenario} onHoverIndex={onHoverScenario} layoutId={hideGrid?undefined:layoutId}
           ariaLabel={`${m.title}: es la mejor opción en ${headline} de ${s.total} futuros`}/>
       </div>
