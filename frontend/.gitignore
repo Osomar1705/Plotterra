@@ -12,6 +12,10 @@ dist-ssr/
 .env
 .env.*
 !.env.example
+# Clave de OpenAI del servidor del chat: solo local o en el panel del hosting.
+.env.ai
+.env.ai.*
+!.env.ai.example
 
 # Logs
 *.log

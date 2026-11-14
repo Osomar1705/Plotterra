@@ -9,6 +9,16 @@ const API = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1'
 const USE_MOCKS = String(import.meta.env.VITE_USE_LOCAL_MOCKS ?? 'false') === 'true';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// La demo mantiene la misma prioridad, parcela y escenario entre las tres rutas.
+const DEMO_KEY = 'fieldshift.demo.comparison.';
+function rememberComparison(c: Comparison): Comparison {
+  try { sessionStorage.setItem(DEMO_KEY+c.id, JSON.stringify(c)); } catch { /* storage no disponible */ }
+  return c;
+}
+function storedComparison(id: string): Comparison | null {
+  try { const json=sessionStorage.getItem(DEMO_KEY+id); return json?JSON.parse(json) as Comparison:null; } catch { return null; }
+}
+
 /**
  * Indica si la app corre contra datos locales. Las vistas lo usan para decidir
  * si pueden abrirse sin un comparisonId real en la URL.
@@ -86,17 +96,23 @@ export async function createPlot(draft: PlotDraft): Promise<Plot> {
 }
 
 export async function createComparison(conditions: EntryConditions): Promise<Comparison> {
-  if (USE_MOCKS) { await sleep(450); return {...baseComparison, plotId: conditions.plotId ?? baseComparison.plotId, areaHa: conditions.areaHa ?? baseComparison.areaHa, priority: conditions.priority ?? baseComparison.priority}; }
+  if (USE_MOCKS) { await sleep(450); return rememberComparison({...baseComparison, plotId: conditions.plotId ?? baseComparison.plotId, areaHa: conditions.areaHa ?? baseComparison.areaHa, priority: conditions.priority ?? baseComparison.priority}); }
   return normalizeComparison(await request('/comparaciones', { method:'POST', body: JSON.stringify(conditions) }));
 }
 
 export async function getComparison(id: string): Promise<Comparison> {
-  if (USE_MOCKS) { await sleep(250); return id.includes('riego') ? changedComparison : baseComparison; }
+  if (USE_MOCKS) { await sleep(250); return storedComparison(id) ?? (id.includes('riego') ? changedComparison : baseComparison); }
   return normalizeComparison(await request(`/comparaciones/${encodeURIComponent(id)}`));
 }
 
 export async function applyChange(comparisonId: string, change: AppliedChange): Promise<Comparison> {
-  if (USE_MOCKS) { await sleep(1100); return changedComparison; }
+  if (USE_MOCKS) {
+    await sleep(1100);
+    if (change.type !== 'irrigation' || Number(change.value) !== 30) throw {code:'DEMO_UNAVAILABLE',farmerMessage:'El modo demostración solo tiene resultados para 30% menos riego.'};
+    const current=storedComparison(comparisonId) ?? baseComparison;
+    const next={...changedComparison, plotId:current.plotId, areaHa:current.areaHa, priority:current.priority, parentComparisonId:current.id};
+    return rememberComparison(next);
+  }
   return normalizeComparison(await request(`/comparaciones/${encodeURIComponent(comparisonId)}/cambios`, {
     method:'POST', body: JSON.stringify({ cambio: change })
   }));
@@ -104,7 +120,7 @@ export async function applyChange(comparisonId: string, change: AppliedChange): 
 
 export async function undoChange(comparison: Comparison): Promise<Comparison> {
   const change = comparison.activeChanges.at(-1);
-  if (USE_MOCKS) { await sleep(500); return baseComparison; }
+  if (USE_MOCKS) { await sleep(500); return storedComparison(comparison.parentComparisonId ?? 'cmp_demo_base') ?? baseComparison; }
   if (!change?.id) {
     if (comparison.parentComparisonId) return getComparison(comparison.parentComparisonId);
     throw { code:'NO_CHANGE_ID', farmerMessage:'No se pudo identificar el cambio que se desea deshacer.' };
@@ -147,10 +163,23 @@ export async function getAlternativePassport(comparisonId: string, alternativeId
     // mostrar "el backend no devolvio el desglose" en lugar de romperse.
     return { alternativeId, comparisonId, sourceResult: 'mock', metrics: [], sources: [], assumptions: [] };
   }
-  const raw = await request(
-    `/comparaciones/${encodeURIComponent(comparisonId)}/alternativas/${encodeURIComponent(alternativeId)}/pasaporte`,
-  );
-  return normalizeAlternativePassport(raw, alternativeId);
+  const id = encodeURIComponent(comparisonId);
+  // Fuentes, supuestos y versiones viven en /datos-y-supuestos (son de toda la
+  // comparacion); si esa llamada falla, el pasaporte se muestra igual.
+  const [raw, data] = await Promise.all([
+    request(`/comparaciones/${id}/alternativas/${encodeURIComponent(alternativeId)}/pasaporte`),
+    request(`/comparaciones/${id}/datos-y-supuestos`).catch(() => null),
+  ]);
+  const passport = normalizeAlternativePassport(raw, alternativeId);
+  if (data) {
+    const sources = (data.fuentes ?? []).map((f: any) => (typeof f === 'string' ? f : `${f.dato ? `${f.dato[0].toUpperCase()}${f.dato.slice(1)}: ` : ''}${f.fuente ?? ''}${f.provisional ? ' (provisional)' : ''}`)).filter(Boolean);
+    if (!passport.sources.length) passport.sources = sources;
+    if (!passport.assumptions.length) passport.assumptions = [...(data.supuestos ?? []), ...(data.limitaciones ?? [])];
+    passport.engineVersion ??= data.versiones?.motor;
+    passport.datasetVersion ??= data.versiones?.datasets;
+    passport.sourceResult ??= data.versiones?.fuente_resultado;
+  }
+  return passport;
 }
 
 

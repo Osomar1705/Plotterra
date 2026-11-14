@@ -30,9 +30,38 @@ export interface CampaignMetrics {
 export interface Campaign {
   id?: string;
   crop: string;
+  cropId?: string;
   window: string;
   /** Desglose por campana. Ausente si el backend solo devuelve agregados de la ruta. */
   metrics?: CampaignMetrics;
+  startMonth?: string;   // "2026-10"
+  endMonth?: string;     // "2027-03"
+}
+
+// --- 100 futuros -----------------------------------------------------------
+export type ScenarioFamily = 'tipica' | 'menos_lluvia' | 'menos_riego' | 'caida_precio' | 'combinado';
+
+export interface ScenarioMeta {
+  id: string;
+  family: ScenarioFamily;
+  climateYears: string[];
+  baseId?: string;
+}
+
+export interface Outcomes {
+  /** Margen del horizonte (S/ por ha, 3 campañas) en cada escenario, en el orden de Comparison.scenarios. */
+  marginByScenario: number[];
+  wins?: number;
+  losses?: number;
+  mean?: number;
+  adverse?: number;
+}
+
+export interface StressRow {
+  family: ScenarioFamily | string;
+  label: string;
+  meanMargin: number;
+  changeVsTypical: number;
 }
 
 export interface AppliedChange {
@@ -55,6 +84,11 @@ export interface Alternative {
   soil: { compatibility: string };
   risk: { level: RiskLevel; mainCause?: string | null };
   dataQuality: { level: DataQualityLevel; mainGap?: string | null };
+  sequence?: string;
+  outcomes?: Outcomes;
+  stressTest?: StressRow[];
+  explanation?: { why?: string; dataThatWouldChange?: string };
+  tradeoffs?: { advantages: string[]; risks: string[]; costOfPriority?: string };
 }
 
 export interface Comparison {
@@ -71,6 +105,10 @@ export interface Comparison {
   /** Trazabilidad: version del motor de calculo y del dataset usados. */
   engineVersion?: string;
   datasetVersion?: string;
+  /** Los 100 futuros simulados; cada Alternative.outcomes sigue este orden. */
+  scenarios?: ScenarioMeta[];
+  usualPlan?: Alternative;
+  rainfallMonthlyMm?: number[];   // 12 valores, de agosto a julio
 }
 
 /** Un indicador del pasaporte, con su definicion y fuente para auditarlo. */
@@ -98,6 +136,8 @@ export interface AlternativePassport {
   metrics: PassportMetric[];
   sources: string[];
   assumptions: string[];
+  /** Explicacion en lenguaje del agricultor: por que conviene, que se sacrifica, que dato la cambiaria. */
+  explanation?: { why?: string; tradeoff?: string; dataThatWouldChange?: string };
 }
 
 export interface FieldShiftApiError {
@@ -107,6 +147,8 @@ export interface FieldShiftApiError {
   farmerMessage: string;
   suggestedAction?: string;
   runId?: string;
+  engineVersion?: string;
+  datasetVersion?: string;
 }
 
 export interface AssistantInterpretation {
