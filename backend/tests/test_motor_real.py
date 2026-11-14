@@ -81,12 +81,32 @@ def test_la_prioridad_queda_destacada(datasets):
         assert destacadas[0].criterio.value == prioridad
 
 
+def _cada_tarjeta_gana_en_lo_suyo(r, prioridad: str):
+    """La prioridad muestra su mejor plan; las otras, el mejor o, en conflicto, el segundo.
+
+    Si un mismo plan es el mejor para dos tarjetas no se puede mostrar dos veces:
+    una de ellas muestra su segundo mejor. Por eso se mira la posicion de cada
+    plan dentro de su criterio y no se compara tarjeta contra tarjeta.
+    """
+    metrica = {
+        "economia": lambda a: a.economia.margen_soles_ha_mediana,
+        "agua": lambda a: -a.agua.deficit_mm_mediana,
+        "suelo": lambda a: a.suelo.indice,
+    }
+    por_criterio = {a.criterio.value: a for a in r.alternativas}
+    assert len(por_criterio) == 3
+    p = por_criterio[prioridad]
+    assert all(metrica[prioridad](p) >= metrica[prioridad](o) for o in r.alternativas)
+    otros = [c for c in metrica if c != prioridad]
+    ganan = [all(metrica[c](por_criterio[c]) >= metrica[c](o) for o in r.alternativas if o is not p) for c in otros]
+    # Al menos una de las otras dos es la mejor en lo suyo entre las no prioritarias.
+    assert any(ganan), (prioridad, ganan)
+
+
 def test_cada_criterio_gana_en_lo_suyo(datasets):
-    r = ejecutar_comparacion(_condiciones(), datasets)
-    por_id = {a.alternativa_id: a for a in r.alternativas}
-    assert por_id["alt_economia"].economia.margen_soles_ha_mediana >= por_id["alt_agua"].economia.margen_soles_ha_mediana
-    assert por_id["alt_agua"].agua.deficit_mm_mediana <= por_id["alt_economia"].agua.deficit_mm_mediana
-    assert por_id["alt_suelo"].suelo.indice >= por_id["alt_economia"].suelo.indice
+    for prioridad in ("agua", "economia", "suelo"):
+        r = ejecutar_comparacion(_condiciones(prioridad=prioridad), datasets)
+        _cada_tarjeta_gana_en_lo_suyo(r, prioridad)
 
 
 def test_reproducible_con_la_misma_semilla(datasets):
@@ -253,8 +273,10 @@ def test_riego_disponible_rinde_al_menos_lo_mismo_que_por_turnos(datasets):
 def test_la_tarjeta_economia_tiene_el_mayor_margen(datasets):
     """Con riego de sobra todos empatan en deficit: Agua no debe quedarse con el plan mas rentable."""
     r = ejecutar_comparacion(_riego(lamina_mm_campania=400.0, prioridad="agua"), datasets)
-    margen = {a.alternativa_id: a.economia.margen_soles_ha_mediana for a in r.alternativas}
-    assert margen["alt_economia"] == max(margen.values())
+    _cada_tarjeta_gana_en_lo_suyo(r, "agua")
+    # Agua desempata por consumo, no por margen: su plan es el de menor demanda entre los de menor deficit.
+    agua = next(a for a in r.alternativas if a.criterio.value == "agua")
+    assert all(agua.agua.deficit_mm_mediana <= a.agua.deficit_mm_mediana for a in r.alternativas)
 
 
 def test_el_precio_varia_entre_futuros_tipicos(datasets):
@@ -263,3 +285,24 @@ def test_el_precio_varia_entre_futuros_tipicos(datasets):
     a = next(x for x in r.alternativas if x.alternativa_id == "alt_economia")
     tipicos = [v for e, v in zip(r.escenarios, a.futuros.margen_por_escenario) if e["familia"] == "condiciones_tipicas"]
     assert len({round(v, -1) for v in tipicos}) > len(tipicos) * 0.8
+
+
+def test_la_papa_rinde_como_el_distrito_y_no_como_el_mejor_10(datasets):
+    """Con riego de sobra la papa no cosecha el p90 de parcelas (18 t/ha) sino algo cercano a la mediana distrital."""
+    if not datasets.variabilidad:
+        pytest.skip("datasets/variabilidad_rendimiento.json no esta presente")
+    import statistics
+    from app.engine.runner import _factor_cosecha
+
+    factores = [_factor_cosecha(datasets.variabilidad, datasets.fichas, "papa", 7, j, 0) for j in range(200)]
+    rend = [REPO.fichas["papa"].rendimiento_ref_t_ha * f for f in factores]
+    mediana_distrital = datasets.variabilidad["cultivos"]["papa"]["rendimiento_mediano_t_ha"]
+    assert abs(statistics.median(rend) - mediana_distrital) < 1.5
+    assert min(rend) < max(rend)  # hay anios buenos y malos
+
+
+def test_con_poca_agua_hay_futuros_con_perdida(datasets):
+    if not datasets.variabilidad:
+        pytest.skip("datasets/variabilidad_rendimiento.json no esta presente")
+    r = ejecutar_comparacion(_riego(lamina_mm_campania=60.0), datasets)
+    assert any(a.outcomes["wins"] < len(a.futuros.margen_por_escenario) for a in r.alternativas)

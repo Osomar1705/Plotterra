@@ -39,6 +39,19 @@ def _domina(a: dict[str, Any], b: dict[str, Any]) -> bool:
     return no_peor and mejor_en_algo
 
 
+def _perdida(criterio: str, ordenados: list[dict[str, Any]]) -> float:
+    """Cuanto empeora la tarjeta si tiene que mostrar su segundo plan (relativo)."""
+    if len(ordenados) < 2:
+        return float("inf")
+    primero, segundo = ordenados[0], ordenados[1]
+    if criterio == "economia":
+        return (primero["margen_mediana"] - segundo["margen_mediana"]) / max(abs(primero["margen_mediana"]), 1.0)
+    if criterio == "agua":
+        # +10 mm para no dividir por cero cuando el mejor no tiene deficit.
+        return (segundo["deficit_mediana"] - primero["deficit_mediana"]) / (primero["deficit_mediana"] + 10.0)
+    return primero["indice_suelo"] - segundo["indice_suelo"]
+
+
 def frente_de_pareto(metricas: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int]:
     frente = [m for m in metricas if not any(_domina(o, m) for o in metricas if o is not m)]
     return frente, len(metricas) - len(frente)
@@ -59,22 +72,34 @@ def seleccionar(
 
     frente, dominadas = frente_de_pareto(metricas_por_rotacion)
 
-    # El criterio de la prioridad elige primero: es el que el agricultor pidio.
-    orden = [prioridad] + [c for c in CRITERIOS if c != prioridad]
-
-    elegidas: dict[str, dict[str, Any]] = {}
-    usados: set[int] = set()
-    for criterio in orden:
-        libres = [m for m in frente if id(m) not in usados]
-        if not libres:
-            # Frente con menos de tres planes: se completa con el mejor de los
-            # restantes para ese criterio, asi siempre hay tres opciones.
-            libres = [m for m in metricas_por_rotacion if id(m) not in usados]
-        if not libres:
-            break
-        mejor = min(libres, key=CLAVES[criterio])
-        elegidas[criterio] = mejor
-        usados.add(id(mejor))
+    # La prioridad elige primero y se queda con su mejor plan: es lo que el
+    # agricultor pidio. Cada una de las otras dos tarjetas muestra el mejor plan
+    # de su criterio entre los que quedan. Solo si el mismo plan es el mejor
+    # para las dos, se lo queda la que mas perderia con su segunda opcion y la
+    # otra muestra su segundo mejor. Nunca se esconde el mejor plan de una
+    # tarjeta para que las cifras "cuadren" entre tarjetas.
+    candidatos = list(frente)
+    if len(candidatos) < 3:
+        # Frente corto: se suman los mejores de cada criterio entre los
+        # restantes, para que siempre haya tres tarjetas.
+        restantes = [m for m in metricas_por_rotacion if all(m is not f for f in frente)]
+        for clave in CLAVES.values():
+            for m in sorted(restantes, key=clave)[:3]:
+                if all(m is not c for c in candidatos):
+                    candidatos.append(m)
+    elegidas: dict[str, dict[str, Any]] = {prioridad: min(candidatos, key=CLAVES[prioridad])}
+    resto = [m for m in candidatos if m is not elegidas[prioridad]]
+    a, b = [c for c in CRITERIOS if c != prioridad]
+    orden_a, orden_b = sorted(resto, key=CLAVES[a]), sorted(resto, key=CLAVES[b])
+    if orden_a and orden_b:
+        if orden_a[0] is not orden_b[0] or len(resto) < 2:
+            elegidas[a] = orden_a[0]
+            if orden_b[0] is not orden_a[0]:
+                elegidas[b] = orden_b[0]
+        elif _perdida(a, orden_a) >= _perdida(b, orden_b):
+            elegidas[a], elegidas[b] = orden_a[0], orden_b[1]
+        else:
+            elegidas[a], elegidas[b] = orden_a[1], orden_b[0]
 
     # Orden fijo economia, agua, suelo: el mismo que devuelve el motor de
     # ejemplo, para que el frontend no tenga que distinguirlos. Cual es la
