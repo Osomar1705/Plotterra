@@ -187,4 +187,27 @@ export interface Greenness {
   scenes?: number;
   lastYear?: { min: number | null; max: number | null; images: number };
   source?: string;
+  /** Verdor de las chacras del distrito (HLS): sirve para cualquier parcela de Huanuco. */
+  district?: DistrictGreenness;
+  /** Estres de la vegetacion (ECOSTRESS ESI) por mes; por ahora solo Ambo. */
+  stress?: VegetationStress;
+}
+
+export interface DistrictGreenness {
+  name: string;
+  farmerMessage: string;
+  /** false cuando el verdor apenas cambia en el anio (selva): no se nombran meses. */
+  distinguishable: boolean;
+  monthly: { month: number; ndvi: number }[];
+  clearImages?: number;
+  source?: string;
+  scope?: string;
+}
+
+export interface VegetationStress {
+  farmerMessage: string;
+  reading?: string;
+  monthly: { month: number; esi: number | null; fewObservations: boolean }[];
+  source?: string;
+  scope?: string;
 }

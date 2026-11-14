@@ -139,4 +139,14 @@
 .greenness-chart figcaption{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px;font-size:11px;color:var(--muted)}
 .greenness-months{display:flex;gap:3px}
 .greenness-months i{font-style:normal;width:18px;height:18px;border-radius:4px;display:grid;place-items:center;background:var(--green);color:#fff;font-size:10px;font-weight:700}
+.greenness-badge--distrito{background:#eef4f8;color:var(--navy)}
+.greenness-chart--strips figcaption{flex-direction:column;align-items:flex-start;gap:6px}
+.greenness-months i.greenness-month--empty{background:#eef2f0;color:var(--muted)}
+.greenness-months i.greenness-month--stress{background:#c2410c}
+.greenness-months i.greenness-month--few{outline:1px dashed #c2410c;outline-offset:1px}
+.greenness-stress{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.greenness-stress p{margin:0 0 6px;font-size:13px;color:var(--text);line-height:1.4}
+.greenness-stress p strong{color:var(--navy)}
+.greenness-stress small{display:block;margin-top:6px;color:var(--muted);font-size:11px;line-height:1.35}
 @media(max-width:1050px){.greenness{grid-template-columns:1fr}}
+@media(max-width:520px){.greenness-months{flex-wrap:wrap}}

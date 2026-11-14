@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Greenness } from '../types/fieldshift';
+import type { Greenness, VegetationStress } from '../types/fieldshift';
 import { getGreenness } from '../api/fieldshiftApi';
 import { SproutIcon } from './Icons';
 
@@ -13,6 +13,47 @@ const PATTERN_LABEL: Record<string, string> = {
   vegetacion_permanente: 'Vegetación permanente',
   dudoso: 'No concluyente',
 };
+
+const MONTH_NAMES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+/** Tira de 12 meses: mas opaco = mas verde. Los meses sin dato quedan vacios. */
+function GreenStrip({ monthly }: { monthly: { month: number; ndvi: number }[] }) {
+  const byMonth = new Map(monthly.map((m) => [m.month, m.ndvi]));
+  return (
+    <span className="greenness-months">
+      {MONTHS.map((label, i) => {
+        const v = byMonth.get(i + 1);
+        return v == null
+          ? <i key={i} className="greenness-month--empty" title={`${MONTH_NAMES[i]}: sin imagen despejada`}>{label}</i>
+          : <i key={i} style={{ opacity: 0.25 + 0.75 * Math.max(0, (v - 0.3) / 0.5) }} title={`${MONTH_NAMES[i]}: NDVI ${v.toFixed(2)}`}>{label}</i>;
+      })}
+    </span>
+  );
+}
+
+/** ESI de ECOSTRESS: cuanto mas bajo, mas le falta agua a la planta. */
+function StressStrip({ stress }: { stress: VegetationStress }) {
+  const byMonth = new Map(stress.monthly.map((m) => [m.month, m]));
+  return (
+    <div className="greenness-stress">
+      <p><strong>Falta de agua en las plantas</strong> · {stress.farmerMessage}</p>
+      <span className="greenness-months">
+        {MONTHS.map((label, i) => {
+          const m = byMonth.get(i + 1);
+          if (!m || m.esi == null) return <i key={i} className="greenness-month--empty" title={`${MONTH_NAMES[i]}: sin datos`}>{label}</i>;
+          // 1 = sin estres, 0.3 o menos = estres fuerte.
+          const level = Math.min(1, Math.max(0, (1 - m.esi) / 0.7));
+          return (
+            <i key={i} className={`greenness-month--stress${m.fewObservations ? ' greenness-month--few' : ''}`}
+              style={{ opacity: 0.2 + 0.8 * level }}
+              title={`${MONTH_NAMES[i]}: ESI ${m.esi.toFixed(2)}${m.fewObservations ? ' (pocas observaciones)' : ''}`}>{label}</i>
+          );
+        })}
+      </span>
+      <small>{stress.reading} {stress.source}</small>
+    </div>
+  );
+}
 
 /**
  * Verdor de la parcela (NDVI). Muestra los ultimos tres anios: con la serie
@@ -32,10 +73,31 @@ export function GreennessPanel({ plotId }: { plotId: string }) {
   if (!data) return null;
 
   if (!data.available) {
+    const d = data.district;
+    if (!d) {
+      return (
+        <section className="greenness greenness--off" aria-label="Verdor de la parcela">
+          <SproutIcon />
+          <p>{data.farmerMessage}</p>
+        </section>
+      );
+    }
+    // Sin serie de la parcela mostramos el distrito, y lo decimos: no es su chacra.
     return (
-      <section className="greenness greenness--off" aria-label="Verdor de la parcela">
-        <SproutIcon />
-        <p>{data.farmerMessage}</p>
+      <section className="greenness" aria-label="Verdor de las chacras del distrito">
+        <div className="greenness-copy">
+          <span className="greenness-badge greenness-badge--distrito"><SproutIcon />Verdor del distrito</span>
+          <h2>Las chacras de {titleCase(d.name)} desde el satélite</h2>
+          <p>{d.farmerMessage}</p>
+          <dl>
+            {d.clearImages != null && <div><dt>Imágenes sin nubes</dt><dd>{d.clearImages}</dd></div>}
+          </dl>
+          <small>{data.farmerMessage} {d.source}</small>
+        </div>
+        <figure className="greenness-chart greenness-chart--strips">
+          <figcaption><span>{d.distinguishable ? 'Verdor típico por mes' : 'Verdor típico por mes · casi no cambia en el año'}</span><GreenStrip monthly={d.monthly} /></figcaption>
+          {data.stress && <StressStrip stress={data.stress} />}
+        </figure>
       </section>
     );
   }
@@ -88,13 +150,16 @@ export function GreennessPanel({ plotId }: { plotId: string }) {
         </svg>
         <figcaption>
           <span>Sin línea = semanas sin imagen despejada · Verdor típico por mes</span>
-          <span className="greenness-months">
-            {data.monthly.map((m) => (
-              <i key={m.month} style={{ opacity: 0.25 + 0.75 * Math.max(0, (m.ndvi - 0.3) / 0.5) }} title={`NDVI medio ${m.ndvi.toFixed(2)}`}>{MONTHS[m.month - 1]}</i>
-            ))}
-          </span>
+          <GreenStrip monthly={data.monthly} />
         </figcaption>
+        {data.stress && <StressStrip stress={data.stress} />}
       </figure>
     </section>
   );
+}
+
+/** El backend manda el distrito en mayusculas ("SANTO DOMINGO DE ANDA"). */
+function titleCase(name: string): string {
+  const small = new Set(['de', 'del', 'la', 'las', 'los', 'y']);
+  return name.toLowerCase().split(/\s+/).map((w, i) => (i > 0 && small.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1))).join(' ');
 }

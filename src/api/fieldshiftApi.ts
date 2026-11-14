@@ -174,6 +174,30 @@ export async function getGreenness(plotId: string): Promise<Greenness | null> {
         ? { min: raw.ultimos_12_meses.ndvi_min, max: raw.ultimos_12_meses.ndvi_max, images: raw.ultimos_12_meses.imagenes }
         : undefined,
       source: raw?.fuente,
+      district: raw?.verdor_distrito
+        ? {
+            name: String(raw.verdor_distrito.distrito ?? ''),
+            farmerMessage: String(raw.verdor_distrito.mensaje_agricultor ?? ''),
+            distinguishable: raw.verdor_distrito.ciclo_distinguible !== false,
+            monthly: (raw.verdor_distrito.ciclo_tipico ?? []).map((m: any) => ({ month: Number(m.mes), ndvi: Number(m.ndvi_mediana ?? m.ndvi_medio) })),
+            clearImages: raw.verdor_distrito.imagenes_despejadas,
+            source: raw.verdor_distrito.fuente,
+            scope: raw.verdor_distrito.alcance,
+          }
+        : undefined,
+      stress: raw?.estres_vegetacion
+        ? {
+            farmerMessage: String(raw.estres_vegetacion.mensaje_agricultor ?? ''),
+            reading: raw.estres_vegetacion.lectura,
+            monthly: (raw.estres_vegetacion.por_mes ?? []).map((m: any) => ({
+              month: Number(m.mes),
+              esi: m.esi_mediana == null ? null : Number(m.esi_mediana),
+              fewObservations: Boolean(m.pocas_observaciones),
+            })),
+            source: raw.estres_vegetacion.fuente,
+            scope: raw.estres_vegetacion.alcance,
+          }
+        : undefined,
     };
   } catch {
     return null;
