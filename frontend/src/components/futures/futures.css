@@ -234,3 +234,15 @@
 .fg-legend--rank{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:8px;font-size:11px;color:var(--muted)}
 .fg-legend--rank span{display:inline-flex;align-items:center;gap:5px}
 .fg-legend--rank .fg-sw{display:inline-block;width:10px;height:10px;border-radius:2px}
+
+/* Vista 02 con la foto de andenes del diseno original (despues de las cabeceras claras v3). */
+.cmp-hero.cmp-hero--photo{background:#0b3644;min-height:170px}
+.cmp-hero--photo:after{background:linear-gradient(90deg,rgba(9,40,46,.86) 0%,rgba(9,40,46,.55) 55%,rgba(9,40,46,.15) 100%)}
+.cmp-hero--photo .cmp-hero-inner{color:#fff}
+.cmp-hero.cmp-hero--photo h1{color:#fff!important}
+.cmp-hero.cmp-hero--photo p{color:rgba(255,255,255,.88)!important}
+.cmp-hero--photo .cmp-hero-meta span{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);color:#fff;backdrop-filter:blur(6px)}
+/* Arriba a la derecha: abajo tapaba las etiquetas Parcela / 100 futuros. */
+.cmp-hero--photo .photo-credit{z-index:3;top:8px;bottom:auto}
+/* En celular el titulo ocupa todo el ancho: se deja la franja de arriba para el credito. */
+@media(max-width:680px){.cmp-hero--photo .cmp-hero-inner{padding-top:40px}.cmp-hero--photo .photo-credit{max-width:calc(100% - 20px)}}

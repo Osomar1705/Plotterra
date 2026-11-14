@@ -1236,8 +1236,11 @@ button {
   pointer-events: none
 }
 
-.input-with-icon input {
-  padding-left: 36px
+/* Mas especifico que .field input[type=date]: esa regla devolvia el relleno a
+   12px y el icono de calendario quedaba encima del mes. */
+.input-with-icon input,
+.field .input-with-icon input {
+  padding-left: 38px
 }
 
 .input-with-suffix {
@@ -1573,7 +1576,8 @@ button {
     gap: 6px
   }
 
-  .submit-block .foot-note {
+  .submit-block .foot-note,
+  .entry-fields > .foot-note {
     display: none
   }
 }

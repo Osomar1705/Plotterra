@@ -19,14 +19,16 @@ export const PHOTOS: Record<PhotoKey, { file: string; author: string; caption: s
 export const photoUrl = (k: PhotoKey, width = 1600) => `${COMMONS}Special:FilePath/${PHOTOS[k].file}?width=${width}`;
 export const photoPage = (k: PhotoKey) => `${COMMONS}File:${PHOTOS[k].file}`;
 
-export function Photo({ k, className, width = 1600, credit = true, kenBurns = true }: {
+export function Photo({ k, className, width = 1600, credit = true, kenBurns = true, eager = false }: {
   k: PhotoKey; className?: string; width?: number; credit?: boolean; kenBurns?: boolean;
+  /** Para fotos de cabecera: con lazy el navegador puede no pedirla nunca y queda el dibujo. */
+  eager?: boolean;
 }) {
   const [state, setState] = useState<'loading' | 'ok' | 'error'>('loading');
   const p = PHOTOS[k];
   return <div className={`photo ${className ?? ''} photo--${state}`}>
     <AndeanLandscape className="photo-fallback" />
-    {state !== 'error' && <img src={photoUrl(k, width)} alt={p.caption} loading="lazy" decoding="async"
+    {state !== 'error' && <img src={photoUrl(k, width)} alt={p.caption} loading={eager ? 'eager' : 'lazy'} decoding="async"
       className={kenBurns ? 'photo-img photo-img--kb' : 'photo-img'} style={{ objectPosition: p.position }}
       onLoad={() => setState('ok')} onError={() => setState('error')} />}
     {credit && state === 'ok' && <a className="photo-credit" href={photoPage(k)} target="_blank" rel="noreferrer">

@@ -13,9 +13,10 @@ const HOLD_SUMMARY = 1100;    // ms mostrando el resumen antes de cerrar
  * Cuando llegan los datos: se pintan en cascada con los valores REALES y un contador recorre los
  * escenarios reales. Luego la cuadrícula viaja a la tarjeta destacada (layoutId compartido).
  */
-export function SimulationReveal({ values, previousValues, scenarios, changeLabel, layoutId, onDone, note }: {
+export function SimulationReveal({ values, previousValues, scenarios, changeLabel, layoutId, onDone, note, ranks }: {
   values?: number[];            // undefined = todavía esperando la API
   previousValues?: number[];    // en recálculos: para contar futuros que empeoraron
+  ranks?: number[];             // puesto de esta opcion en cada futuro: colorea igual que las tarjetas
   scenarios?: ScenarioMeta[];
   changeLabel?: string | null;
   layoutId?: string;
@@ -59,14 +60,16 @@ export function SimulationReveal({ values, previousValues, scenarios, changeLabe
       <h2>{values ? 'Probando tu parcela en 100 futuros' : 'Preparando 100 futuros para tu parcela…'}</h2>
       <div className={`sr-grid ${values ? '' : 'is-waiting'}`}>
         <FuturesGrid values={values ?? placeholder} scenarios={scenarios} size="mini" order="scenario"
-          revealed={!!values} staggerMs={STAGGER} previousValues={previousValues} layoutId={layoutId} cellPx={22}
+          revealed={!!values} staggerMs={STAGGER} previousValues={previousValues} layoutId={layoutId} cellPx={22} ranks={ranks}
           ariaLabel="Simulación de 100 futuros" />
       </div>
       <div className="sr-ticker" aria-live="polite">
         {!values && <span>Clima histórico NASA · lluvia · riego · precio</span>}
         {values && !summary && tick >= 0 && <span><b>{scenarioLabel(tick, scenarios, false)}</b>{fam && <em className={`sr-fam sr-fam--${scenarios![tick].family}`}>{fam}</em>}</span>}
         {values && summary && <motion.strong initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
-          Con ganancia en {wins} de {values.length} futuros{worsened > 0 ? ` · ${worsened} pasaron a pérdida` : ''}
+          {ranks?.length === values.length
+            ? `La mejor de las tres en ${ranks.filter((r) => r === 0).length} de ${values.length} futuros · ${values.length - wins > 0 ? `pierde plata en ${values.length - wins}` : 'con ganancia en todos'}`
+            : `Con ganancia en ${wins} de ${values.length} futuros`}{worsened > 0 ? ` · ${worsened} pasaron a pérdida` : ''}
         </motion.strong>}
         {values && summary && note && <span className="sr-note">{note}</span>}
       </div>

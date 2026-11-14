@@ -48,7 +48,8 @@
 .parcel-experience .priority-card{min-width:0;padding:12px 8px}
 .parcel-experience .disclosure{background:#fff;border:1px solid var(--line);border-radius:12px}
 .parcel-experience .disclosure-head{width:100%;min-height:48px;flex-wrap:wrap;text-align:left}
-.parcel-experience .submit-block{margin-top:2px;padding:12px;background:var(--bg);position:sticky;bottom:0;border-top:1px solid var(--line);z-index:5}
+.parcel-experience .submit-block{margin-top:2px;padding:12px;background:var(--bg);position:sticky;bottom:0;border-top:1px solid var(--line);z-index:5;box-shadow:0 -12px 16px -14px rgba(11,54,68,.35)}
+.parcel-experience .entry-fields>.foot-note{margin:4px 0 0}
 .parcel-experience .cta-why,.parcel-experience .foot-note{margin:7px 0 0;line-height:1.35}
 .parcel-mobile-nav,.parcel-next,.parcel-back{display:none}
 .parcel-experience :is(button,summary,a,input,select):focus-visible{outline:3px solid var(--water);outline-offset:3px}

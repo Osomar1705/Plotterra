@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGuide } from '../assistant/GuideProvider';
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react';
-import { AndeanLandscape } from './CropIllustration';
+import { Photo } from './Photo';
 import type { AppliedChange, Comparison, EntryConditions, FieldShiftApiError } from '../types/fieldshift';
 import { applyChange, createComparison, getComparison, undoChange } from '../api/fieldshiftApi';
 import { readEntryConditions, readQueryContext } from '../integration/entryContext';
@@ -22,7 +22,7 @@ function changeKey(c?:AppliedChange|null){return c?`${c.type}:${c.operation}:${c
 const altTitle = { economy:'Economía', water:'Agua', soil:'Suelo', unknown:'Alternativa' } as const;
 const HERO_LAYOUT = 'futures-hero';
 
-type Reveal = { values?: number[]; previous?: number[]; label?: string | null; first: boolean; note?: string | null };
+type Reveal = { values?: number[]; ranks?: number[]; previous?: number[]; label?: string | null; first: boolean; note?: string | null };
 
 export function ComparisonPage(){
   const [comparison,setComparison]=useState<Comparison|null>(null);
@@ -51,7 +51,7 @@ export function ComparisonPage(){
     if(!alive)return;
     setComparison(c);setError(null);
     const hero=heroOf(c);
-    setReveal(hero?{first:true,values:hero.outcomes!.marginByScenario}:null);   // sin outcomes: sin animación
+    setReveal(hero?{first:true,values:hero.outcomes!.marginByScenario,ranks:hero.outcomes!.rankByScenario}:null);   // sin outcomes: sin animación
   }catch(e:any){if(alive){setError(e);setReveal(null)}}finally{if(alive)setLoading(false)}})();return()=>{alive=false}},[]);
 
   const activeLabel = comparison?.activeChanges.at(-1)?.label ?? (comparison?.activeChanges.length ? 'Escenario modificado' : null);
@@ -74,7 +74,7 @@ export function ComparisonPage(){
       const note=nh&&oldHero&&seq(nh)!==seq(oldHero)?`La opción ${altTitle[nh.type]} ahora es ${seq(nh)}`:null;
       if(nh){
         const done=new Promise<void>(r=>{revealDone.current=r;window.setTimeout(r,7000)});
-        setReveal(r=>r?{...r,values:nh.outcomes!.marginByScenario,note}:null);
+        setReveal(r=>r?{...r,values:nh.outcomes!.marginByScenario,ranks:nh.outcomes!.rankByScenario,note}:null);
         setProcessing(false);
         await done;
       }else setReveal(null);
@@ -92,8 +92,9 @@ export function ComparisonPage(){
     <header className="topbar"><a className="brand" href="/"><LeafIcon/>FieldShift</a><nav className="steps"><a href="/">1&nbsp; Parcela</a><strong>2&nbsp; Opciones</strong><span>3&nbsp; Plan</span></nav></header>
     <LayoutGroup>
     {comparison && <main className="comparison-page">
-      <motion.section className="cmp-hero" initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{duration:.5}}>
-        <AndeanLandscape className="cmp-hero-art" tone="day"/>
+      <motion.section className="cmp-hero cmp-hero--photo" initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{duration:.5}}>
+        {/* La foto de andenes del diseno original; sin internet cae a la ilustracion. */}
+        <Photo k="andenes" eager/>
         <div className="cmp-hero-inner">
           <div><h1>Tres formas de planificar tu próxima siembra</h1><p>{activeLabel?`Resultados actualizados · ${activeLabel}`:'Cada opción se probó en los mismos 100 futuros posibles de tu parcela.'}</p></div>
           <div className="cmp-hero-meta"><span><PinIcon/>Parcela · {area} ha</span><span>100 futuros · 3 campañas</span>{comparison.sourceResult==='mock'&&<span>Datos de demostración</span>}</div>
@@ -132,7 +133,7 @@ export function ComparisonPage(){
     </main>}
 
     <AnimatePresence>
-      {showOverlay && reveal && <SimulationReveal key="reveal" values={reveal.values} previousValues={reveal.previous}
+      {showOverlay && reveal && <SimulationReveal key="reveal" values={reveal.values} ranks={reveal.ranks} previousValues={reveal.previous}
         scenarios={comparison?.scenarios} changeLabel={reveal.label} layoutId={HERO_LAYOUT} note={reveal.note}
         onDone={()=>{setReveal(null);revealDone.current?.();revealDone.current=null}}/>}
     </AnimatePresence>

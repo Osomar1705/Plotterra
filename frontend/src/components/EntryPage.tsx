@@ -404,8 +404,9 @@ export function EntryPage() {
                 {submitting ? 'Comparando…' : 'Comparar mis opciones'}
               </button>
               {blocker && <p className="cta-why">{blocker}</p>}
-              <p className="foot-note">NASA + MIDAGRI · Los datos ambientales se incorporan automáticamente al análisis.</p>
             </div>
+            {/* Fuera de la barra fija: dentro, la barra media 177 px y tapaba las preguntas. */}
+            <p className="foot-note">NASA + MIDAGRI · Los datos ambientales se incorporan automáticamente al análisis.</p>
           </section>
         </div>
       </main>
