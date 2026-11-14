@@ -4,7 +4,7 @@ import type { Alternative, AlternativeKind, Campaign, ScenarioMeta } from '../ty
 import { AlertIcon, CoinsIcon, InfoIcon, LeafIcon, SproutIcon, WaterIcon } from './Icons';
 import { CropIllustration } from './CropIllustration';
 import { FuturesGrid } from './futures/FuturesGrid';
-import { signedMoney, summarize } from './futures/futuresModel';
+import { profitLine, signedMoney, summarize } from './futures/futuresModel';
 import { useCountUp } from './useCountUp';
 
 const meta: Record<AlternativeKind,{title:string;subtitle:string;Icon:typeof CoinsIcon}> = {
@@ -38,7 +38,8 @@ export function AlternativeCard({alternative,priority,onOpenPlan,scenarios,hover
   const m=meta[alternative.type]; const Icon=m.Icon;
   const accent=alternative.type==='unknown'?'var(--navy)':`var(--${alternative.type})`;
   const o=alternative.outcomes; const s=o?summarize(o):null;
-  const wins=useCountUp(s?.wins??0, 900, 250+index*150);
+  const headline=s?(s.best??s.wins):0;
+  const wins=useCountUp(headline, 900, 250+index*150);
   const {min,max,basis}=alternative.margin;
   return <motion.article className={`oc oc--${alternative.type} ${priority?'oc--priority':''}`} style={{'--accent':accent} as CSSProperties}
     initial={{opacity:0,y:28,scale:.98}} animate={{opacity:1,y:0,scale:1}} whileHover={{y:-4}}
@@ -61,11 +62,12 @@ export function AlternativeCard({alternative,priority,onOpenPlan,scenarios,hover
       <div className="oc-fut-grid" style={{visibility: hideGrid ? 'hidden' : 'visible'}}>
         <FuturesGrid values={o.marginByScenario} scenarios={scenarios} size="mini" cellPx={9} order="value"
           highlightIndex={hoveredScenario} onHoverIndex={onHoverScenario} layoutId={hideGrid?undefined:layoutId}
-          ariaLabel={`${m.title}: gana en ${s.wins} de ${s.total} futuros`}/>
+          ariaLabel={`${m.title}: es la mejor opción en ${headline} de ${s.total} futuros`}/>
       </div>
       <div className="oc-fut-text">
         <span className="oc-wins"><b>{wins}</b><small>/ {s.total}</small></span>
-        <span className="oc-wins-label">futuros con ganancia</span>
+        <span className="oc-wins-label">{s.best!==undefined?'futuros en que es la mejor opción':'futuros con ganancia'}</span>
+        {s.best!==undefined && <span className={`oc-line oc-profit ${s.losses>0?'neg':''}`}>{profitLine(s)}</span>}
         {s.mean!==undefined && <span className="oc-line" title={min===null||max===null?undefined:`Rango de escenarios: S/ ${money(min)} a ${money(max)}`}>Promedio <b>{signedMoney(s.mean)}</b></span>}
         {s.adverse!==undefined && <span className="oc-line">10 peores <b className={s.adverse<0?'neg':''}>{signedMoney(s.adverse)}</b></span>}
         <span className="oc-links">

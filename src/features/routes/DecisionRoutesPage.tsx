@@ -9,7 +9,7 @@ import type { ReactNode } from 'react';
 import { AndeanLandscape, CROP_ACCENT, CropIllustration, cropKey } from '../../components/CropIllustration';
 import { useCountUp } from '../../components/useCountUp';
 import { FuturesGrid } from '../../components/futures/FuturesGrid';
-import { FAMILY_LABEL, signedMoney, summarize } from '../../components/futures/futuresModel';
+import { FAMILY_LABEL, profitLine, signedMoney, summarize } from '../../components/futures/futuresModel';
 import '../../components/futures/futures.css';
 import './decision-routes.css';
 import './plan.css';
@@ -144,7 +144,9 @@ export function DecisionRoutesPage({ comparisonId, alternativeId, campaignIndex:
             <button className="pv-ask" onClick={() => openGuide('¿Por qué me recomiendan esta rotación y qué tan segura es?')}>💬 Preguntar por este plan</button>
           </motion.div>
           <div className="pv-kpis">
-            {s && <Kpi i={0} label="Futuros con ganancia" value={<><CountUp n={s.wins} /> <small>/ {s.total}</small></>} />}
+            {s && (s.best !== undefined
+              ? <Kpi i={0} label="Es la mejor opción en" value={<><CountUp n={s.best} /> <small>/ {s.total}</small></>} sub={profitLine(s)} />
+              : <Kpi i={0} label="Futuros con ganancia" value={<><CountUp n={s.wins} /> <small>/ {s.total}</small></>} />)}
             {s?.mean !== undefined && <Kpi i={1} label="Margen promedio" value={signedMoney(s.mean)} sub="por ha · 3 campañas" />}
             <Kpi i={2} label="Agua que la lluvia no cubre" value={`${selected.water.value} ${selected.water.unit}`} sub="por campaña" />
             <Kpi i={3} label="Suelo" value={soilShort[selected.soil.compatibility] || selected.soil.compatibility} sub="compatibilidad" />
@@ -197,12 +199,13 @@ export function DecisionRoutesPage({ comparisonId, alternativeId, campaignIndex:
           </div>
           <div className={`pv-fut-grid ${compareUsual && usual ? 'is-compare' : ''}`}>
             <div>
-              <p className="pv-fut-big">Gana en <b><CountUp n={s.wins} /></b> de {s.total}</p>
+              <p className="pv-fut-big">{s.best !== undefined ? <>La mejor de las tres en <b><CountUp n={s.best} /></b> de {s.total}</> : <>Gana en <b><CountUp n={s.wins} /></b> de {s.total}</>}</p>
+              <p className={`pv-profit ${s.losses > 0 ? 'neg' : ''}`}>{profitLine(s)}</p>
               <FuturesGrid values={o.marginByScenario} scenarios={comparison.scenarios} size="full" order="value" highlightIndex={hover} onHoverIndex={setHover} ariaLabel={`Este plan gana en ${s.wins} de ${s.total} futuros`} />
               <dl className="fp-stats">{s.mean !== undefined && <><dt>Promedio</dt><dd>{signedMoney(s.mean)} /ha</dd></>}{s.adverse !== undefined && <><dt>10 peores</dt><dd className={s.adverse < 0 ? 'neg' : ''}>{signedMoney(s.adverse)} /ha</dd></>}</dl>
             </div>
             {compareUsual && usual && us ? <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-              <p className="pv-fut-big pv-fut-big--usual">Tu plan habitual: <b>{us.wins}</b> de {us.total}</p>
+              <p className="pv-fut-big pv-fut-big--usual">Tu plan habitual: <b>{profitLine(us)}</b></p>
               <FuturesGrid values={usual.outcomes!.marginByScenario} scenarios={comparison.scenarios} size="full" order="value" highlightIndex={hover} onHoverIndex={setHover} ariaLabel={`Plan habitual: gana en ${us.wins} de ${us.total} futuros`} />
               <dl className="fp-stats">{us.mean !== undefined && <><dt>Promedio</dt><dd>{signedMoney(us.mean)} /ha</dd></>}{us.adverse !== undefined && <><dt>10 peores</dt><dd className={us.adverse < 0 ? 'neg' : ''}>{signedMoney(us.adverse)} /ha</dd></>}</dl>
             </motion.div> : selected.stressTest && <div className="pv-stress">
