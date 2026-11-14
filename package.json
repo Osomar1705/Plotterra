@@ -4,13 +4,17 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev-with-ai.mjs",
+    "dev:frontend": "vite",
+    "dev:ai": "node server/ai-server.mjs",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:guide": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^6.1.2",
     "leaflet": "^1.9.4",
+    "motion": "14.6.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "typescript": "^7.0.2",

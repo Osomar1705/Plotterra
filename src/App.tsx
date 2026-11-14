@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react';
 import { EntryPage } from './components/EntryPage';
 import { ComparisonPage } from './components/ComparisonPage';
 import { DecisionRoutesPage } from './features/routes/DecisionRoutesPage';
+import { GuideDrawer } from './assistant/GuideDrawer';
+import { GuideProvider } from './assistant/GuideProvider';
 
 /**
  * Router minimo para poder recorrer Parcela -> Opciones sin dependencias.
  * Si el equipo adopta React Router, se reemplaza esto y las vistas no cambian:
  * cada una navega con history.pushState + PopStateEvent.
  */
-export default function App() {
+function PageRouter() {
   const [path, setPath] = useState(window.location.pathname);
 
   useEffect(() => {
@@ -19,7 +21,7 @@ export default function App() {
 
   if (path.startsWith('/opciones')) return <ComparisonPage />;
   if (path.startsWith('/plan')) {
-    // Vista 03 (Integrante 3). El handoff llega por query params desde Opciones.
+    // Vista 03. El handoff llega por query params desde Opciones.
     const p = new URLSearchParams(window.location.search);
     const campaignIndex = Number.parseInt(p.get('campaignIndex') ?? '0', 10);
     return (
@@ -31,4 +33,14 @@ export default function App() {
     );
   }
   return <EntryPage />;
+}
+
+/** La Guia (chat) vive fuera de las vistas: acompana al agricultor en las tres. */
+export default function App() {
+  return (
+    <GuideProvider>
+      <PageRouter />
+      <GuideDrawer />
+    </GuideProvider>
+  );
 }

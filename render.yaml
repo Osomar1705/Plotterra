@@ -22,3 +22,10 @@ services:
         value: https://fieldshift-backend.onrender.com/api/v1
       - key: VITE_USE_LOCAL_MOCKS
         value: "false"
+      # La Guia (chat) usa /consultas del backend: con ANTHROPIC_API_KEY en el
+      # backend responde un LLM y sin ella el interprete por reglas. Para usar el
+      # servidor de OpenAI de server/ hay que desplegarlo aparte y apuntar aqui.
+      - key: VITE_GUIDE_MODE
+        value: ai
+      - key: VITE_GUIDE_API_URL
+        value: https://fieldshift-backend.onrender.com/api/v1/consultas

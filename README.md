@@ -1,5 +1,43 @@
 # FieldShift NSC Frontend
 
+## Novedades: "Tu chacra en 100 futuros"
+
+Implementa el plan `docs/FIELDSHIFT_PLAN_FRONTEND.md` (Fases 0–5). Capturas en `docs/capturas/`.
+
+| Qué | Dónde |
+|---|---|
+| Cuadrícula de 100 futuros (una parcelita por escenario; pérdidas con color **y** rayado) | `src/components/futures/FuturesGrid.tsx` |
+| "Gana en X de 100" + promedio + 10 peores futuros en cada tarjeta | `src/components/AlternativeCard.tsx` |
+| Hover compartido: el mismo futuro se ilumina en las 3 opciones | `ComparisonPage.tsx` (`hovered`) |
+| Panel "Los 100 futuros de tu parcela" (orden por resultado o por tipo de futuro, stress test, plan habitual) | `src/components/futures/FuturesPanel.tsx` |
+| Simulación animada con datos reales (sin progreso inventado) que viaja a la tarjeta destacada | `src/components/futures/SimulationReveal.tsx` |
+| Ilustraciones propias de los 6 cultivos + paisaje andino | `src/components/CropIllustration.tsx` |
+| Vista 03 renovada: línea de tiempo de 3 años, detalle de campaña, 100 futuros vs. plan habitual, "por qué este plan" | `src/features/routes/DecisionRoutesPage.tsx`, `plan.css` |
+| Mocks deterministas con la misma forma que el backend | `src/mocks/futures.ts`, `src/mocks/data.ts` |
+
+**Campos opcionales nuevos de la API** (si faltan, la UI vuelve al diseño anterior): `alternatives[].outcomes.margin_by_scenario` (o `detalle.distribucion_margen_S_ha`), `outcomes.wins/losses/mean/adverse`, `detalle.stress_test/explicacion/tradeoffs`, `campaigns[].crop_id/start_month/end_month/metrics`, `scenarios[]` (o `simulacion.escenarios`), `usual_plan`, `rainfall_monthly_mm`. Ejemplo real: `docs/ejemplo_respuesta_backend.json`.
+
+**Otros cambios:** versiones fijadas en `package.json` (antes `latest`), única librería nueva `motion@14.6.0`, se quitaron las esperas artificiales (4,8 s y 8,9 s) y el overlay con pasos simulados de la Vista 01, se respeta `prefers-reduced-motion`.
+
+**v2 (más visual y compacta):**
+- **Tarjetas de opciones compactas y cuadradas:** cultivos en 3 casillas iguales; los 100 futuros (cuadritos de 9 px) junto al número animado; agua, suelo y riesgo en 3 chips del mismo tamaño.
+- **Cuadritos más pequeños** en el panel y la Vista 03 (15 px).
+- **Vista 03 más corta:**
+  - Indicadores dentro de la cabecera.
+  - Detalle de campaña integrado en la línea de tiempo.
+  - "100 futuros" y "Por qué este plan" lado a lado.
+- **Animaciones:** conteos animados, entrada escalonada de tarjetas y cultivos, barras de lluvia y de estrés que crecen, efecto Ken Burns en las fotos y balanceo de las ilustraciones al pasar el cursor.
+- **Fotos reales** (`src/components/Photo.tsx`):
+  - Tres fotos de Wikimedia Commons (andenes del Colca, quinua en Apurímac, variedades de papa), con crédito y enlace a su página.
+  - Las carga el navegador del usuario. Si no cargan, se muestra la ilustración propia.
+  - **Antes de publicar, revisar la licencia de cada una en su enlace.**
+
+**Pendiente opcional:** foto real con crédito en la cabecera (este entorno no pudo descargar imágenes de Wikimedia; reemplazar `AndeanLandscape` por una `<img>` con crédito si se consigue), imagen satelital de fondo en el mapa (F5) y bienvenida estilo Tend (F6).
+
+---
+
+# FieldShift NSC Frontend
+
 Implementación React + TypeScript del recorrido del agricultor.
 
 - **Vista 01 — Parcela** (Integrante 1): entrada de la parcela y condiciones.
@@ -191,3 +229,24 @@ src/
 3. Durante 02C se conserva la comparación anterior.
 4. El asistente interpreta y explica; no inventa métricas.
 5. `comparisonId + alternativeId` son suficientes para el handoff de `Ver mi plan`.
+
+## Novedades v4 · Guía FieldShift (chatbot) integrada
+
+**Cómo correrlo**
+1. `npm install`
+2. Copia `.env.ai.example` → `.env.ai` y pon tu clave en `OPENAI_API_KEY=` (solo servidor; nunca en variables `VITE_*`, nunca en GitHub ni por chat).
+3. `npm run dev` → levanta Vite (5173) + servidor IA (8787). Sin clave: `VITE_GUIDE_MODE=demo npm run dev:frontend` (respuestas sin LLM).
+4. `npm run test:guide` → pruebas del servidor IA.
+
+**Qué cambió respecto al chat original**
+- Integrado con el rediseño: al confirmar un cambio desde el chat se ve la animación de los 100 casos y luego vuelve el chat.
+- Bienvenida que dice qué puede y qué no puede hacer + 3 preguntas de inicio según la página.
+- Tarjeta "Resultado del simulador" con cifras del motor (gana en X de 100, antes → después) y botón **Deshacer**.
+- La IA recibe `outcomes` (gana en X de 100, promedio, 10 peores) y `stressTest`; se le pide hablar en frecuencias ("8 de cada 10 casos"), nunca como garantía.
+- `context.engine` (`backend` / `local_mock`): con backend real acepta cualquier cambio validado; en mock solo 30 % menos riego.
+- Error con **Reintentar**, aviso claro si la IA no está conectada, dictado por voz (si el navegador lo soporta) y lectura en voz alta con detener.
+- Acciones sobre el objeto: "¿Por qué? 💬" en cada tarjeta, "Preguntar por este plan" y "¿Por qué aquí?" en la vista Plan.
+- Móvil: el chat es una hoja inferior; sugerencias en fila deslizable.
+- Se quitó la foto flotante del encabezado de la Vista 01 (redundante).
+
+**Ojo backend:** el Vite proxy envía `/api/v1/consultas` al servidor IA (8787). El backend de referencia también tenía `/consultas` (por reglas); usen solo uno.
