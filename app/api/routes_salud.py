@@ -39,6 +39,23 @@ def health() -> dict:
     }
 
 
+@router.get("/guide-health", summary="Estado del interprete de la Guia (chat) del frontend")
+def guide_health() -> dict:
+    """La Guia del frontend pregunta esto antes de abrir el chat.
+
+    Cuando no hay servidor de IA propio, el frontend manda sus consultas a
+    /consultas de este backend: con clave usa el LLM y, sin ella, el interprete
+    por reglas. Las dos opciones responden, asi que ready es siempre true.
+    """
+    con_llm = bool(CONFIG.anthropic_api_key)
+    return {
+        "ready": True,
+        "provider": "anthropic" if con_llm else "reglas",
+        "model": CONFIG.modelo_llm if con_llm else "interprete por reglas",
+        "message": "Guia conectada al motor FieldShift",
+    }
+
+
 @router.get("/catalogo", response_model=Catalogo, summary="Cultivos, prioridades, unidades y limites")
 def catalogo() -> Catalogo:
     cultivos = [

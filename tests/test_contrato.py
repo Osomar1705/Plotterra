@@ -138,3 +138,11 @@ def test_la_respuesta_trae_los_alias_que_lee_el_frontend(cliente, condiciones):
         assert campana["metrics"] is not None, "campana sin desglose"
         assert campana["metrics"]["yield"]["unit"] == "t/ha"
         assert campana["metrics"]["economy"]["unit"] == "S/ha"
+
+
+def test_guide_health_responde_sin_clave(cliente):
+    """La Guia del frontend lo consulta antes de abrir el chat."""
+    r = cliente.get(f"{BASE}/guide-health")
+    assert r.status_code == 200
+    cuerpo = r.json()
+    assert cuerpo["ready"] is True and cuerpo["model"]
