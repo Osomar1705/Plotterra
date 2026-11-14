@@ -1,0 +1,137 @@
+/* ===== FieldShift Guide · Contextual agrarian assistant ===== */
+.guide-launcher{position:fixed;right:24px;bottom:24px;z-index:28;border:1px solid #b7e4d5;border-radius:999px;min-height:54px;padding:7px 20px 7px 8px;display:flex;align-items:center;gap:10px;background:linear-gradient(115deg,#00765e,#005d56);color:#fff;font:800 14px Manrope,sans-serif;box-shadow:0 14px 36px rgba(0,84,70,.24);cursor:pointer;transition:transform .2s ease,box-shadow .2s ease}
+.guide-launcher:hover{transform:translateY(-4px);box-shadow:0 20px 42px rgba(0,84,70,.3)}
+.guide-launcher-mark{width:39px;height:39px;border-radius:100%;background:#dbfaea;display:grid;place-items:center;color:#00775b}
+.guide-launcher--hidden-on-comparison{display:none}
+.guide-backdrop{position:fixed;inset:0;z-index:79;background:rgba(8,42,49,.31);backdrop-filter:blur(2px);animation:guideFade .22s ease}
+.guide-drawer{position:fixed;z-index:80;top:0;bottom:0;right:0;width:min(420px,100vw);background:#fff;display:flex;flex-direction:column;box-shadow:-18px 0 55px rgba(8,42,49,.19);animation:guideSlide .26s cubic-bezier(.2,.8,.2,1);font-family:'Source Sans 3',sans-serif}
+.guide-header{min-height:80px;padding:14px 18px 14px 20px;display:flex;justify-content:space-between;align-items:center;gap:10px;background:linear-gradient(115deg,#f0faf5,#f4faff);border-bottom:1px solid #dfede6}
+.guide-identity{display:flex;align-items:center;gap:12px;min-width:0}
+.guide-leaf{position:relative;width:42px;height:42px;display:grid;place-items:center;flex:none;border-radius:14px;color:#007a5a;background:#dff5ea;box-shadow:inset 0 0 0 1px #c9e7d9}
+.guide-leaf i{position:absolute;width:8px;height:8px;right:-2px;top:-2px;border:2px solid #fff;background:#14af80;border-radius:50%}
+.guide-identity strong{display:block;color:#073f43;font:800 17px Manrope,sans-serif;white-space:nowrap}
+.guide-identity small{display:block;color:#526e72;font-size:12px;line-height:1.4}
+.guide-header-actions{display:flex;gap:4px}
+.guide-header-actions button{background:transparent;border:0;cursor:pointer;width:36px;height:36px;border-radius:10px;color:#24535c;font-size:24px;display:grid;place-items:center}
+.guide-header-actions button:hover{background:#dff1eb}
+.guide-context{margin:12px 18px 4px;display:flex;align-items:center;gap:8px;min-height:40px;padding:8px 10px;border:1px solid #d5ebe3;border-radius:11px;background:#f5fbf8;font-size:12px;color:#335962;line-height:1.3}
+.guide-context-tag{flex:none;font-size:9px;font-weight:900;letter-spacing:.08em;background:#fff;color:#006e55;border-radius:6px;padding:5px 7px}
+.guide-demo-note{margin:4px 18px 8px;color:#657e80;font-size:11px;line-height:1.3}
+.guide-messages{min-height:0;flex:1;overflow-y:auto;overscroll-behavior:contain;padding:13px 17px 15px;scrollbar-color:#c8dcd5 transparent}
+.guide-turn{display:flex;gap:8px;align-items:flex-start;margin:0 0 14px;animation:guideMessage .26s ease both}
+.guide-turn--user{justify-content:flex-end}
+.guide-turn-icon{width:29px;height:29px;flex:none;display:grid;place-items:center;border-radius:50%;background:#e2f4ec;color:#008263}
+.guide-bubble{max-width:calc(100% - 41px);padding:11px 13px;border-radius:5px 15px 15px 15px;background:#f0f7f3;border:1px solid #e2efe8;color:#153f48;font-size:15px;line-height:1.48;white-space:pre-line}
+.guide-bubble p{margin:0}
+.guide-turn--user .guide-bubble{background:#e8f3fa;border-color:#d5e9f3;border-radius:15px 5px 15px 15px;color:#094a68}
+.guide-message-tools{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px}
+.guide-message-tools button{border:0;background:transparent;padding:0;color:#386a6f;font-size:11px;cursor:pointer;text-align:left}
+.guide-message-tools button:hover{text-decoration:underline}
+.guide-source-count{font-size:10px;color:#66817b}
+.guide-bubble--typing{display:flex;gap:4px;align-items:center;font-size:13px;color:#47716c}
+.guide-bubble--typing>span{width:5px;height:5px;background:#00a780;border-radius:50%;animation:guideDot 1s infinite alternate}
+.guide-bubble--typing>span:nth-child(2){animation-delay:.18s}
+.guide-bubble--typing>span:nth-child(3){animation-delay:.36s}
+.guide-thinking{animation:guideBreathe .9s ease-in-out infinite alternate}
+.guide-confirm{padding:14px;margin:3px 0 16px 38px;background:linear-gradient(125deg,#effaf4,#f5fbf8);border:1px solid #cbe7d8;border-radius:14px;animation:guideMessage .3s ease both}
+.guide-confirm-label{display:flex;align-items:center;gap:8px;color:#0a8063;font-size:10px;letter-spacing:.08em;font-weight:900}
+.guide-confirm>strong{display:block;font:800 16px Manrope,sans-serif;color:#004f40;margin:9px 0 3px}
+.guide-confirm>p{font-size:12px;color:#55716e;margin:0 0 12px}
+.guide-confirm>div:last-child{display:flex;gap:8px;justify-content:flex-end}
+.guide-outline,.guide-accept{min-height:42px;padding:9px 12px;border-radius:10px;border:1px solid #cde3d8;background:#fff;color:#17494d;cursor:pointer;font-size:13px;font-weight:800}
+.guide-accept{border-color:#00745c;background:#00745c;color:#fff}
+.guide-accept:hover{background:#005c4d}
+.guide-error{color:#9d3826;font-size:13px;padding:8px}
+.guide-suggestions{padding:5px 16px 11px;display:flex;flex-wrap:wrap;gap:7px;max-height:98px;overflow:auto}
+.guide-suggestions button{padding:7px 10px;border-radius:999px;background:#f4faf7;color:#176b62;border:1px solid #cce6dc;font-size:12px;font-weight:700;cursor:pointer;transition:transform .15s ease,background .15s ease}
+.guide-suggestions button:hover{transform:translateY(-2px);background:#e8f5ef}
+.guide-compose{display:flex;align-items:center;gap:8px;padding:12px 16px 8px;border-top:1px solid #e4eee9;background:#fff}
+.guide-compose input{height:49px;flex:1;min-width:0;border:1px solid #d4e6de;background:#fafdfb;border-radius:12px;padding:0 12px;outline:none;color:#123f44;font:400 15px 'Source Sans 3',sans-serif}
+.guide-compose input:focus{border-color:#00836c;box-shadow:0 0 0 3px rgba(0,126,94,.12)}
+.guide-compose button{width:45px;height:45px;flex:none;border-radius:12px;border:0;background:#00745c;color:#fff;cursor:pointer;display:grid;place-items:center}
+.guide-compose button:disabled{background:#b9d5cb;cursor:not-allowed}
+.guide-footer{text-align:center;color:#708783;font-size:10px;padding:0 12px 10px}
+.plan-ask-guide,.campaign-ask-guide{display:inline-flex;align-items:center;gap:7px;justify-content:center;min-height:40px;padding:8px 12px;border:1px solid #b7dfd0;border-radius:11px;background:linear-gradient(110deg,#e7f7ed,#f5fbf8);color:#006a53;cursor:pointer;font:800 12px Manrope,sans-serif;white-space:nowrap;transition:transform .15s ease,box-shadow .15s ease}
+.plan-ask-guide:hover,.campaign-ask-guide:hover{transform:translateY(-2px);box-shadow:0 8px 15px rgba(0,112,83,.12)}
+.campaign-ask-guide{margin-left:auto;margin-right:8px}
+@keyframes guideFade{from{opacity:0}to{opacity:1}}
+@keyframes guideSlide{from{transform:translateX(26px);opacity:.7}to{transform:translateX(0);opacity:1}}
+@keyframes guideMessage{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes guideDot{to{opacity:.25;transform:translateY(-3px)}}
+@keyframes guideBreathe{to{transform:scale(1.08)}}
+@media(max-width:760px){.guide-drawer{width:100vw}.guide-launcher{right:16px;bottom:18px}.guide-suggestions{max-height:112px}.plan-ask-guide{display:none}.campaign-ask-guide{margin-left:0}}
+@media(prefers-reduced-motion:reduce){.guide-drawer,.guide-backdrop,.guide-turn,.guide-confirm,.guide-bubble--typing span,.guide-thinking{animation:none!important}.guide-launcher,.guide-suggestions button{transition:none!important}}
+
+.option-why-link{display:inline-flex;align-items:center;gap:4px;margin-top:8px;padding:4px 2px;border:0;background:transparent;color:var(--accent);font-size:12px;font-weight:800;cursor:pointer;transition:transform .17s ease}
+.option-why-link:hover{transform:translateX(3px);text-decoration:underline}
+
+/* Estado AI-first explícito (nunca insinuar conexión cuando falta la clave). */
+.guide-ai-warning{background:#fff5e7!important;color:#85550f!important;border:1px solid #edd5ab!important}
+.guide-ai-sample{background:#edf6f8!important;color:#195d6c!important;border-color:#d6e8ed!important}
+
+/* Chat con jerarquía tipográfica real, sin HTML inyectado ni tarjetas extra */
+.guide-rich-text{white-space:normal;overflow-wrap:anywhere}
+.guide-rich-text p{margin:0 0 7px;line-height:1.52}
+.guide-rich-text p:last-child{margin-bottom:0}
+.guide-rich-text strong{font-weight:800;color:#075a55}
+.guide-turn--user .guide-rich-text strong{color:#075578}
+.guide-rich-text ul{margin:7px 0 8px;padding:0 0 0 19px;display:grid;gap:5px}
+.guide-rich-text li{padding-left:2px;line-height:1.4}
+.guide-rich-text li::marker{color:#00876e}
+.guide-rich-text h4{font:800 14px/1.35 Manrope,sans-serif;color:#174953;margin:3px 0 7px}
+.guide-rich-text code{padding:1px 4px;border-radius:5px;background:#e3f1eb;font-size:.9em}
+
+/* ===== v4 · mejoras UX (capacidades, tarjetas de resultado, deshacer, voz, móvil) ===== */
+.guide-leaf i.off{background:#d99a2b}
+.guide-grabber{display:none}
+.guide-welcome{padding:6px 2px 4px;animation:guideMessage .3s ease both}
+.guide-welcome-hi{font:800 18px/1.35 Manrope,sans-serif;color:#0b4a4c;margin:4px 0 12px}
+.guide-can{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:8px}
+.guide-can li{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;background:#f3faf6;border:1px solid #e0efe7;color:#1d4b50;font-size:13.5px;font-weight:600}
+.guide-can li span{font-size:18px}
+.guide-cannot{font-size:12.5px;color:#5c7774;margin:0 0 16px;line-height:1.45}
+.guide-cannot strong{color:#0b5a50}
+.guide-try{font-size:10px;font-weight:900;letter-spacing:.09em;color:#7a9590;text-transform:uppercase;margin:0 0 7px}
+.guide-starters{display:grid;gap:7px}
+.guide-starters button{display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;padding:11px 13px;border-radius:12px;border:1px solid #cfe6dc;background:#fff;color:#0d5f55;font:700 13.5px Manrope,sans-serif;cursor:pointer;transition:transform .15s ease,background .15s ease,border-color .15s}
+.guide-starters button:hover,.guide-starters button:focus-visible{transform:translateX(3px);background:#eef8f3;border-color:#9fd2bf}
+.guide-starters button span{color:#00876e}
+.guide-result{margin:2px 0 14px 37px;padding:12px 13px;border-radius:14px;border:1px solid #cfe5db;background:#fff;box-shadow:0 6px 18px rgba(0,84,70,.07);animation:guideMessage .3s ease both}
+.guide-result-head span{display:block;font-size:9.5px;font-weight:900;letter-spacing:.09em;color:#6f8b86}
+.guide-result-head strong{display:block;font:800 15px Manrope,sans-serif;color:#0b4a4c;margin:2px 0 9px}
+.guide-result ul{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:8px}
+.guide-result li{display:grid;grid-template-columns:72px 1fr auto;gap:8px;align-items:center;font-size:12.5px;color:#234d52}
+.gr-name{font-weight:800}
+.gr-bar{height:8px;border-radius:99px;background:#eceeea;overflow:hidden}
+.gr-bar i{display:block;height:100%;border-radius:99px;background:#2f8f6b;transition:width .6s ease}
+.gr-water .gr-bar i{background:#2f7fa8}.gr-soil .gr-bar i{background:#9a7a3c}
+.gr-val{white-space:nowrap}.gr-val b{font-size:14px}
+.gr-val em{font-style:normal;font-weight:800;margin-left:6px;font-size:11px;padding:1px 5px;border-radius:6px}
+.gr-val em.down{color:#a43d24;background:#fbebe5}.gr-val em.up{color:#0f7a55;background:#e3f5ec}
+.guide-undo{border:1px solid #d6e3dd;background:#f8fbf9;color:#24535c;border-radius:10px;padding:7px 11px;font:700 12px Manrope,sans-serif;cursor:pointer}
+.guide-undo:hover{background:#eef5f1}
+.guide-result--undone{opacity:.6}
+.guide-result-note,.guide-result-empty{margin:0;font-size:12px;color:#6b8580}
+.guide-confirm p b{color:#0a5f4f}
+.guide-error{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px 37px;padding:10px 12px;border-radius:12px;background:#fdf1ec;border:1px solid #f1d2c6}
+.guide-error p{margin:0;color:#8f3a24;font-size:13px}
+.guide-error button{flex:none;border:0;background:#fff;color:#8f3a24;border-radius:9px;padding:7px 10px;font:800 12px Manrope,sans-serif;cursor:pointer}
+.guide-compose .guide-mic{background:#eef6f2;color:#0b5a50;font-size:18px}
+.guide-compose .guide-mic.on{background:#c94a2e;color:#fff;animation:guideBreathe .8s ease-in-out infinite alternate}
+.guide-drawer button:focus-visible,.guide-launcher:focus-visible{outline:3px solid #6cc6a8;outline-offset:2px}
+.oc-links{display:flex;gap:12px;align-items:center}
+.oc-link--ask{color:#0b6f5a}
+.pv-ask{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:8px 12px;border-radius:11px;border:1px solid #b7dfd0;background:#eef8f3;color:#00664f;font:800 12.5px Manrope,sans-serif;cursor:pointer;transition:transform .15s}
+.pv-ask:hover{transform:translateY(-2px)}
+.pv-ask--sm{margin:6px 0 0;padding:5px 9px;font-size:11.5px}
+@media(max-width:760px){
+ .guide-drawer{top:auto;left:0;right:0;width:100vw;height:min(88vh,720px);border-radius:20px 20px 0 0;animation:guideSheet .28s ease both}
+ .guide-grabber{display:block;width:42px;height:5px;border-radius:9px;background:#cfdcd7;margin:8px auto 0}
+ .guide-header{min-height:64px;padding:8px 14px}
+ .guide-suggestions{flex-wrap:nowrap;overflow-x:auto;max-height:none;scrollbar-width:none}
+ .guide-suggestions button{flex:none}
+ .guide-result,.guide-error{margin-left:0}
+ .guide-launcher span:last-child{display:none}.guide-launcher{padding:7px}
+}
+@keyframes guideSheet{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.guide-welcome,.guide-result,.guide-drawer{animation:none!important}.gr-bar i{transition:none}}

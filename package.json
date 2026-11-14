@@ -1,0 +1,26 @@
+{
+  "name": "fieldshift-nsc-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev-with-ai.mjs",
+    "dev:frontend": "vite",
+    "dev:ai": "node server/ai-server.mjs",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test:guide": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "motion": "14.6.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "6.1.2",
+    "vite": "8.3.5",
+    "typescript": "7.0.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0"
+  }
+}
