@@ -78,7 +78,17 @@ export function PlotMap(props: Props) {
     mapRef.current = map;
     // El contenedor puede medir distinto al montar (rejilla, fuentes): se recalcula.
     const t = window.setTimeout(() => map.invalidateSize(), 150);
-    return () => { window.clearTimeout(t); map.remove(); mapRef.current = null; };
+    return () => {
+      window.clearTimeout(t);
+      // Si se sale de la Vista 01 durante una animacion de zoom (por ejemplo
+      // justo despues de "Usar chacra de ejemplo"), Leaflet termina la
+      // animacion 250 ms despues sobre un mapa ya destruido y lanza
+      // "_leaflet_pos". Con la bandera en false ese cierre no hace nada.
+      map.stop();
+      (map as unknown as { _animatingZoom: boolean })._animatingZoom = false;
+      map.remove();
+      mapRef.current = null;
+    };
   }, []);
 
   // Redibuja el contorno cada vez que cambian los puntos o el estado.

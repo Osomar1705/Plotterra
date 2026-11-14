@@ -4,7 +4,9 @@ import { baseComparison, changedComparison, demoPassports, demoPlot } from '../m
 import { polygonAreaHa } from '../lib/plotGeometry';
 
 const API = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1').replace(/\/$/, '');
-const USE_MOCKS = String(import.meta.env.VITE_USE_LOCAL_MOCKS ?? 'true') === 'true';
+// Por defecto, backend real: si en el deploy falta la variable no queremos
+// mostrar cifras inventadas sin que nadie lo note.
+const USE_MOCKS = String(import.meta.env.VITE_USE_LOCAL_MOCKS ?? 'false') === 'true';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
