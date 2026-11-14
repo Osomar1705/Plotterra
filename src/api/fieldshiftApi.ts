@@ -1,4 +1,4 @@
-import type { AppliedChange, AssistantInterpretation, Comparison, EntryConditions, Plot, PlotDraft } from '../types/fieldshift';
+import type { AppliedChange, AssistantInterpretation, Comparison, EntryConditions, Plot, PlotDraft, AlternativePassport } from '../types/fieldshift';
 import { normalizeApiError, normalizeComparison } from './normalizers';
 import { baseComparison, changedComparison, demoPlot } from '../mocks/data';
 import { polygonAreaHa } from '../lib/plotGeometry';
@@ -6,6 +6,16 @@ import { polygonAreaHa } from '../lib/plotGeometry';
 const API = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1').replace(/\/$/, '');
 const USE_MOCKS = String(import.meta.env.VITE_USE_LOCAL_MOCKS ?? 'true') === 'true';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// La demo mantiene la misma prioridad, parcela y escenario entre las tres rutas.
+const DEMO_KEY = 'fieldshift.demo.comparison.';
+function rememberComparison(c: Comparison): Comparison {
+  try { sessionStorage.setItem(DEMO_KEY+c.id, JSON.stringify(c)); } catch { /* storage no disponible */ }
+  return c;
+}
+function storedComparison(id: string): Comparison | null {
+  try { const json=sessionStorage.getItem(DEMO_KEY+id); return json?JSON.parse(json) as Comparison:null; } catch { return null; }
+}
 
 async function request(path: string, init?: RequestInit) {
   const res = await fetch(`${API}${path}`, {
@@ -60,17 +70,23 @@ export async function createPlot(draft: PlotDraft): Promise<Plot> {
 }
 
 export async function createComparison(conditions: EntryConditions): Promise<Comparison> {
-  if (USE_MOCKS) { await sleep(450); return {...baseComparison, plotId: conditions.plotId ?? baseComparison.plotId, areaHa: conditions.areaHa ?? baseComparison.areaHa, priority: conditions.priority ?? baseComparison.priority}; }
+  if (USE_MOCKS) { await sleep(450); return rememberComparison({...baseComparison, plotId: conditions.plotId ?? baseComparison.plotId, areaHa: conditions.areaHa ?? baseComparison.areaHa, priority: conditions.priority ?? baseComparison.priority}); }
   return normalizeComparison(await request('/comparaciones', { method:'POST', body: JSON.stringify(conditions) }));
 }
 
 export async function getComparison(id: string): Promise<Comparison> {
-  if (USE_MOCKS) { await sleep(250); return id.includes('riego') ? changedComparison : baseComparison; }
+  if (USE_MOCKS) { await sleep(250); return storedComparison(id) ?? (id.includes('riego') ? changedComparison : baseComparison); }
   return normalizeComparison(await request(`/comparaciones/${encodeURIComponent(id)}`));
 }
 
 export async function applyChange(comparisonId: string, change: AppliedChange): Promise<Comparison> {
-  if (USE_MOCKS) { await sleep(1100); return changedComparison; }
+  if (USE_MOCKS) {
+    await sleep(1100);
+    if (change.type !== 'irrigation' || Number(change.value) !== 30) throw {code:'DEMO_UNAVAILABLE',farmerMessage:'El modo demostración solo tiene resultados para 30% menos riego.'};
+    const current=storedComparison(comparisonId) ?? baseComparison;
+    const next={...changedComparison, plotId:current.plotId, areaHa:current.areaHa, priority:current.priority, parentComparisonId:current.id};
+    return rememberComparison(next);
+  }
   return normalizeComparison(await request(`/comparaciones/${encodeURIComponent(comparisonId)}/cambios`, {
     method:'POST', body: JSON.stringify({ cambio: change })
   }));
@@ -78,7 +94,7 @@ export async function applyChange(comparisonId: string, change: AppliedChange): 
 
 export async function undoChange(comparison: Comparison): Promise<Comparison> {
   const change = comparison.activeChanges.at(-1);
-  if (USE_MOCKS) { await sleep(500); return baseComparison; }
+  if (USE_MOCKS) { await sleep(500); return storedComparison(comparison.parentComparisonId ?? 'cmp_demo_base') ?? baseComparison; }
   if (!change?.id) {
     if (comparison.parentComparisonId) return getComparison(comparison.parentComparisonId);
     throw { code:'NO_CHANGE_ID', farmerMessage:'No se pudo identificar el cambio que se desea deshacer.' };
@@ -106,3 +122,27 @@ export async function interpretAssistant(comparisonId: string, message: string):
     clarification: raw?.clarification ?? raw?.aclaracion ?? raw?.mensaje,
   };
 }
+
+
+export async function getAlternativePassport(comparisonId: string, alternativeId: string): Promise<AlternativePassport> {
+  if (USE_MOCKS) {
+    await sleep(350);
+    const comparison = storedComparison(comparisonId) ?? (comparisonId.includes('riego') ? changedComparison : baseComparison);
+    const alt = comparison.alternatives.find((item) => item.id === alternativeId) ?? comparison.alternatives[0];
+    return {
+      alternativeId: alt.id, sourceResult: 'mock', engineVersion: 'demo-1.0', datasetVersion: 'hackathon-2026',
+      metrics: [
+        {id:'margin',label:'Margen estimado',value:`S/ ${alt.margin.min?.toLocaleString('es-PE')} – ${alt.margin.max?.toLocaleString('es-PE')}`,definition:'Rango estimado para el horizonte de la ruta.',source:'Motor FieldShift',status:'Demostración'},
+        {id:'water',label:'Demanda de agua',value:alt.water.value,unit:alt.water.unit,definition:'Indicador hídrico agregado de la ruta.',source:'Datos climáticos + motor FieldShift',status:'Demostración'},
+        {id:'soil',label:'Compatibilidad de rotación',value:alt.soil.compatibility,definition:'Compatibilidad agronómica de la secuencia.',source:'Reglas agronómicas FieldShift',status:'Demostración'},
+      ],
+      sources:['NASA GPM / datos climáticos usados por el proyecto','Datos agrícolas y condiciones ingresadas para la parcela'],
+      assumptions:['Los valores mock sirven para demostrar la interfaz y deben sustituirse por resultados del backend.','La herramienta orienta la comparación; no reemplaza el criterio del agricultor.'],
+    };
+  }
+  const raw = await request(`/comparaciones/${encodeURIComponent(comparisonId)}/alternativas/${encodeURIComponent(alternativeId)}/pasaporte`);
+  const metrics = raw?.metrics ?? raw?.metricas ?? [];
+  return { alternativeId, sourceResult:raw?.source_result ?? raw?.fuente_resultado, engineVersion:raw?.engine_version ?? raw?.version_motor, datasetVersion:raw?.dataset_version ?? raw?.version_datos, metrics:metrics.map((m:any,i:number)=>({id:String(m.id??i),label:m.label??m.nombre??'Indicador',value:m.value??m.valor??null,unit:m.unit??m.unidad,definition:m.definition??m.definicion,source:m.source??m.fuente,status:m.status??m.estado??'Disponible'})), sources:raw?.sources??raw?.fuentes??[], assumptions:raw?.assumptions??raw?.supuestos??[] };
+}
+
+export function isUsingMocks() { return USE_MOCKS; }

@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useGuide } from '../assistant/GuideProvider';
 import type {
   AlternativeType, EntryConditions, ExcludedCrop, ExclusionReason,
   FieldShiftApiError, PlotPoint, WaterMode,
@@ -6,6 +7,7 @@ import type {
 import { createPlot } from '../api/fieldshiftApi';
 import { saveEntryConditions } from '../integration/entryContext';
 import { PlotMap, type MapMode } from './PlotMap';
+import { AndeanLandscape, CropIllustration } from './CropIllustration';
 import { checkPolygon, formatHa } from '../lib/plotGeometry';
 import {
   AlertIcon, CalendarIcon, CheckIcon, ClockIcon, CoinsIcon, InfoIcon,
@@ -33,6 +35,8 @@ const REASONS: { id: ExclusionReason; label: string }[] = [
 ];
 
 export function EntryPage() {
+  const {setPage,setParcel}=useGuide();
+  useEffect(()=>{setPage('parcel')},[setPage]);
   // --- parcela ---
   const [points, setPointsState] = useState<PlotPoint[]>([]);
   // Espejo sincrono de los puntos: varios clics seguidos llegan antes de que React
@@ -44,7 +48,7 @@ export function EntryPage() {
   const [denied, setDenied] = useState(false);
   const [typedArea, setTypedArea] = useState<string>('');
   const [useTypedArea, setUseTypedArea] = useState(false);
-  const [locality, setLocality] = useState('Huánuco, Perú');
+  const [locality, setLocality] = useState('Ambo, Huánuco');
 
   // --- condiciones ---
   const [previousCrop, setPreviousCrop] = useState('Papa');
@@ -124,6 +128,8 @@ export function EntryPage() {
     setAskingFor(null);
   }
 
+  useEffect(()=>{setParcel({areaHa,locality,previousCrop:unknownPrevious?undefined:previousCrop,waterMode,irrigationMm:Number(irrigationMm)||undefined,priority})},[setParcel,areaHa,locality,previousCrop,unknownPrevious,waterMode,irrigationMm,priority]);
+
   async function submit() {
     if (blocker || submitting) return;
     setSubmitting(true);
@@ -153,7 +159,6 @@ export function EntryPage() {
       window.dispatchEvent(new PopStateEvent('popstate'));
     } catch (e) {
       setError(e as FieldShiftApiError);
-    } finally {
       setSubmitting(false);
     }
   }
@@ -166,10 +171,12 @@ export function EntryPage() {
       </header>
 
       <main className="entry-page">
-        <section className="hero-row">
+        <section className="hero-row entry-hero">
+          <AndeanLandscape className="entry-hero-art" tone="day" />
           <div>
+            <span className="entry-kicker">Prueba tu siembra en 100 futuros antes de comprometer tu parcela</span>
             <h1>Prepara tu próxima siembra</h1>
-            <p>Dibuja tu parcela y cuéntanos tus condiciones. Con eso comparamos rotaciones bajo distintos escenarios de lluvia, riego y precio.</p>
+            <p>Dibuja tu parcela, confirma tres datos de tu campaña y compara alternativas para economía, agua y suelo.</p>
           </div>
           {hasPlot && (
             <div className="parcel-meta">
@@ -237,17 +244,17 @@ export function EntryPage() {
 
           <div className="entry-fields">
             <div className="field">
-              <label>Cultivo anterior y fecha de inicio</label>
-              <div className="field-row2">
+              <label>Cultivo anterior</label>
+              <div className="field-row2 field-row2--demo">
                 <select value={previousCrop} disabled={unknownPrevious} onChange={(e) => setPreviousCrop(e.target.value)}>
                   {CROPS.map((c) => <option key={c}>{c}</option>)}
                 </select>
-                <div className="input-with-icon">
+                <div className="input-with-icon demo-secondary">
                   <CalendarIcon size={16} />
                   <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                 </div>
               </div>
-              <label className="checkline">
+              <label className="checkline demo-secondary">
                 <input type="checkbox" checked={unknownPrevious} onChange={(e) => setUnknownPrevious(e.target.checked)} />
                 No lo sé
               </label>
@@ -274,7 +281,7 @@ export function EntryPage() {
                 ))}
               </div>
               {waterMode !== 'rainfed' && (
-                <div className="input-with-suffix">
+                <div className="input-with-suffix demo-secondary">
                   <input
                     type="number" min="0" max="1200" value={irrigationMm}
                     onChange={(e) => setIrrigationMm(e.target.value)} aria-label="Agua de riego por campaña"
@@ -284,14 +291,14 @@ export function EntryPage() {
               )}
             </div>
 
-            <div className="field">
+            <div className="field demo-secondary">
               <label>Cultivos que puedes sembrar</label>
               <div className="chips">
                 {CROPS.map((c) => {
                   const ex = excluded.find((e) => e.crop === c);
                   return (
-                    <button key={c} type="button" className={ex ? 'chip chip--off' : 'chip'} onClick={() => toggleCrop(c)}>
-                      {c}{ex && <small>{REASONS.find((r) => r.id === ex.reason)?.label}</small>}
+                    <button key={c} type="button" className={ex ? 'chip chip--off chip--crop' : 'chip chip--crop'} onClick={() => toggleCrop(c)}>
+                      <CropIllustration crop={c} size={26} />{c}{ex && <small>{REASONS.find((r) => r.id === ex.reason)?.label}</small>}
                     </button>
                   );
                 })}
@@ -332,7 +339,7 @@ export function EntryPage() {
               </div>
             </div>
 
-            <div className="disclosure">
+            <div className="disclosure demo-secondary">
               <button type="button" className="disclosure-head" onClick={() => setExtraOpen(!extraOpen)}>
                 <span><PlusIcon size={16} />Mi plan habitual y datos adicionales</span>
                 <small>Opcional · mejora la precisión</small>
@@ -354,23 +361,12 @@ export function EntryPage() {
                 {submitting ? 'Comparando…' : 'Comparar mis opciones'}
               </button>
               {blocker && <p className="cta-why">{blocker}</p>}
-              <p className="foot-note">
-                Confirma los datos sugeridos de tu parcela antes de continuar. La lluvia y el suelo vienen de datos satelitales y puedes corregirlos.
-              </p>
+              <p className="foot-note">NASA + MIDAGRI · Los datos ambientales se incorporan automáticamente al análisis.</p>
             </div>
           </div>
         </div>
       </main>
 
-      {submitting && (
-        <div className="processing-overlay">
-          <div className="processing-modal">
-            <div className="spinner" />
-            <h2>Estamos comparando tus opciones</h2>
-            <p>Probamos tu parcela en distintos escenarios de lluvia, riego y precio.</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

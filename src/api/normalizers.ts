@@ -19,8 +19,13 @@ export function normalizeAlternative(raw: any): Alternative {
     id: String(first(raw, 'alternative_id', 'id', 'alternativa_id') ?? crypto.randomUUID()),
     type: altType(first(raw, 'alternative_type', 'type', 'tipo')),
     campaigns: campaigns.map((c: any) => ({
+      id: first(c, 'id'),
       crop: String(first(c, 'crop', 'cultivo') ?? '—'),
+      cropId: first(c, 'crop_id', 'cropId', 'cultivo_id'),
       window: String(first(c, 'window', 'ventana', 'fecha') ?? '—'),
+      startMonth: first(c, 'start_month', 'startMonth'),
+      endMonth: first(c, 'end_month', 'endMonth'),
+      metrics: first(c, 'metrics', 'metricas') ?? undefined,
     })),
     margin: {
       min: Number(first(margin, 'min', 'minimo') ?? 0),
@@ -42,7 +47,57 @@ export function normalizeAlternative(raw: any): Alternative {
       level: String(first(quality, 'level', 'nivel') ?? 'unknown').toLowerCase() as Alternative['dataQuality']['level'],
       mainGap: first(quality, 'main_gap', 'mainGap', 'brecha_principal') ?? null,
     },
+    sequence: first(raw, 'sequence', 'secuencia'),
+    outcomes: normalizeOutcomes(raw, margin),
+    stressTest: normalizeStress(first(raw?.detalle, 'stress_test') ?? first(raw, 'stress_test', 'stressTest')),
+    explanation: normalizeExplanation(first(raw?.detalle, 'explicacion') ?? first(raw, 'explanation')),
+    tradeoffs: normalizeTradeoffs(first(raw?.detalle, 'tradeoffs') ?? first(raw, 'tradeoffs')),
   };
+}
+
+/** outcomes del backend, o reconstruido desde detalle.distribucion_margen_S_ha. Nunca inventa valores. */
+function normalizeOutcomes(raw: any, margin: any) {
+  const o = first(raw, 'outcomes');
+  const dist = first(o, 'margin_by_scenario', 'marginByScenario') ?? first(raw?.detalle, 'distribucion_margen_S_ha');
+  if (!Array.isArray(dist) || dist.length === 0) return undefined;
+  return {
+    marginByScenario: dist.map(Number),
+    wins: first(o, 'wins'), losses: first(o, 'losses'),
+    mean: first(o, 'mean') ?? first(margin, 'mean'),
+    adverse: first(o, 'adverse') ?? first(margin, 'adverse'),
+  };
+}
+
+function normalizeStress(rows: any) {
+  if (!Array.isArray(rows)) return undefined;
+  return rows.map((r: any) => ({
+    family: String(first(r, 'familia', 'family') ?? ''),
+    label: String(first(r, 'nombre', 'label') ?? ''),
+    meanMargin: Number(first(r, 'margen_medio_S_ha_horizonte', 'meanMargin') ?? 0),
+    changeVsTypical: Number(first(r, 'cambio_vs_tipica_S_ha', 'changeVsTypical') ?? 0),
+  }));
+}
+
+function normalizeExplanation(e: any) {
+  if (!e) return undefined;
+  return { why: first(e, 'por_que', 'why'), dataThatWouldChange: first(e, 'dato_que_cambiaria_la_decision', 'dataThatWouldChange') };
+}
+
+function normalizeTradeoffs(t: any) {
+  if (!t) return undefined;
+  return { advantages: first(t, 'ventajas', 'advantages') ?? [], risks: first(t, 'riesgos', 'risks') ?? [],
+           costOfPriority: first(t, 'costo_de_priorizar', 'costOfPriority') };
+}
+
+const FAMILIES = ['tipica', 'menos_lluvia', 'menos_riego', 'caida_precio', 'combinado'];
+function normalizeScenarios(rows: any) {
+  if (!Array.isArray(rows)) return undefined;
+  return rows.map((r: any, i: number) => ({
+    id: String(first(r, 'id', 'escenario_id') ?? `esc_${i}`),
+    family: (FAMILIES.includes(first(r, 'familia', 'family')) ? first(r, 'familia', 'family') : 'tipica'),
+    climateYears: first(r, 'anios_clima', 'climateYears') ?? [],
+    baseId: first(r, 'futuro_base', 'baseId'),
+  }));
 }
 
 export function normalizeComparison(raw: any): Comparison {
@@ -66,6 +121,11 @@ export function normalizeComparison(raw: any): Comparison {
     alternatives: alternatives.map(normalizeAlternative),
     sourceResult: first(payload, 'fuente_resultado', 'source_result', 'sourceResult'),
     parentComparisonId: first(payload, 'parent_comparison_id', 'comparacion_padre_id'),
+    scenarios: normalizeScenarios(first(payload, 'scenarios') ?? payload?.simulacion?.escenarios),
+    usualPlan: (() => { const u = first(payload, 'usual_plan', 'plan_habitual'); return u ? normalizeAlternative(u) : undefined; })(),
+    rainfallMonthlyMm: first(payload, 'rainfall_monthly_mm', 'rainfallMonthlyMm'),
+    engineVersion: first(payload, 'engine_version', 'motor_version'),
+    datasetVersion: first(payload, 'dataset_version'),
     runId: first(payload, 'run_id', 'runId'),
   };
 }

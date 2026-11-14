@@ -1,23 +1,58 @@
-import type { Comparison, Plot } from '../types/fieldshift';
+import type { Alternative, Comparison, Plot } from '../types/fieldshift';
+import { mockOutcomes, mockScenarios } from './futures';
+
+/** Datos de demostración. Cultivos del catálogo del motor; cifras ilustrativas, no resultados reales. */
+const camp = (crop: string, cropId: string, window: string, startMonth: string, endMonth: string) =>
+  ({ crop, cropId, window, startMonth, endMonth });
+
+function alt(id: string, type: Alternative['type'], campaigns: Alternative['campaigns'], seed: number, mean: number,
+             spread: number, water: number, soil: string, risk: Alternative['risk']['level'], penalty = 0): Alternative {
+  const outcomes = mockOutcomes(seed, mean, spread, penalty);
+  const sorted = [...outcomes.marginByScenario].sort((a, b) => a - b);
+  return {
+    id, type, campaigns, outcomes,
+    margin: { min: sorted[10], max: sorted[89], currency: 'PEN', basis: 'ha', period: '3 campañas' },
+    water: { metric: 'exposicion_hidrica', value: water, unit: 'mm', period: 'campaña' },
+    soil: { compatibility: soil }, risk: { level: risk, mainCause: 'Peor grupo de escenarios: caída de precio.' },
+    dataQuality: { level: 'limited', mainGap: 'Datos de demostración.' },
+    stressTest: [
+      { family: 'tipica', label: 'Campaña típica (histórico)', meanMargin: mean * 1.4, changeVsTypical: 0 },
+      { family: 'menos_lluvia', label: 'Menos lluvia (−30 %)', meanMargin: mean * 0.9, changeVsTypical: -mean * 0.4 },
+      { family: 'menos_riego', label: 'Menos riego (−30 %)', meanMargin: mean * 1.2, changeVsTypical: -mean * 0.17 },
+      { family: 'caida_precio', label: 'Caída de precio (−30 %)', meanMargin: mean * 0.3, changeVsTypical: -mean * 1.3 },
+      { family: 'combinado', label: 'Combinado adverso', meanMargin: mean * 0.08, changeVsTypical: -mean * 1.15 },
+    ],
+    explanation: { why: 'Ejemplo de demostración.', dataThatWouldChange: 'Precio y costo local de papa.' },
+  };
+}
+
+const seqEconomy = [camp('Quinua', 'quinua', 'Sep–nov 2026', '2026-09', '2027-03'), camp('Tarwi seco', 'tarwi', 'Sep–oct 2027', '2027-09', '2028-04'), camp('Papa', 'papa', 'Oct–nov 2028', '2028-10', '2029-04')];
+const seqWater = [camp('Cebada grano', 'cebada', 'Dic 2026–ene 2027', '2026-12', '2027-04'), camp('Quinua', 'quinua', 'Sep–nov 2027', '2027-09', '2028-03'), camp('Avena grano', 'avena', 'Dic 2028–ene 2029', '2028-12', '2029-05')];
+const seqSoil = [camp('Avena grano', 'avena', 'Dic 2026–ene 2027', '2026-12', '2027-05'), camp('Haba seca', 'haba', 'Oct–nov 2027', '2027-10', '2028-04'), camp('Papa', 'papa', 'Oct–nov 2028', '2028-10', '2029-04')];
+const seqUsual = [camp('Papa', 'papa', 'Oct–nov 2026', '2026-10', '2027-04'), camp('Cebada grano', 'cebada', 'Dic 2027–ene 2028', '2027-12', '2028-04'), camp('Papa', 'papa', 'Oct–nov 2028', '2028-10', '2029-04')];
+const rain = [12, 27, 50, 68, 78, 101, 110, 105, 51, 17, 3, 5];
 
 export const baseComparison: Comparison = {
-  id: 'cmp_demo_base', plotId: 'parcela_1', areaHa: 3.5, priority: 'economy', status: 'ready', activeChanges: [], sourceResult: 'mock',
+  id: 'cmp_demo_base', plotId: 'parcela_1', areaHa: 1.84, priority: 'economy', status: 'ready', activeChanges: [], sourceResult: 'mock',
+  scenarios: mockScenarios, rainfallMonthlyMm: rain,
   alternatives: [
-    { id:'alt_economy', type:'economy', campaigns:[{crop:'Papa',window:'Oct 2026'},{crop:'Quinua',window:'Mar 2027'},{crop:'Maíz',window:'Oct 2027'}], margin:{min:3100,max:3600,currency:'PEN',basis:'ha'}, water:{metric:'demand',value:340,unit:'mm'}, soil:{compatibility:'compatible'}, risk:{level:'medium'}, dataQuality:{level:'sufficient'} },
-    { id:'alt_water', type:'water', campaigns:[{crop:'Quinua',window:'Oct 2026'},{crop:'Maíz',window:'Mar 2027'},{crop:'Papa',window:'Oct 2027'}], margin:{min:2700,max:3100,currency:'PEN',basis:'ha'}, water:{metric:'demand',value:260,unit:'mm'}, soil:{compatibility:'compatible'}, risk:{level:'low'}, dataQuality:{level:'sufficient'} },
-    { id:'alt_soil', type:'soil', campaigns:[{crop:'Maíz',window:'Oct 2026'},{crop:'Papa',window:'Mar 2027'},{crop:'Quinua',window:'Oct 2027'}], margin:{min:2900,max:3300,currency:'PEN',basis:'ha'}, water:{metric:'demand',value:300,unit:'mm'}, soil:{compatibility:'high'}, risk:{level:'low'}, dataQuality:{level:'limited'} },
-  ]
+    alt('alt_economy', 'economy', seqEconomy, 11, 7000, 6500, 155, 'high', 'medium'),
+    alt('alt_water', 'water', seqWater, 22, 2600, 3200, 96, 'medium', 'medium'),
+    alt('alt_soil', 'soil', seqSoil, 33, 6200, 6000, 139, 'high', 'medium'),
+  ],
+  usualPlan: alt('plan_habitual', 'economy', seqUsual, 44, 6800, 9500, 156, 'low', 'high'),
 };
 
 export const changedComparison: Comparison = {
   ...baseComparison,
-  id:'cmp_demo_riego30', parentComparisonId:'cmp_demo_base',
-  activeChanges:[{id:'chg_riego30',type:'irrigation',operation:'reduce',value:30,unit:'percent',label:'Riego −30%'}],
-  alternatives:[
-    {...baseComparison.alternatives[0],margin:{min:2850,max:3200,currency:'PEN',basis:'ha'},water:{metric:'demand',value:240,unit:'mm'}},
-    {...baseComparison.alternatives[1],margin:{min:2400,max:2900,currency:'PEN',basis:'ha'},water:{metric:'demand',value:180,unit:'mm'}},
-    {...baseComparison.alternatives[2],margin:{min:2650,max:3100,currency:'PEN',basis:'ha'},water:{metric:'demand',value:210,unit:'mm'}},
-  ]
+  id: 'cmp_demo_riego30', parentComparisonId: 'cmp_demo_base',
+  activeChanges: [{ id: 'chg_riego30', type: 'irrigation', operation: 'reduce', value: 30, unit: 'percent', label: 'Riego −30%' }],
+  alternatives: [
+    alt('alt_economy', 'economy', seqEconomy, 11, 7000, 6500, 140, 'high', 'medium', 1500),
+    alt('alt_water', 'water', seqWater, 22, 2600, 3200, 88, 'medium', 'medium', 400),
+    alt('alt_soil', 'soil', seqSoil, 33, 6200, 6000, 128, 'high', 'medium', 1300),
+  ],
+  usualPlan: alt('plan_habitual', 'economy', seqUsual, 44, 6800, 9500, 146, 'low', 'high', 2300),
 };
 
 export const demoPlot: Plot = {
@@ -27,7 +62,7 @@ export const demoPlot: Plot = {
   cellId: 'hco_0412',
   suggestions: {
     rainfallMm: 612,
-    rainfallSource: 'NASA GPM IMERG 2015–2025',
+    rainfallSource: 'Datos de demostración',
     soilTexture: 'Franco',
     fieldCapacityMm: 142,
     soilSource: 'SoilGrids v2.0',

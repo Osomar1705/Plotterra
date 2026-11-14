@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
+.env.ai
+.env.ai.*
+!.env.ai.example
+!.env.example
+*.log
+.DS_Store

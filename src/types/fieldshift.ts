@@ -1,11 +1,50 @@
 export type AlternativeType = 'economy' | 'water' | 'soil';
+export type AlternativeKind = AlternativeType | 'unknown';
 export type ComparisonStatus = 'ready' | 'processing' | 'failed';
 export type RiskLevel = 'low' | 'medium' | 'high' | 'unknown';
 export type DataQualityLevel = 'sufficient' | 'limited' | 'insufficient' | 'unknown';
 
+export interface MetricValue {
+  value: number | string | null;
+  unit?: string;
+  label?: string;
+  status?: 'available' | 'provisional' | 'mock' | 'unavailable' | string;
+}
+
 export interface Campaign {
+  id?: string;
   crop: string;
+  cropId?: string;
   window: string;
+  startMonth?: string;   // "2026-10"
+  endMonth?: string;     // "2027-03"
+  metrics?: { yield?: MetricValue; water?: MetricValue; economy?: MetricValue; soil?: MetricValue };
+}
+
+// --- 100 futuros -----------------------------------------------------------
+export type ScenarioFamily = 'tipica' | 'menos_lluvia' | 'menos_riego' | 'caida_precio' | 'combinado';
+
+export interface ScenarioMeta {
+  id: string;
+  family: ScenarioFamily;
+  climateYears: string[];
+  baseId?: string;
+}
+
+export interface Outcomes {
+  /** Margen del horizonte (S/ por ha, 3 campañas) en cada escenario, en el orden de Comparison.scenarios. */
+  marginByScenario: number[];
+  wins?: number;
+  losses?: number;
+  mean?: number;
+  adverse?: number;
+}
+
+export interface StressRow {
+  family: ScenarioFamily | string;
+  label: string;
+  meanMargin: number;
+  changeVsTypical: number;
 }
 
 export interface AppliedChange {
@@ -20,12 +59,18 @@ export interface AppliedChange {
 export interface Alternative {
   id: string;
   type: AlternativeType;
+  name?: string;
   campaigns: Campaign[];
-  margin: { min: number; max: number; currency: string; basis: string };
-  water: { metric: string; value: number; unit: string };
+  margin: { min: number; max: number; currency: string; basis: string; period?: string };
+  water: { metric: string; value: number; unit: string; period?: string };
   soil: { compatibility: string };
   risk: { level: RiskLevel; mainCause?: string | null };
   dataQuality: { level: DataQualityLevel; mainGap?: string | null };
+  sequence?: string;
+  outcomes?: Outcomes;
+  stressTest?: StressRow[];
+  explanation?: { why?: string; dataThatWouldChange?: string };
+  tradeoffs?: { advantages: string[]; risks: string[]; costOfPriority?: string };
 }
 
 export interface Comparison {
@@ -39,6 +84,11 @@ export interface Comparison {
   sourceResult?: 'mock' | 'calculado' | 'cache' | string;
   parentComparisonId?: string;
   runId?: string;
+  engineVersion?: string;
+  datasetVersion?: string;
+  scenarios?: ScenarioMeta[];
+  usualPlan?: Alternative;
+  rainfallMonthlyMm?: number[];   // 12 valores, de agosto a julio
 }
 
 export interface FieldShiftApiError {
@@ -48,6 +98,8 @@ export interface FieldShiftApiError {
   farmerMessage: string;
   suggestedAction?: string;
   runId?: string;
+  engineVersion?: string;
+  datasetVersion?: string;
 }
 
 export interface AssistantInterpretation {
@@ -107,4 +159,13 @@ export interface PlotDraft {
   points: PlotPoint[];
   declaredAreaHa?: number;
   locality?: string;
+}
+
+
+export interface PassportMetric {
+  id: string; label: string; value: number | string | null; unit?: string; definition?: string; source?: string; status: string;
+}
+export interface AlternativePassport {
+  alternativeId: string; sourceResult?: string; engineVersion?: string; datasetVersion?: string;
+  metrics: PassportMetric[]; sources: string[]; assumptions: string[];
 }
