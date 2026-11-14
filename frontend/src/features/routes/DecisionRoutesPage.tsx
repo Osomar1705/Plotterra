@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGuide } from '../../assistant/GuideProvider';
 import { readEntryConditions } from '../../integration/entryContext';
 import { motion } from 'motion/react';
-import type { Alternative, AlternativeKind, AlternativePassport, Campaign, Comparison, FieldShiftApiError } from '../../types/fieldshift';
+import type { Alternative, AlternativeKind, AlternativePassport, Campaign, Comparison, FieldShiftApiError, PassportMetric } from '../../types/fieldshift';
 import { getAlternativePassport, getComparison, isUsingMocks } from '../../api/fieldshiftApi';
 import { LeafIcon } from '../../components/Icons';
 import type { ReactNode } from 'react';
@@ -25,6 +25,13 @@ const soilShort: Record<string, string> = { compatible: 'Compatible', high: 'Alt
 const riskLabel: Record<string, string> = { low: 'Bajo', medium: 'Medio', high: 'Alto', unknown: 'Por confirmar' };
 const MONTHS = ['ago', 'sep', 'oct', 'nov', 'dic', 'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul'];
 const MONTH_IDX: Record<string, number> = { ene: 1, feb: 2, mar: 3, abr: 4, may: 5, jun: 6, jul: 7, ago: 8, sep: 9, oct: 10, nov: 11, dic: 12 };
+const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+/** "2026-11-14 a 2027-06-02" -> "14 nov 2026 – 2 jun 2027"; otro formato se deja tal cual. */
+function readableWindow(w: string) {
+  const d = [...w.matchAll(/(\d{4})-(\d{2})-(\d{2})/g)].map(([, y, m, day]) => `${Number(day)} ${MES[Number(m) - 1]} ${y}`);
+  return d.length === 2 ? `${d[0]} – ${d[1]}` : w;
+}
+
 const err = (e: unknown) => (e as Partial<FieldShiftApiError>)?.farmerMessage || 'No pudimos cargar este plan.';
 
 /** "2026-10" -> índice de mes desde agosto del año agrícola base. */
@@ -164,7 +171,7 @@ export function DecisionRoutesPage({ comparisonId, alternativeId, campaignIndex:
                   transition={{ delay: .2 + k * .3, duration: .7, ease: [.2, .7, .3, 1] }}
                   onClick={() => setCampaignIndex(k)} aria-pressed={k === campaignIndex}>
                   <CropIllustration crop={c.cropId ?? c.crop} size={36} />
-                  <span><strong>{c.crop}</strong><small>{c.window}</small></span>
+                  <span><strong>{c.crop}</strong><small>{readableWindow(c.window)}</small></span>
                 </motion.button>;
               })}
             </div>
@@ -173,7 +180,7 @@ export function DecisionRoutesPage({ comparisonId, alternativeId, campaignIndex:
         </div>
         {focused && <motion.div key={`${selected.id}-${campaignIndex}`} className="pv-camp" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
           <CropIllustration crop={focused.cropId ?? focused.crop} size={72} framed />
-          <div className="pv-camp-id"><span className="pv-kicker pv-kicker--dark">Campaña {campaignIndex + 1} de {selected.campaigns.length}</span><h3>{focused.crop}</h3><p>Siembra {focused.window}</p><button className="pv-ask pv-ask--sm" onClick={() => openGuide(`¿Por qué ${focused.crop} va en la campaña ${campaignIndex + 1}?`)}>¿Por qué aquí? 💬</button></div>
+          <div className="pv-camp-id"><span className="pv-kicker pv-kicker--dark">Campaña {campaignIndex + 1} de {selected.campaigns.length}</span><h3>{focused.crop}</h3><p>De {readableWindow(focused.window)}</p><button className="pv-ask pv-ask--sm" onClick={() => openGuide(`¿Por qué ${focused.crop} va en la campaña ${campaignIndex + 1}?`)}>¿Por qué aquí? 💬</button></div>
           {metricRows.some(([, v]) => v?.value != null) ? metricRows.filter(([, v]) => v?.value != null).map(([label, v]) => <article key={label} className="pv-metric">
             <span>{label}</span><strong>{fmt(v!.value)} <small>{v!.unit}</small></strong>
             {(v as any).range && <em>{fmt((v as any).range.p10)} a {fmt((v as any).range.p90)} según el futuro</em>}
@@ -238,66 +245,60 @@ function Kpi({ label, value, sub, i }: { label: string; value: ReactNode; sub?: 
   </motion.article>;
 }
 
-const PASSPORT_STATUS: Record<string, string> = { available: 'Disponible', provisional: 'Provisional', mock: 'Demostración', unavailable: 'Sin dato' };
+/** "Ficha avena: Rendimiento: p90 de INEI..." -> una sola linea para todas las fichas. */
+function groupSources(sources: string[]) {
+  const fichas: string[] = []; const rest: { title: string; text: string }[] = [];
+  for (const s of sources) {
+    const m = s.match(/^Ficha ([^:]+):\s*(.*)$/i);
+    if (m) { fichas.push(m[1]); continue; }
+    const i = s.indexOf(': ');
+    rest.push(i > 0 ? { title: s.slice(0, i), text: s.slice(i + 2) } : { title: s, text: '' });
+  }
+  if (fichas.length) rest.push({ title: 'Fichas de cultivo', text: `${fichas.join(', ')}: rendimiento y calendario INEI ENA, precios SIEA/MIDAGRI, costos INEI` });
+  return rest;
+}
 
-function PassportPanel({
-  passport,
-  loading,
-  error,
-}: {
-  passport: AlternativePassport | null;
-  loading: boolean;
-  error: string;
-}) {
-  if (loading) return <div className="dr-passport-state"><span className="dr-spinner" />Cargando trazabilidad…</div>;
-  if (error) return <div className="dr-passport-error" role="alert">{error}</div>;
+const fmtValue = (m: PassportMetric) =>
+  m.value === null ? 'Sin dato' : `${typeof m.value === 'number' ? m.value.toLocaleString('es-PE') : m.value}${m.unit ? ` ${m.unit}` : ''}`;
+
+/**
+ * Trazabilidad compacta: las cifras en una grilla (la explicacion de cada una
+ * al pasar el cursor) y fuentes y supuestos plegados para quien quiera auditar.
+ */
+function PassportPanel({ passport, loading, error }: { passport: AlternativePassport | null; loading: boolean; error: string }) {
+  if (loading) return <p className="pv-pass-state">Cargando de dónde salen las cifras…</p>;
+  if (error) return <p className="pv-pass-state" role="alert">{error}</p>;
   if (!passport) return null;
-
+  const sources = groupSources(passport.sources);
   return (
-    <section className="dr-passport" aria-label="Pasaporte de trazabilidad">
-      <div className="dr-passport-heading">
-        <div>
-          <p className="dr-eyebrow">Trazabilidad</p>
-          <h3>Pasaporte de la ruta</h3>
-        </div>
-        {passport.sourceResult && <span className="dr-passport-source">{passport.sourceResult}</span>}
-      </div>
-
-      {(passport.engineVersion || passport.datasetVersion) && (
-        <p className="dr-passport-versions">
-          {passport.engineVersion && `Motor ${passport.engineVersion}`}
-          {passport.engineVersion && passport.datasetVersion && ' · '}
-          {passport.datasetVersion && `Datos ${passport.datasetVersion}`}
-        </p>
-      )}
-
+    <section className="pv-pass" aria-label="De dónde salen las cifras">
+      <header className="pv-pass-head">
+        <h2>De dónde salen estas cifras</h2>
+        {(passport.engineVersion || passport.datasetVersion) && (
+          <small>Motor {passport.engineVersion ?? '—'} · Datos {passport.datasetVersion ?? '—'}{passport.sourceResult === 'cache' ? ' · resultado guardado' : ''}</small>
+        )}
+      </header>
       {passport.metrics.length > 0 ? (
-        <div className="dr-passport-metrics">
-          {passport.metrics.map((metric) => (
-            <article key={metric.id} className="dr-passport-metric">
-              <strong>{metric.label}</strong>
-              <span>{metric.value === null ? 'No disponible' : `${typeof metric.value === 'number' ? metric.value.toLocaleString('es-PE') : metric.value}${metric.unit ? ` ${metric.unit}` : ''}`}</span>
-              {metric.definition && <small>{metric.definition}</small>}
-              {metric.source && <small>Fuente: {metric.source}</small>}
-              {metric.status !== 'available' && <small>Estado: {PASSPORT_STATUS[metric.status] ?? metric.status}</small>}
-            </article>
+        <dl className="pv-pass-grid">
+          {passport.metrics.map((m) => (
+            <div key={m.id} title={m.definition ?? undefined}>
+              <dt>{m.label}</dt>
+              <dd>{fmtValue(m)}</dd>
+            </div>
           ))}
-        </div>
-      ) : (
-        <p className="dr-passport-empty">El backend no devolvió el desglose de indicadores para esta alternativa.</p>
-      )}
-
-      {passport.sources.length > 0 && (
-        <div className="dr-passport-list">
-          <strong>Fuentes</strong>
-          <ul>{passport.sources.map((source, index) => <li key={`${source}-${index}`}>{source}</li>)}</ul>
-        </div>
+        </dl>
+      ) : <p className="pv-pass-state">El motor no envió el desglose de esta alternativa.</p>}
+      {sources.length > 0 && (
+        <details className="pv-pass-more">
+          <summary>Ver fuentes ({sources.length})</summary>
+          <ul>{sources.map((s, i) => <li key={i} title={s.text}><strong>{s.title}</strong>{s.text && <span>{s.text.length > 120 ? `${s.text.slice(0, 117)}…` : s.text}</span>}</li>)}</ul>
+        </details>
       )}
       {passport.assumptions.length > 0 && (
-        <div className="dr-passport-list">
-          <strong>Supuestos y limitaciones</strong>
-          <ul>{passport.assumptions.map((assumption, index) => <li key={`${assumption}-${index}`}>{assumption}</li>)}</ul>
-        </div>
+        <details className="pv-pass-more">
+          <summary>Ver supuestos y límites ({passport.assumptions.length})</summary>
+          <ul>{passport.assumptions.map((a, i) => <li key={i}>{a}</li>)}</ul>
+        </details>
       )}
     </section>
   );
