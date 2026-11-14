@@ -201,7 +201,7 @@ export function DecisionRoutesPage({ comparisonId, alternativeId, campaignIndex:
             <div>
               <p className="pv-fut-big">{s.best !== undefined ? <>La mejor de las tres en <b><CountUp n={s.best} /></b> de {s.total}</> : <>Gana en <b><CountUp n={s.wins} /></b> de {s.total}</>}</p>
               <p className={`pv-profit ${s.losses > 0 ? 'neg' : ''}`}>{profitLine(s)}</p>
-              <FuturesGrid values={o.marginByScenario} scenarios={comparison.scenarios} size="full" order="value" highlightIndex={hover} onHoverIndex={setHover} ariaLabel={`Este plan gana en ${s.wins} de ${s.total} futuros`} />
+              <FuturesGrid values={o.marginByScenario} ranks={o.rankByScenario} scenarios={comparison.scenarios} size="full" order="value" highlightIndex={hover} onHoverIndex={setHover} ariaLabel={`Este plan gana en ${s.wins} de ${s.total} futuros`} />
               <dl className="fp-stats">{s.mean !== undefined && <><dt>Promedio</dt><dd>{signedMoney(s.mean)} /ha</dd></>}{s.adverse !== undefined && <><dt>10 peores</dt><dd className={s.adverse < 0 ? 'neg' : ''}>{signedMoney(s.adverse)} /ha</dd></>}</dl>
             </div>
             {compareUsual && usual && us ? <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
