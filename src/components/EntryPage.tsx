@@ -15,6 +15,12 @@ import {
 
 const CROPS = ['Papa', 'Quinua', 'Cebada', 'Avena', 'Haba', 'Tarwi'];
 
+/** Fecha de hoy como YYYY-MM-DD en la zona del navegador (no en UTC). */
+function todayIso(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 const WATER_MODES: { id: WaterMode; label: string; hint: string }[] = [
   { id: 'rainfed', label: 'Solo lluvia', hint: 'Sin riego, dependo de la lluvia' },
   { id: 'scheduled', label: 'Riego por turnos', hint: 'Me toca riego algunos días' },
@@ -50,7 +56,9 @@ export function EntryPage() {
   // --- condiciones ---
   const [previousCrop, setPreviousCrop] = useState('Papa');
   const [unknownPrevious, setUnknownPrevious] = useState(false);
-  const [startDate, setStartDate] = useState('2026-11-15');
+  // Hoy en hora local: una fecha fija dejaba el formulario roto en cuanto pasaba
+  // ese dia (el backend rechaza fechas anteriores a hoy).
+  const [startDate, setStartDate] = useState(todayIso);
   const [waterMode, setWaterMode] = useState<WaterMode>('scheduled');
   const [irrigationMm, setIrrigationMm] = useState('180');
   const [excluded, setExcluded] = useState<ExcludedCrop[]>([]);
@@ -150,10 +158,10 @@ export function EntryPage() {
         waterMode,
         irrigationMm: waterMode === 'rainfed' ? 0 : Number(irrigationMm),
         allowedCrops: allowedCrops.map((c) => c.toLowerCase()),
-        excludedCrops: excluded,
+        excludedCrops: excluded.map((e) => ({ ...e, crop: e.crop.toLowerCase() })),
         priority,
         horizon: 3,
-        usualPlan: usualPlan ? usualPlan.split(/[,>→-]+/).map((s) => s.trim()).filter(Boolean) : undefined,
+        usualPlan: usualPlan ? usualPlan.split(/[,>→-]+/).map((s) => s.trim().toLowerCase()).filter(Boolean) : undefined,
         dataQualityHint: unknownPrevious ? 'limited' : 'sufficient',
       };
       saveEntryConditions(conditions);
@@ -254,7 +262,7 @@ export function EntryPage() {
                 </select>
                 <div className="input-with-icon">
                   <CalendarIcon size={16} />
-                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                  <input type="date" min={todayIso()} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                 </div>
               </div>
               <label className="checkline">

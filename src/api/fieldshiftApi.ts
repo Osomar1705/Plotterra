@@ -16,12 +16,28 @@ export function isUsingMocks(): boolean {
 }
 
 async function request(path: string, init?: RequestInit) {
-  const res = await fetch(`${API}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
-    ...init,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API}${path}`, {
+      ...init,
+      headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+    });
+  } catch {
+    // Sin conexion o backend apagado: fetch lanza un TypeError sin mensaje
+    // para el agricultor y la franja de error quedaba vacia.
+    throw normalizeApiError({
+      codigo: 'SIN_CONEXION',
+      mensaje_agricultor: 'No pudimos conectar con FieldShift. Revisa tu conexión e inténtalo de nuevo.',
+    });
+  }
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  let data: any = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    // Un proxy o un 502 pueden devolver HTML en lugar de JSON.
+    data = null;
+  }
   if (!res.ok) throw normalizeApiError(data, res.status);
   return data;
 }

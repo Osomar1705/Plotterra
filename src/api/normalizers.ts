@@ -132,7 +132,7 @@ export function normalizeAlternative(raw: any): Alternative {
 export function normalizeComparison(raw: any): Comparison {
   const payload = first(raw, 'comparison', 'comparacion', 'resultado') ?? raw;
   const alternatives = first(payload, 'alternatives', 'alternativas') ?? [];
-  const activeChanges = first(payload, 'active_changes', 'cambios_activos', 'cambios') ?? [];
+  const activeChanges = first(payload, 'active_changes', 'cambios_activos', 'escenarios_aplicados', 'cambios') ?? [];
   return {
     id: String(first(payload, 'comparison_id', 'id', 'scenario_id', 'comparacion_id') ?? 'unknown'),
     plotId: String(first(payload, 'plot_id', 'parcel_id', 'parcela_id') ?? 'unknown'),
@@ -141,7 +141,7 @@ export function normalizeComparison(raw: any): Comparison {
     status: String(first(payload, 'status', 'estado') ?? 'ready').toLowerCase() as Comparison['status'],
     activeChanges: activeChanges.map((c: any) => ({
       id: first(c, 'change_id', 'id', 'cambio_id'),
-      type: String(first(c, 'type', 'tipo') ?? 'unknown'),
+      type: String(first(c, 'type', 'tipo', 'intent') ?? 'unknown'),
       operation: first(c, 'operation', 'operacion'),
       value: first(c, 'value', 'valor'),
       unit: first(c, 'unit', 'unidad'),
@@ -149,7 +149,7 @@ export function normalizeComparison(raw: any): Comparison {
     })),
     alternatives: alternatives.map(normalizeAlternative),
     sourceResult: first(payload, 'fuente_resultado', 'source_result', 'sourceResult'),
-    parentComparisonId: first(payload, 'parent_comparison_id', 'comparacion_padre_id'),
+    parentComparisonId: first(payload, 'parent_comparison_id', 'comparacion_padre_id', 'derivada_de'),
     runId: first(payload, 'run_id', 'runId'),
     engineVersion: str(first(payload, 'engine_version', 'engineVersion', 'version_motor')),
     datasetVersion: str(first(payload, 'dataset_version', 'datasetVersion', 'version_datos')),

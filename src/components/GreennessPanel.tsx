@@ -84,7 +84,7 @@ export function GreennessPanel({ plotId }: { plotId: string }) {
             );
           })}
           <path d={path} className="greenness-line" />
-          {recent.map((p) => <circle key={p.date} cx={x(p.date)} cy={y(p.ndvi)} r={2} className="greenness-dot"><title>{`${p.date}: NDVI ${p.ndvi.toFixed(2)}`}</title></circle>)}
+          {recent.map((p, i) => <circle key={`${p.date}-${i}`} cx={x(p.date)} cy={y(p.ndvi)} r={2} className="greenness-dot"><title>{`${p.date}: NDVI ${p.ndvi.toFixed(2)}`}</title></circle>)}
         </svg>
         <figcaption>
           <span>Sin línea = semanas sin imagen despejada · Verdor típico por mes</span>
