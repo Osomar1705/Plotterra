@@ -8,7 +8,6 @@ import { readEntryConditions, readQueryContext } from '../integration/entryConte
 import { AlternativeCard } from './AlternativeCard';
 import { ChatIcon, FlaskIcon, LeafIcon, PinIcon, SproutIcon, WaterIcon } from './Icons';
 import { FuturesPanel } from './futures/FuturesPanel';
-import { GreennessPanel } from './GreennessPanel';
 import { SimulationReveal } from './futures/SimulationReveal';
 import { scenarioLabel, signedMoney } from './futures/futuresModel';
 import './futures/futures.css';
@@ -100,8 +99,6 @@ export function ComparisonPage(){
           <div className="cmp-hero-meta"><span><PinIcon/>Parcela · {area} ha</span><span>100 futuros · 3 campañas</span>{comparison.sourceResult==='mock'&&<span>Datos de demostración</span>}</div>
         </div>
       </motion.section>
-
-      <GreennessPanel plotId={comparison.plotId}/>
 
       {activeLabel&&<div className="updated-banner"><span>✓ Comparación actualizada · {activeLabel}</span><button onClick={undo}>Deshacer</button></div>}
       {error&&<div className="error-banner"><div><strong>{error.code}</strong><span>{error.farmerMessage}</span></div>{error.runId&&<small>run_id: {error.runId}</small>}</div>}
