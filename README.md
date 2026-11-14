@@ -13,7 +13,7 @@ suelo. Cada una se evalúa en 100 escenarios de lluvia y precio.
 | Carpeta | Qué es |
 |---|---|
 | [`backend/`](backend) | API en FastAPI (Python 3.11): motor de balance hídrico FAO-56, escenarios, rotaciones y datasets de los 84 distritos de Huánuco |
-| [`frontend/`](frontend) | App web en Vite + React + TypeScript: mapa para dibujar la parcela, comparación de alternativas y plan por campañas |
+| [`frontend/`](frontend) | App web en Vite + React + TypeScript: mapa satelital para dibujar la parcela, comparación de alternativas en 100 futuros, plan por campañas y la Guía (chat) |
 
 Cada carpeta conserva su historial completo, con las fechas y los autores originales.
 Antes vivían como dos repos separados.
@@ -60,8 +60,14 @@ raíz crea los dos servicios:
 - `plotterra-backend`: Docker con el motor real. Revisión de salud en `/api/v1/health`.
 - `plotterra-frontend`: sitio estático. Reenvía `/opciones` y `/plan` a la app.
 
-Si Render le da al backend otro subdominio, hay que cambiar `VITE_API_BASE_URL` en el
-frontend (terminada en `/api/v1`) y volver a desplegar.
+Si Render le da al backend otro subdominio, hay que cambiar `VITE_API_BASE_URL` y
+`VITE_GUIDE_API_URL` en el frontend y volver a desplegar.
+
+**Guía (chat):** en el deploy usa `/consultas` del backend. Sin clave responde el intérprete
+por reglas; con `ANTHROPIC_API_KEY` en el backend, responde un LLM. El frontend también trae
+un servidor propio con OpenAI (`frontend/server/`, se arranca con `npm run dev`). Para usarlo
+en producción hay que desplegarlo aparte, con `OPENAI_API_KEY`, y apuntar a él
+`VITE_GUIDE_API_URL`.
 
 En el plan gratuito el backend se apaga cuando no se usa: la primera petición tarda
 unos 50 segundos. Conviene abrirlo un rato antes de una demo.
