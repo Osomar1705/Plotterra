@@ -29,6 +29,7 @@ def balance_hidrico(
     suelo: Suelo,
     etapas: list[EtapaCultivo],
     lamina_riego_mm: float,
+    a_demanda: bool = False,
 ) -> BalanceResultado:
     """Balance diario de agua en el perfil, acumulando deficit por etapa.
 
@@ -54,17 +55,36 @@ def balance_hidrico(
     riego_diario = max(0.0, float(lamina_riego_mm)) / len(dias_cultivo)
     almacenamiento = cc  # supuesto: se siembra con el perfil lleno
 
+    # Riego disponible (a_demanda): la misma lamina total, pero se aplica cuando
+    # hace falta. Se riega antes de que el agua baje de la mitad de la
+    # aprovechable (p = 0,5, valor tipico de FAO-56) y se repone hasta capacidad
+    # de campo. El agua se va habilitando al ritmo de la campania: lo que no se
+    # usa en dias de lluvia queda guardado para despues, pero no se puede gastar
+    # por adelantado (si no, toda la lamina se iba en la primera sequia y no
+    # quedaba nada para floracion). Riego por turnos: la lamina repartida pareja,
+    # llueva o no; lo que cae con el perfil lleno se pierde.
+    usado = 0.0
+    umbral = pm + 0.5 * (cc - pm)
+
     acumulado: dict[str, list[float]] = {}
     orden: list[str] = []
 
-    for (nombre, kc, _ky), dia in zip(dias_cultivo, serie):
+    for i, ((nombre, kc, _ky), dia) in enumerate(zip(dias_cultivo, serie)):
         lluvia = float(dia["lluvia_mm"] if isinstance(dia, dict) else dia.lluvia_mm)
         et0 = float(dia["et0_mm"] if isinstance(dia, dict) else dia.et0_mm)
 
         etc = kc * et0
 
         # Lluvia efectiva: lo que pasa de capacidad de campo percola y se pierde.
-        almacenamiento = min(cc, almacenamiento + lluvia + riego_diario)
+        if a_demanda:
+            almacenamiento = min(cc, almacenamiento + lluvia)
+            habilitado = riego_diario * (i + 1) - usado
+            if habilitado > 0 and almacenamiento - etc < umbral:
+                dosis = min(habilitado, cc - almacenamiento)
+                almacenamiento += dosis
+                usado += dosis
+        else:
+            almacenamiento = min(cc, almacenamiento + lluvia + riego_diario)
 
         # La planta no puede extraer por debajo del punto de marchitez.
         eta = min(etc, max(0.0, almacenamiento - pm))

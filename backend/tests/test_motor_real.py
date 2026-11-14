@@ -193,7 +193,8 @@ def test_los_100_futuros_siguen_el_orden_de_los_escenarios(datasets):
         o = a.outcomes
         assert o["wins"] + o["losses"] <= 100 and o["margin_by_scenario"] == v
         familias = {f["familia"] for f in a.stress_test}
-        assert familias == {"tipica", "menos_lluvia", "menos_riego", "caida_precio", "combinado"}
+        # Secano: sin la familia "menos riego", que no cambiaria nada.
+        assert familias == {"tipica", "menos_lluvia", "caida_precio", "combinado"}
         tipica = next(f for f in a.stress_test if f["familia"] == "tipica")
         assert tipica["cambio_vs_tipica_S_ha"] == 0
 
@@ -217,3 +218,48 @@ def test_solo_se_exponen_futuros_simulados_en_las_tres(datasets):
     assert n == 100
     assert all(len(a.futuros.margen_por_escenario) == n for a in r.alternativas)
     assert all(None not in a.futuros.margen_por_escenario for a in r.alternativas)
+
+
+def _riego(**cambios):
+    base = dict(fecha_inicio=date(2026, 11, 20), modo_agua="riego_turnos", lamina_mm_campania=180.0,
+                cultivo_anterior="papa", semilla=20261010)
+    base.update(cambios)
+    return _condiciones(**base)
+
+
+def test_con_riego_existe_la_familia_menos_riego(datasets):
+    r = ejecutar_comparacion(_riego(), datasets)
+    assert "menos_riego" in {e["familia"] for e in r.escenarios}
+
+
+def test_riego_disponible_rinde_al_menos_lo_mismo_que_por_turnos(datasets):
+    """Misma lamina: regar cuando hace falta no puede dejar mas deficit."""
+    from app.engine.water import balance_hidrico
+    from app.engine.runner import _indexar_clima, _serie_del_anio
+
+    clima = _indexar_clima(datasets.clima_diario)
+    ficha = REPO.fichas["papa"]
+    peor_turnos = peor_demanda = 0.0
+    for anio in (2016, 2018, 2023):
+        serie = _serie_del_anio(clima, anio, date(2026, 11, 20), ficha.duracion_dias, 0.6)
+        turnos = balance_hidrico(serie, datasets.suelo, ficha.etapas, 120.0)
+        demanda = balance_hidrico(serie, datasets.suelo, ficha.etapas, 120.0, a_demanda=True)
+        assert demanda.deficit_mm <= turnos.deficit_mm + 0.01
+        peor_turnos += turnos.deficit_mm
+        peor_demanda += demanda.deficit_mm
+    assert peor_demanda < peor_turnos  # en anios secos se nota
+
+
+def test_la_tarjeta_economia_tiene_el_mayor_margen(datasets):
+    """Con riego de sobra todos empatan en deficit: Agua no debe quedarse con el plan mas rentable."""
+    r = ejecutar_comparacion(_riego(lamina_mm_campania=400.0, prioridad="agua"), datasets)
+    margen = {a.alternativa_id: a.economia.margen_soles_ha_mediana for a in r.alternativas}
+    assert margen["alt_economia"] == max(margen.values())
+
+
+def test_el_precio_varia_entre_futuros_tipicos(datasets):
+    """Antes el precio era siempre la mediana: los futuros tipicos con riego daban casi el mismo margen."""
+    r = ejecutar_comparacion(_riego(), datasets)
+    a = next(x for x in r.alternativas if x.alternativa_id == "alt_economia")
+    tipicos = [v for e, v in zip(r.escenarios, a.futuros.margen_por_escenario) if e["familia"] == "condiciones_tipicas"]
+    assert len({round(v, -1) for v in tipicos}) > len(tipicos) * 0.8

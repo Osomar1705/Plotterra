@@ -14,6 +14,7 @@ reutiliza en todas las rotaciones que la incluyan en esa posicion.
 """
 from __future__ import annotations
 
+import random
 import statistics
 from datetime import date, timedelta
 from typing import Any
@@ -95,7 +96,10 @@ def ejecutar_comparacion(condiciones: Condiciones, datasets: Datasets) -> Result
     anios = sorted(y for y in todos if (y + 1) in todos) or sorted(todos)
 
     # --- paso 2: escenarios
-    escenarios = scenarios.generar_escenarios(condiciones.n_escenarios, condiciones.semilla, anios)
+    con_riego = float(condiciones.lamina_mm_campania or 0.0) > 0 and condiciones.modo_agua != "secano"
+    escenarios = scenarios.generar_escenarios(
+        condiciones.n_escenarios, condiciones.semilla, anios, con_riego=con_riego
+    )
 
     # --- paso 3: simulacion por tramos, cacheada por (cultivo, posicion, escenario)
     horizonte = max(1, int(condiciones.horizonte_campanias))
@@ -115,12 +119,14 @@ def ejecutar_comparacion(condiciones: Condiciones, datasets: Datasets) -> Result
                 if not serie:
                     continue
                 balance = balance_hidrico(
-                    serie, datasets.suelo, ficha.etapas, riego_por_campania * esc["factor_riego"]
+                    serie, datasets.suelo, ficha.etapas, riego_por_campania * esc["factor_riego"],
+                    a_demanda=condiciones.modo_agua == "riego_disponible",
                 )
                 rend = rendimiento_t_ha(ficha, balance)
+                mercado = _factor_mercado(ficha, condiciones.semilla, j, posicion)
                 tramos[(cultivo, posicion, j)] = {
                     "margen": margen_soles_ha(
-                        ficha, rend, esc["factor_precio"] * condiciones.factor_precio
+                        ficha, rend, mercado * esc["factor_precio"] * condiciones.factor_precio
                     ),
                     "deficit": balance.deficit_mm,
                     "demanda": balance.demanda_mm,
@@ -154,6 +160,25 @@ def ejecutar_comparacion(condiciones: Condiciones, datasets: Datasets) -> Result
         escenarios_evaluados=len(escenarios),
         escenarios=escenarios_expuestos,
     )
+
+
+def _factor_mercado(ficha: Any, semilla: int, escenario: int, posicion: int) -> float:
+    """Precio de esa campania en ese futuro, relativo a la mediana.
+
+    El precio en chacra no es siempre la mediana: varia de un ano a otro. Se
+    sortea entre el p10 y el p90 mensual de la ficha (SIEA/MIDAGRI), con
+    interpolacion lineal por tramos alrededor de la mediana. Solo se usa el
+    rango observado, sin inventar colas. La semilla hace que el mismo futuro
+    tenga el mismo precio en todas las rotaciones que siembran ese cultivo.
+    """
+    p = ficha.precio_soles_kg
+    med = float(p["mediana"])
+    if med <= 0:
+        return 1.0
+    lo, hi = float(p.get("p10", med)), float(p.get("p90", med))
+    u = random.Random(f"{semilla}|{escenario}|{posicion}|{ficha.cultivo}").uniform(0.1, 0.9)
+    precio = lo + (med - lo) * (u - 0.1) / 0.4 if u < 0.5 else med + (hi - med) * (u - 0.5) / 0.4
+    return precio / med
 
 
 def _futuros_comunes(alternativas: list, escenarios: list[dict[str, Any]]) -> list[dict[str, Any]]:

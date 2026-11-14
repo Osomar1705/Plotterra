@@ -12,6 +12,17 @@ CRITERIOS = {
     "suelo": ("indice_suelo", True),
 }
 
+# Orden completo de cada criterio, de mejor a peor. Los desempates importan:
+# con riego suficiente todos los planes tienen deficit 0 y, sin desempate, la
+# tarjeta Agua se quedaba con el plan mas rentable y Economia con el segundo.
+# Agua desempata por el agua que consume el plan; Suelo y Economia por margen
+# y deficit.
+CLAVES = {
+    "economia": lambda m: (-m["margen_mediana"], m["deficit_mediana"], -m["indice_suelo"]),
+    "agua": lambda m: (m["deficit_mediana"], m["demanda_mm"], -m["margen_mediana"]),
+    "suelo": lambda m: (-m["indice_suelo"], -m["margen_mediana"], m["deficit_mediana"]),
+}
+
 
 def _domina(a: dict[str, Any], b: dict[str, Any]) -> bool:
     """a domina a b si no es peor en nada y es mejor en algo."""
@@ -54,11 +65,14 @@ def seleccionar(
     elegidas: dict[str, dict[str, Any]] = {}
     usados: set[int] = set()
     for criterio in orden:
-        campo, mayor_es_mejor = CRITERIOS[criterio]
         libres = [m for m in frente if id(m) not in usados]
         if not libres:
+            # Frente con menos de tres planes: se completa con el mejor de los
+            # restantes para ese criterio, asi siempre hay tres opciones.
+            libres = [m for m in metricas_por_rotacion if id(m) not in usados]
+        if not libres:
             break
-        mejor = (max if mayor_es_mejor else min)(libres, key=lambda m: m[campo])
+        mejor = min(libres, key=CLAVES[criterio])
         elegidas[criterio] = mejor
         usados.add(id(mejor))
 

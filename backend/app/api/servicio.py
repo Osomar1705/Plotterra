@@ -25,6 +25,7 @@ from app.schemas.comparacion import (
     ResumenDelCambio,
     Simulacion,
 )
+from app.engine.contrato import VERSION_MOTOR
 from app.schemas.entrada import CondicionesComparacion
 from app.schemas.errores import CodigoError
 
@@ -98,7 +99,9 @@ def correr_comparacion(
         area_ha=parcela["area_ha"],
         condiciones=condiciones_json,
         cambios=cambios,
-        version_motor=CONFIG.motor,
+        # El modo (real/mock) y la version del motor: si cambian las formulas,
+        # una respuesta guardada con las viejas no debe volver a servirse.
+        version_motor=f"{CONFIG.motor}-{VERSION_MOTOR}",
         version_datasets=REPO.version_datasets,
     )
 
