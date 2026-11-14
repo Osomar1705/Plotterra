@@ -146,3 +146,13 @@ def test_guide_health_responde_sin_clave(cliente):
     assert r.status_code == 200
     cuerpo = r.json()
     assert cuerpo["ready"] is True and cuerpo["model"]
+
+
+def test_la_respuesta_trae_la_simulacion(cliente, condiciones):
+    """El motor de ejemplo no simula escenarios: simulacion puede faltar sin romper nada."""
+    r = cliente.post(f"{BASE}/comparaciones", json=condiciones)
+    assert r.status_code == 200
+    cuerpo = r.json()
+    assert "simulacion" in cuerpo
+    for a in cuerpo["alternativas"]:
+        assert "outcomes" in a and "stress_test" in a

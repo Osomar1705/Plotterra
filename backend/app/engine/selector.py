@@ -75,7 +75,7 @@ def seleccionar(
 
 def _a_alternativa(m: dict[str, Any], criterio: str, destacada: bool) -> Alternativa:
     """Arma la tarjeta. Las cifras ya vienen calculadas: aqui no se recalcula nada."""
-    from app.schemas.comparacion import Agua, Economia, Riesgo, RiesgoCampania, Suelo
+    from app.schemas.comparacion import Agua, Economia, Futuros, Riesgo, RiesgoCampania, Suelo
     from app.schemas.comun import Nivel, NivelSuelo
 
     indice = m["indice_suelo"]
@@ -115,4 +115,10 @@ def _a_alternativa(m: dict[str, Any], criterio: str, destacada: bool) -> Alterna
             ],
         ),
         calidad_informacion=m["calidad"],
+        futuros=None
+        if m.get("margenes_por_escenario") is None
+        else Futuros(
+            margen_por_escenario=m["margenes_por_escenario"],
+            margen_medio_por_familia=m.get("margen_medio_por_familia") or {},
+        ),
     )

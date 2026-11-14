@@ -17,7 +17,14 @@ from app.data.identificadores import nuevo_id
 from app.data.repository import REPO, DatosNoDisponibles, ahora_iso
 from app.engine.contrato import Condiciones
 from app.engine.puerta import ejecutar_comparacion, fuente_resultado
-from app.schemas.comparacion import Motor, RespuestaComparacion, ResumenDelCambio
+from app.schemas.comparacion import (
+    FAMILIA_EN,
+    EscenarioResumen,
+    Motor,
+    RespuestaComparacion,
+    ResumenDelCambio,
+    Simulacion,
+)
 from app.schemas.entrada import CondicionesComparacion
 from app.schemas.errores import CodigoError
 
@@ -39,6 +46,26 @@ def _condiciones_motor(cond: CondicionesComparacion, permitidos: list[str], area
         semilla=cond.escenarios.semilla,
         factor_lluvia=cond.factor_lluvia,
         factor_precio=cond.factor_precio,
+    )
+
+
+def _simulacion(escenarios: list[dict[str, Any]]) -> Simulacion | None:
+    """Los escenarios simulados, con la familia en el nombre corto del frontend."""
+    if not escenarios:
+        return None
+    return Simulacion(
+        escenarios=[
+            EscenarioResumen(
+                id=e["escenario_id"],
+                familia=FAMILIA_EN.get(e["familia"], e["familia"]),
+                anio_clima=e["anio_base"],
+                anios_clima=[str(e["anio_base"])],
+                factor_lluvia=e["factor_lluvia"],
+                factor_riego=e["factor_riego"],
+                factor_precio=e["factor_precio"],
+            )
+            for e in escenarios
+        ]
     )
 
 
@@ -106,6 +133,7 @@ def correr_comparacion(
         alternativas=resultado.alternativas,
         plan_habitual=resultado.plan_habitual,
         descartadas=resultado.descartadas,
+        simulacion=_simulacion(resultado.escenarios),
     )
 
     REPO.registrar_ejecucion(
