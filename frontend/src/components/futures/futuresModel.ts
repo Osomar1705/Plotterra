@@ -1,10 +1,13 @@
 import type { Outcomes, ScenarioFamily, ScenarioMeta } from '../../types/fieldshift';
 
+// El motor sortea el tamano del golpe en cada futuro (p. ej. lluvia entre −15 % y
+// −45 %): el rotulo de la familia no promete una cifra fija; la etiqueta de cada
+// futuro muestra la suya.
 export const FAMILY_LABEL: Record<ScenarioFamily, string> = {
   tipica: 'Clima típico',
-  menos_lluvia: '−30 % lluvia',
-  menos_riego: '−30 % riego',
-  caida_precio: 'Precio −30 %',
+  menos_lluvia: 'Menos lluvia',
+  menos_riego: 'Menos riego',
+  caida_precio: 'Precio más bajo',
   combinado: 'Todo junto',
 };
 export const FAMILY_ORDER: ScenarioFamily[] = ['tipica', 'menos_lluvia', 'menos_riego', 'caida_precio', 'combinado'];
@@ -31,11 +34,20 @@ export function summarize(o: Outcomes) {
   return { total: v.length, wins, losses: o.losses ?? v.filter((x) => x < 0).length, mean: o.mean, adverse: o.adverse };
 }
 
+/** "−22 % lluvia · −40 % riego" con los factores reales del escenario; si no vienen, el rotulo de la familia. */
+function familyDetail(s: ScenarioMeta) {
+  const cut = (f: number | undefined, what: string) => (f !== undefined && f < 0.995 ? `−${Math.round((1 - f) * 100)} % ${what}` : '');
+  const parts = [cut(s.rainFactor, 'lluvia'), cut(s.irrigationFactor, 'riego'), cut(s.priceFactor, 'precio')].filter(Boolean);
+  if (parts.length) return parts.join(' · ');
+  return FAMILY_LABEL[s.family];
+}
+
 export function scenarioLabel(i: number, scenarios?: ScenarioMeta[], withFamily = true) {
   const s = scenarios?.[i];
   if (!s) return `Futuro ${i + 1}`;
-  const years = s.climateYears.length ? `clima ${s.climateYears[0].slice(0, 4)}–${s.climateYears.at(-1)!.slice(-4)}` : '';
-  return [`Futuro ${i + 1}`, years, withFamily ? FAMILY_LABEL[s.family] : ''].filter(Boolean).join(' · ');
+  const first = s.climateYears[0]?.slice(0, 4), last = s.climateYears.at(-1)?.slice(-4);
+  const years = first ? `clima ${first === last ? first : `${first}–${last}`}` : '';
+  return [`Futuro ${i + 1}`, years, withFamily ? familyDetail(s) : ''].filter(Boolean).join(' · ');
 }
 
 export const prefersReducedMotion = () =>

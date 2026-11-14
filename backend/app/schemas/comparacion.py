@@ -20,6 +20,50 @@ from app.schemas.comun import (
 NIVEL_RIESGO_EN = {"bajo": "low", "medio": "medium", "alto": "high"}
 NIVEL_CALIDAD_EN = {"completa": "sufficient", "limitada": "limited", "pobre": "insufficient"}
 
+# Familias de escenarios del motor -> nombre corto y rotulo que usa el frontend.
+FAMILIA_EN = {
+    "condiciones_tipicas": "tipica",
+    "menor_lluvia": "menos_lluvia",
+    "menos_riego": "menos_riego",
+    "caida_de_precio": "caida_precio",
+    "combinado_adverso": "combinado",
+}
+FAMILIA_ROTULO = {
+    "condiciones_tipicas": "Campaña típica (clima histórico)",
+    "menor_lluvia": "Menos lluvia",
+    "menos_riego": "Menos riego",
+    "caida_de_precio": "Caída de precio",
+    "combinado_adverso": "Combinado adverso",
+}
+
+
+class Futuros(Base):
+    """La alternativa en cada uno de los escenarios simulados.
+
+    margen_por_escenario[j] es el margen del horizonte (S/ por ha) en el
+    escenario j de RespuestaComparacion.simulacion.escenarios: el mismo j es el
+    mismo futuro en las tres alternativas, y asi se pueden comparar uno a uno.
+    """
+
+    # None solo dentro del motor, antes de _futuros_comunes; la respuesta nunca lo trae.
+    margen_por_escenario: list[float | None]
+    margen_medio_por_familia: dict[str, float] = Field(default_factory=dict)
+
+
+class EscenarioResumen(Base):
+    id: str
+    familia: str
+    anio_clima: int
+    # Lista para el frontend ("clima 2008"): hoy cada futuro usa un solo ano historico.
+    anios_clima: list[str] = Field(default_factory=list)
+    factor_lluvia: float
+    factor_riego: float
+    factor_precio: float
+
+
+class Simulacion(Base):
+    escenarios: list[EscenarioResumen]
+
 
 class Motor(Base):
     version: str = Field(examples=["0.4.1"])
@@ -161,6 +205,43 @@ class Alternativa(Base):
     suelo: Suelo
     riesgo: Riesgo
     calidad_informacion: CalidadInformacion
+    futuros: Futuros | None = None
+
+    @computed_field
+    @property
+    def outcomes(self) -> dict | None:
+        """Los 100 futuros en el formato de la cuadricula del frontend."""
+        if self.futuros is None or not self.futuros.margen_por_escenario:
+            return None
+        v = [x for x in self.futuros.margen_por_escenario if x is not None]
+        if not v:
+            return None
+        peores = sorted(v)[: max(1, len(v) // 10)]
+        return {
+            "margin_by_scenario": v,
+            "wins": sum(1 for x in v if x > 0),
+            "losses": sum(1 for x in v if x < 0),
+            "mean": round(sum(v) / len(v), 2),
+            "adverse": round(sum(peores) / len(peores), 2),
+        }
+
+    @computed_field
+    @property
+    def stress_test(self) -> list[dict] | None:
+        """Margen medio por tipo de futuro y su diferencia con el ano tipico."""
+        if self.futuros is None or not self.futuros.margen_medio_por_familia:
+            return None
+        medios = self.futuros.margen_medio_por_familia
+        tipica = medios.get("condiciones_tipicas")
+        return [
+            {
+                "familia": FAMILIA_EN.get(f, f),
+                "nombre": FAMILIA_ROTULO.get(f, f),
+                "margen_medio_S_ha_horizonte": m,
+                "cambio_vs_tipica_S_ha": round(m - tipica, 2) if tipica is not None else 0.0,
+            }
+            for f, m in medios.items()
+        ]
 
     # --- Alias para el frontend. Son vistas de los campos de arriba, no datos
     # nuevos: el contrato canonico no cambia, solo se le agregan campos.
@@ -271,6 +352,7 @@ class RespuestaComparacion(Base):
     escenarios_aplicados: list[CambioAplicado] = Field(default_factory=list)
     alternativas: list[Alternativa]
     plan_habitual: PlanHabitualEvaluado
+    simulacion: Simulacion | None = None
 
     @computed_field
     @property

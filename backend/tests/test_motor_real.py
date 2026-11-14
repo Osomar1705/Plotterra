@@ -176,3 +176,43 @@ def test_el_margen_declara_su_exposicion_a_los_costos(datasets):
         # La banda por costos debe ser proporcional a los costos, no al azar.
         banda = s["si_costaran_25_menos"] - s["si_costaran_25_mas"]
         assert banda == pytest.approx(e.costos_soles_ha * 0.5, rel=0.01)
+
+
+def test_los_100_futuros_siguen_el_orden_de_los_escenarios(datasets):
+    """La cuadricula del frontend compara el mismo futuro en las tres opciones."""
+    import statistics
+
+    r = ejecutar_comparacion(_condiciones(), datasets)
+    n = len(r.escenarios)
+    assert 0 < n <= 100
+    for a in r.alternativas:
+        v = a.futuros.margen_por_escenario
+        assert len(v) == n and None not in v
+        # Es la misma distribucion que resume la tarjeta, solo que sin ordenar.
+        assert statistics.median(v) == pytest.approx(a.economia.margen_soles_ha_mediana, abs=0.01)
+        o = a.outcomes
+        assert o["wins"] + o["losses"] <= 100 and o["margin_by_scenario"] == v
+        familias = {f["familia"] for f in a.stress_test}
+        assert familias == {"tipica", "menos_lluvia", "menos_riego", "caida_precio", "combinado"}
+        tipica = next(f for f in a.stress_test if f["familia"] == "tipica")
+        assert tipica["cambio_vs_tipica_S_ha"] == 0
+
+
+def test_la_caida_de_precio_rinde_menos_que_el_anio_tipico(datasets):
+    r = ejecutar_comparacion(_condiciones(), datasets)
+    for a in r.alternativas:
+        medios = a.futuros.margen_medio_por_familia
+        assert medios["caida_de_precio"] < medios["condiciones_tipicas"]
+
+
+def test_solo_se_exponen_futuros_simulados_en_las_tres(datasets):
+    """Con riego y siembra a fines de anio, algunos anios base no alcanzan."""
+    r = ejecutar_comparacion(
+        _condiciones(fecha_inicio=date(2026, 11, 20), modo_agua="riego_turnos",
+                     lamina_mm_campania=180.0, semilla=20261010),
+        datasets,
+    )
+    n = len(r.escenarios)
+    assert n > 0
+    assert all(len(a.futuros.margen_por_escenario) == n for a in r.alternativas)
+    assert all(None not in a.futuros.margen_por_escenario for a in r.alternativas)
