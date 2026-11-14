@@ -186,10 +186,33 @@ function normalizeScenarios(rows: any) {
   }));
 }
 
+/**
+ * En cuantos futuros cada alternativa deja mas margen que las otras.
+ *
+ * "Futuros con ganancia" (margen > 0) llega a 100/100 en casi todas las
+ * rotaciones rentables y no ayuda a elegir. Comparar el mismo futuro entre las
+ * opciones si: las cuentas suman 100 entre las tarjetas. Un empate cuenta para
+ * todas las empatadas.
+ */
+function markBestOf(alternatives: Alternative[]) {
+  const withOutcomes = alternatives.filter((a) => a.outcomes?.marginByScenario?.length);
+  if (withOutcomes.length < 2) return;
+  const n = withOutcomes[0].outcomes!.marginByScenario.length;
+  if (withOutcomes.some((a) => a.outcomes!.marginByScenario.length !== n)) return;
+  const best = new Map(withOutcomes.map((a) => [a, 0]));
+  for (let j = 0; j < n; j++) {
+    const top = Math.max(...withOutcomes.map((a) => a.outcomes!.marginByScenario[j]));
+    for (const a of withOutcomes) if (a.outcomes!.marginByScenario[j] === top) best.set(a, best.get(a)! + 1);
+  }
+  for (const a of withOutcomes) a.outcomes!.best = best.get(a);
+}
+
 export function normalizeComparison(raw: any): Comparison {
   const payload = first(raw, 'comparison', 'comparacion', 'resultado') ?? raw;
   const alternatives = first(payload, 'alternatives', 'alternativas') ?? [];
   const activeChanges = first(payload, 'active_changes', 'cambios_activos', 'escenarios_aplicados', 'cambios') ?? [];
+  const normalizedAlternatives = alternatives.map(normalizeAlternative);
+  markBestOf(normalizedAlternatives);
   return {
     id: String(first(payload, 'comparison_id', 'id', 'scenario_id', 'comparacion_id') ?? 'unknown'),
     plotId: String(first(payload, 'plot_id', 'parcel_id', 'parcela_id') ?? 'unknown'),
@@ -204,7 +227,7 @@ export function normalizeComparison(raw: any): Comparison {
       unit: first(c, 'unit', 'unidad'),
       label: first(c, 'label', 'etiqueta'),
     })),
-    alternatives: alternatives.map(normalizeAlternative),
+    alternatives: normalizedAlternatives,
     sourceResult: first(payload, 'fuente_resultado', 'source_result', 'sourceResult'),
     parentComparisonId: first(payload, 'parent_comparison_id', 'comparacion_padre_id', 'derivada_de'),
     scenarios: normalizeScenarios(first(payload, 'scenarios') ?? payload?.simulacion?.escenarios),

@@ -66,7 +66,7 @@ export function SimulationReveal({ values, previousValues, scenarios, changeLabe
         {!values && <span>Clima histórico NASA · lluvia · riego · precio</span>}
         {values && !summary && tick >= 0 && <span><b>{scenarioLabel(tick, scenarios, false)}</b>{fam && <em className={`sr-fam sr-fam--${scenarios![tick].family}`}>{fam}</em>}</span>}
         {values && summary && <motion.strong initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
-          Gana en {wins} de {values.length} futuros{worsened > 0 ? ` · ${worsened} pasaron a pérdida` : ''}
+          Con ganancia en {wins} de {values.length} futuros{worsened > 0 ? ` · ${worsened} pasaron a pérdida` : ''}
         </motion.strong>}
         {values && summary && note && <span className="sr-note">{note}</span>}
       </div>

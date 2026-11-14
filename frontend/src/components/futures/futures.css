@@ -221,3 +221,8 @@
 .entry-hero{border:1px solid var(--line)}
 @keyframes float{0%,100%{transform:rotate(1.5deg) translateY(0)}50%{transform:rotate(1.5deg) translateY(-6px)}}
 .sr-bg{opacity:.16}
+
+/* Ganancia como dato secundario bajo "la mejor opcion en X de 100". */
+.oc-profit,.fp-profit,.pv-profit{font-size:12px;color:var(--muted)}
+.oc-profit.neg,.fp-profit.neg,.pv-profit.neg{color:var(--danger,#A33A2E);font-weight:700}
+.fp-profit,.pv-profit{margin:-4px 0 8px}

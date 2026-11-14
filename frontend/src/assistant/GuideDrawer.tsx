@@ -24,7 +24,8 @@ import { GuideFormattedText } from './GuideFormattedText';
 type ResultRow={type:string;title:string;before:number|null;after:number;total:number};
 type Turn={id:number;role:'user'|'assistant';text:string;sources?:string[];status?:GuideReply['status'];result?:{label:string;rows:ResultRow[];undone?:boolean}};
 
-const winsOf=(a?:{outcomes?:{marginByScenario:number[]}})=>a?.outcomes?.marginByScenario?.length?a.outcomes.marginByScenario.filter(x=>x>0).length:null;
+// Futuros en que la opcion es la mejor de las tres; si no se calculo, los futuros con ganancia.
+const winsOf=(a?:{outcomes?:{marginByScenario:number[];best?:number}})=>a?.outcomes?.marginByScenario?.length?(a.outcomes.best??a.outcomes.marginByScenario.filter(x=>x>0).length):null;
 function resultRows(before:Comparison|null|undefined,after:Comparison):ResultRow[]{
   return after.alternatives.flatMap(a=>{
     const w=winsOf(a);if(w===null)return [];
@@ -184,7 +185,7 @@ export function GuideDrawer(){
         {t.result.rows.length?<ul>{t.result.rows.map(r=>{const d=r.before===null?0:r.after-r.before;return <li key={r.type} className={`gr-${r.type}`}>
           <span className="gr-name">{r.title}</span>
           <span className="gr-bar" aria-hidden="true"><i style={{width:`${r.after/r.total*100}%`}}/></span>
-          <span className="gr-val">gana en <b>{r.after}</b> de {r.total}{r.before!==null&&d!==0&&<em className={d<0?'down':'up'}>{d>0?'+':''}{d}</em>}</span>
+          <span className="gr-val">la mejor en <b>{r.after}</b> de {r.total}{r.before!==null&&d!==0&&<em className={d<0?'down':'up'}>{d>0?'+':''}{d}</em>}</span>
         </li>})}</ul>:<p className="guide-result-empty">Las opciones se actualizaron en pantalla.</p>}
         {t.result.undone?<p className="guide-result-note">Cambio deshecho</p>:<button className="guide-undo" onClick={()=>void undo(t.id)} disabled={busy||simulating}>↶ Deshacer este cambio</button>}
       </div>

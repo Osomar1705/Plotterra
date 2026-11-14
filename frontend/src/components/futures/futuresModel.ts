@@ -31,7 +31,12 @@ export const signedMoney = (n: number) => `${n < 0 ? '−' : ''}S/ ${money(Math.
 export function summarize(o: Outcomes) {
   const v = o.marginByScenario;
   const wins = o.wins ?? v.filter((x) => x > 0).length;
-  return { total: v.length, wins, losses: o.losses ?? v.filter((x) => x < 0).length, mean: o.mean, adverse: o.adverse };
+  return { total: v.length, wins, best: o.best, losses: o.losses ?? v.filter((x) => x < 0).length, mean: o.mean, adverse: o.adverse };
+}
+
+/** "Pierde plata en 4 futuros" o "Con ganancia en los 100": la ganancia como dato secundario. */
+export function profitLine(s: { total: number; losses: number }) {
+  return s.losses > 0 ? `Pierde plata en ${s.losses} de ${s.total}` : `Con ganancia en los ${s.total}`;
 }
 
 /** "−22 % lluvia · −40 % riego" con los factores reales del escenario; si no vienen, el rotulo de la familia. */
