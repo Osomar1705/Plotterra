@@ -8,6 +8,7 @@ from __future__ import annotations
 import csv
 import json
 import sqlite3
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -36,6 +37,10 @@ class Repositorio:
         self._version_datasets: str = "desconocida"
         self._catalogo = CatalogoCeldas(Path(config.datasets_dir))
         self._conn: sqlite3.Connection | None = None
+        # Una conexion por hilo: FastAPI atiende las rutas sincronas en un pool de
+        # hilos y una conexion compartida fallaba con dos comparaciones a la vez
+        # (sqlite3.OperationalError: not an error -> 500 sin cabeceras CORS).
+        self._local = threading.local()
 
     # ---------------------------------------------------------------- arranque
     def arrancar(self) -> None:
@@ -47,6 +52,7 @@ class Repositorio:
         if self._conn is not None:
             self._conn.close()
             self._conn = None
+        self._local = threading.local()
 
     @property
     def listo(self) -> bool:
@@ -224,16 +230,29 @@ class Repositorio:
     # -------------------------------------------------------------------- sqlite
     def _abrir_db(self) -> None:
         Path(self.config.db_path).parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(self.config.db_path, check_same_thread=False)
-        self._conn.row_factory = sqlite3.Row
+        self._conn = self._nueva_conexion()
+        # WAL: se puede leer mientras otro hilo escribe; la espera evita
+        # "database is locked" cuando dos escrituras coinciden.
+        self._conn.execute("PRAGMA journal_mode=WAL")
         esquema = Path(__file__).with_name("schema.sql").read_text(encoding="utf-8")
         self._conn.executescript(esquema)
         self._conn.commit()
+        self._local = threading.local()
+        self._local.conn = self._conn
+
+    def _nueva_conexion(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.config.db_path, timeout=15, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA busy_timeout=15000")
+        return conn
 
     @property
     def conn(self) -> sqlite3.Connection:
         assert self._conn is not None, "repositorio sin arrancar"
-        return self._conn
+        propia = getattr(self._local, "conn", None)
+        if propia is None:
+            propia = self._local.conn = self._nueva_conexion()
+        return propia
 
     # ------------------------------------------------------------------ sesiones
     def asegurar_sesion(self, sesion_id: str | None) -> str:

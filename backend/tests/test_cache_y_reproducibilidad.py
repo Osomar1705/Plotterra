@@ -43,3 +43,20 @@ def test_el_motor_de_ejemplo_es_determinista(cliente, condiciones):
     assert uno["alternativas"][0]["economia"]["margen_soles_ha_p10"] != (
         otra["alternativas"][0]["economia"]["margen_soles_ha_p10"]
     ), "la dispersion si depende de la semilla"
+
+
+def test_comparaciones_en_paralelo_no_rompen_la_base(cliente, condiciones):
+    """Dos pedidos a la vez (React en desarrollo, o dos agricultores) usaban la
+    misma conexion SQLite y uno fallaba con 500: 'not an error'."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from tests.conftest import BASE
+
+    def pedir(i):
+        cuerpo = dict(condiciones)
+        cuerpo["escenarios"] = {"semilla": 1000 + i}
+        return cliente.post(f"{BASE}/comparaciones", json=cuerpo).status_code
+
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        codigos = list(pool.map(pedir, range(12)))
+    assert codigos == [200] * 12
