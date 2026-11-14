@@ -169,3 +169,38 @@ def test_los_cultivos_excluidos_llegan_con_los_nombres_del_frontend():
     })
     cond = validar(CondicionesComparacion, cuerpo)
     assert [(e.cultivo, e.motivo) for e in cond.cultivos_excluidos] == [("cebada", "sin_comprador")]
+
+
+def test_el_frontend_escribe_los_cultivos_con_mayuscula():
+    """Los chips dicen "Quinua" y el ejemplo del plan habitual "Papa, Papa"."""
+    from app.api.compat import normalizar_condiciones, validar
+    from app.schemas.entrada import CondicionesComparacion
+
+    cuerpo = normalizar_condiciones({
+        "plotId": "prc_1", "startDate": "2026-12-01", "waterMode": "irrigated", "irrigationMm": 150,
+        "previousCrop": "Papa", "allowedCrops": ["Papa", "Haba", "Cebada"], "priority": "soil",
+        "horizon": 3, "usualPlan": ["Papa", " Papa", "Cebada "],
+        "excludedCrops": [{"crop": "Quinua", "reason": "no_quiero"}],
+    })
+    cond = validar(CondicionesComparacion, cuerpo)
+    assert cond.cultivo_anterior == "papa"
+    assert cond.cultivos_permitidos == ["papa", "haba", "cebada"]
+    assert [e.cultivo for e in cond.cultivos_excluidos] == ["quinua"]
+    assert list(cond.plan_habitual) == ["papa", "papa", "cebada"]
+    # "Riego disponible" del frontend: antes se traducia a un modo inexistente.
+    assert cond.agua.modo.value == "riego_disponible"
+
+
+def test_excluir_un_cultivo_que_no_existe_se_rechaza(cliente, condiciones):
+    condiciones["cultivos_excluidos"] = [{"cultivo": "kiwicha", "motivo": "no_quiero"}]
+    r = cliente.post(f"{BASE}/comparaciones", json=condiciones)
+    assert r.status_code == 422
+    cuerpo = _error(r)
+    assert cuerpo["codigo"] == "ENTRADA_INVALIDA" and cuerpo["campo"] == "cultivos_excluidos"
+
+
+def test_cambio_de_prioridad_con_nombre_del_frontend():
+    from app.api.compat import normalizar_cambio
+
+    d = normalizar_cambio({"cambio": {"type": "priority", "value": "water"}})
+    assert d["intent"] == "cambiar_prioridad" and d["parametros"] == {"prioridad": "agua"}

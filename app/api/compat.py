@@ -14,7 +14,7 @@ from typing import Any
 MODOS_AGUA = {
     "rainfed": "secano",
     "scheduled": "riego_turnos",
-    "irrigated": "riego_continuo",
+    "irrigated": "riego_disponible",
 }
 
 # Tipos de cambio del frontend -> intents del backend.
@@ -57,6 +57,15 @@ CONDICIONES = {
 }
 
 
+def _cultivo(valor: Any) -> str:
+    """El frontend escribe los cultivos como los ve el agricultor ("Quinua").
+
+    El catalogo usa minusculas; sin esto una exclusion "Quinua" no coincide con
+    nada y la quinua se sigue recomendando sin que nadie se entere.
+    """
+    return str(valor).strip().lower()
+
+
 def solo_campos_conocidos(modelo, d: dict[str, Any]) -> dict[str, Any]:
     """Descarta lo que el modelo no declara.
 
@@ -90,6 +99,12 @@ def normalizar_condiciones(cuerpo: dict[str, Any]) -> dict[str, Any]:
         if modo in MODOS_AGUA:
             d["agua"] = {**d["agua"], "modo": MODOS_AGUA[modo]}
 
+    for campo in ("cultivos_permitidos", "plan_habitual"):
+        if isinstance(d.get(campo), list):
+            d[campo] = [_cultivo(c) if isinstance(c, str) else c for c in d[campo]]
+    if isinstance(d.get("cultivo_anterior"), str):
+        d["cultivo_anterior"] = _cultivo(d["cultivo_anterior"])
+
     # escenarios llega como seed suelta.
     semilla = d.pop("seed", None)
     n = d.pop("scenarios", None)
@@ -117,7 +132,7 @@ def normalizar_condiciones(cuerpo: dict[str, Any]) -> dict[str, Any]:
                 continue
             traducidos.append(
                 {
-                    "cultivo": str(cultivo),
+                    "cultivo": _cultivo(cultivo),
                     "motivo": str(
                         e.get("motivo") or e.get("reason") or "decision_del_agricultor"
                     ),
@@ -179,11 +194,11 @@ def normalizar_cambio(cuerpo: dict[str, Any]) -> dict[str, Any]:
         tipo = d.get("intent")
 
         if tipo == "excluir_cultivo" and valor:
-            d["parametros"] = {"cultivo": str(valor), "motivo": "decision_del_agricultor"}
+            d["parametros"] = {"cultivo": _cultivo(valor), "motivo": "decision_del_agricultor"}
         elif tipo == "fijar_cultivo_campania" and valor:
-            d["parametros"] = {"cultivo": str(valor), "campania": int(campania or 1)}
+            d["parametros"] = {"cultivo": _cultivo(valor), "campania": int(campania or 1)}
         elif tipo == "cambiar_prioridad" and valor:
-            d["parametros"] = {"prioridad": str(valor)}
+            d["parametros"] = {"prioridad": PRIORIDADES.get(str(valor), str(valor))}
         elif valor is not None:
             try:
                 v = float(valor)

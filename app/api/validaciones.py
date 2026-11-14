@@ -168,6 +168,15 @@ def validar_condiciones(
         )
 
     excluidos = {e.cultivo for e in cond.cultivos_excluidos}
+    # Una exclusion que no coincide con ningun cultivo se ignoraria en silencio
+    # y el agricultor veria recomendado justo lo que quito.
+    excluidos_desconocidos = sorted(excluidos - set(fichas))
+    if excluidos_desconocidos:
+        raise ErrorFieldShift(
+            CodigoError.ENTRADA_INVALIDA,
+            f"cultivos_excluidos fuera del catalogo: {', '.join(excluidos_desconocidos)}",
+            campo="cultivos_excluidos",
+        )
     permitidos = [c for c in cond.cultivos_permitidos if c not in excluidos]
     if len(permitidos) < CULTIVOS_MINIMOS:
         raise ErrorFieldShift(
