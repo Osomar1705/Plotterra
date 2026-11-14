@@ -51,7 +51,20 @@ Abrir http://localhost:5173.
 
 ## Deploy
 
-- Backend: Docker en Render (`backend/render.yaml`).
-- Frontend: sitio estático en Render (`frontend/render.yaml`) o Vercel (`frontend/vercel.json`).
+Todo lo necesario está en el repo: los datos van en `backend/datasets/` (9 MB) y la
+base SQLite se crea sola al arrancar.
 
-`VITE_API_BASE_URL` tiene que apuntar a la URL pública del backend, terminada en `/api/v1`.
+En Render: **New → Blueprint** → elegir este repo. El [`render.yaml`](render.yaml) de la
+raíz crea los dos servicios:
+
+- `plotterra-backend`: Docker con el motor real. Revisión de salud en `/api/v1/health`.
+- `plotterra-frontend`: sitio estático. Reenvía `/opciones` y `/plan` a la app.
+
+Si Render le da al backend otro subdominio, hay que cambiar `VITE_API_BASE_URL` en el
+frontend (terminada en `/api/v1`) y volver a desplegar.
+
+En el plan gratuito el backend se apaga cuando no se usa: la primera petición tarda
+unos 50 segundos. Conviene abrirlo un rato antes de una demo.
+
+Como alternativa, el frontend también se puede desplegar en Vercel (`frontend/vercel.json`).
+En ese caso hay que elegir `frontend` como Root Directory.

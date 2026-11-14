@@ -1,0 +1,49 @@
+# Blueprint de Render para todo Plotterra: backend (Docker) y frontend (sitio estatico).
+# En Render: New > Blueprint > elegir este repo. Crea los dos servicios de una vez.
+services:
+  - type: web
+    name: plotterra-backend
+    runtime: docker
+    # Rutas relativas a la raiz del repo: la imagen solo ve la carpeta backend/.
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    region: oregon
+    plan: free
+    healthCheckPath: /api/v1/health
+    buildFilter:
+      paths:
+        - backend/**
+    envVars:
+      # real = motor con los datasets de backend/datasets. mock solo prueba el contrato.
+      - key: FIELDSHIFT_MOTOR
+        value: real
+      - key: FIELDSHIFT_DB
+        value: /srv/datos/fieldshift.sqlite3
+      # Sin clave el chat usa el interprete por reglas y todo lo demas funciona.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+  - type: web
+    name: plotterra-frontend
+    runtime: static
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: ./frontend/dist
+    buildFilter:
+      paths:
+        - frontend/**
+    # /opciones y /plan son rutas de la app, no archivos: todo va a index.html.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+    envVars:
+      # URL publica del backend. Si Render le asigna otro subdominio (porque el
+      # nombre ya estaba tomado), cambiarla aqui o en el panel y volver a desplegar.
+      - key: VITE_API_BASE_URL
+        value: https://plotterra-backend.onrender.com/api/v1
+      - key: VITE_USE_LOCAL_MOCKS
+        value: "false"
