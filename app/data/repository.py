@@ -63,6 +63,9 @@ class Repositorio:
         cultivos = self._leer_json("cultivos.json")
         suelos = self._leer_json("suelo.json")
         cobertura = self._leer_json("cobertura.json")
+        # Opcional: sin este archivo el motor no aplica variacion de rendimiento.
+        ruta_var = Path(self.config.datasets_dir) / "variabilidad_rendimiento.json"
+        self._variabilidad = json.loads(ruta_var.read_text(encoding="utf-8")) if ruta_var.exists() else None
 
         meta = cultivos.get("_meta", {})
         self._version_datasets = meta.get("version", "desconocida")
@@ -170,6 +173,7 @@ class Repositorio:
                 lluvia_media_campania_mm=self._catalogo.lluvia_media_campania_mm(celda_id),
                 version_datasets=self.version_datasets,
                 clima_diario=self._catalogo.clima(celda_id),
+                variabilidad=self._variabilidad,
             )
         celda = next((c for c in self.celdas if c["celda_id"] == celda_id), None)
         if celda is None or celda_id not in self._suelos:
@@ -182,6 +186,7 @@ class Repositorio:
             lluvia_media_campania_mm=celda["lluvia_media_campania_mm"],
             version_datasets=self.version_datasets,
             clima_diario=self._clima_diario(),
+            variabilidad=self._variabilidad,
         )
 
     def _clima_diario(self) -> list[dict] | None:

@@ -16,7 +16,7 @@ from typing import Any, Protocol
 
 from app.schemas.comparacion import Alternativa, Descartadas, PlanHabitualEvaluado
 
-VERSION_MOTOR = "0.2.0"
+VERSION_MOTOR = "0.3.0"
 
 
 # --------------------------------------------------------------------------
@@ -84,6 +84,9 @@ class Datasets:
         default=None,
         metadata={"nota": "DataFrame con fecha, lluvia_mm, t_max_c, t_min_c, et0_mm. None mientras no exista el parquet."},
     )
+    # datasets/variabilidad_rendimiento.json: cuanto varia la cosecha entre anios
+    # y cuanta area se pierde (MIDAGRI). None = el motor no aplica variacion.
+    variabilidad: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
