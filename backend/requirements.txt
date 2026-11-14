@@ -1,0 +1,9 @@
+fastapi==0.118.0
+uvicorn[standard]==0.37.0
+pydantic==2.11.9
+numpy==2.3.3
+pandas==2.3.2
+pyarrow==21.0.0
+httpx==0.28.1
+pytest==8.4.2
+anthropic==2.3.0

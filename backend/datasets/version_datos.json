@@ -1,0 +1,8 @@
+{
+  "version_datos": "datos-1.0 (29/10/2026)",
+  "celdas": "distritos (ubigeo INEI)",
+  "n_celdas": 84,
+  "provisional": false,
+  "clima_desde": "2013-01-01",
+  "clima_hasta": "2025-12-31"
+}

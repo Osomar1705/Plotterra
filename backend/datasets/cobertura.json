@@ -1,0 +1,51 @@
+{
+  "_meta": {
+    "nota": "Las celdas ahora son distritos (ubigeo INEI) y viven en celdas_distritos.geojson. Este archivo solo conserva la parcela demostrativa."
+  },
+  "celdas": [
+    {
+      "celda_id": "hco_0412",
+      "localidad": "Huanuco",
+      "bbox": {
+        "lon_min": -76.4,
+        "lon_max": -76.05,
+        "lat_min": -10.1,
+        "lat_max": -9.8
+      },
+      "lluvia_media_campania_mm": 612,
+      "fuente_clima": "NASA GPM IMERG 2015-2025"
+    }
+  ],
+  "parcela_demostrativa": {
+    "geometria": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            -76.17601599999999,
+            -10.112243
+          ],
+          [
+            -76.174616,
+            -10.112243
+          ],
+          [
+            -76.174616,
+            -10.113643
+          ],
+          [
+            -76.17601599999999,
+            -10.113643
+          ],
+          [
+            -76.17601599999999,
+            -10.112243
+          ]
+        ]
+      ]
+    },
+    "area_ha": 1.84,
+    "celda_id": "100201",
+    "nota": "Chacra de ejemplo del paquete datos-1.0, dentro de la superficie agricola de Ambo."
+  }
+}

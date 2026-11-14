@@ -1,0 +1,122 @@
+{
+  "_meta": {
+    "version": "0.3.0-ena-siea-costos",
+    "zona_piloto": "hco_0412",
+    "nota": "Papa: ficha INIA citada. Los otros cinco cultivos ya usan rendimiento, ventana, duracion y precio medidos en Huanuco (ENA 2016-2025 y SIEA 2020-2023, preparados por Roger). Costos: INEI (ENA 2018) y, para tarwi, Swisscontact. Siguen provisional=true solo porque kc/ky aun no tienen fuente local; ver provisional_campos de cada ficha.",
+    "unidades": {
+      "duracion_dias": "dias",
+      "rendimiento_ref_t_ha": "t/ha",
+      "costos_soles_ha": "S/ por hectarea y campana",
+      "precio_soles_kg": "S/ por kilo en chacra"
+    }
+  },
+  "papa": {
+    "nombre": "Papa", "variedad": "Canchan", "familia": "solanaceae",
+    "duracion_dias": 165,
+    "ventana_siembra": [{"desde": "10-15", "hasta": "12-15"}],
+    "etapas": [
+      {"nombre": "inicial", "dias": 25, "kc": 0.50, "ky": 0.45},
+      {"nombre": "desarrollo", "dias": 35, "kc": 0.85, "ky": 0.80},
+      {"nombre": "media", "dias": 60, "kc": 1.15, "ky": 1.10},
+      {"nombre": "final", "dias": 45, "kc": 0.75, "ky": 0.60}
+    ],
+    "rendimiento_ref_t_ha": 18.0,
+    "costos_soles_ha": {"semilla": 1130, "fertilizante": 1635, "jornales": 1893, "cosecha": 0, "otros": 2251},
+    "precio_soles_kg": {"mediana": 0.95, "p10": 0.62, "p90": 1.35},
+    "restricciones": {"no_repetir_familia_consecutiva": true, "min_campanias_descanso": 1},
+    "provisional": false,
+    "fuente": "Rendimiento y etapas: INIA ficha tecnica 2023. Precios: MIDAGRI 2021-2025. Costos: INEI 2021, Costos de produccion en base a la ENA 2018, Cuadro 4, total de UA pequenas sin arrendamiento, la cosecha va dentro de jornales (mismo criterio que los otros cinco cultivos; antes S/ 8 400 de la ficha INIA)."
+  },
+  "quinua": {
+    "nombre": "Quinua", "variedad": "Blanca de Junin", "familia": "amaranthaceae",
+    "duracion_dias": 200,
+    "ventana_siembra": [{"desde": "07-01", "hasta": "11-30"}],
+    "etapas": [
+      {"nombre": "inicial", "dias": 38, "kc": 0.4, "ky": 0.4},
+      {"nombre": "desarrollo", "dias": 50, "kc": 0.75, "ky": 0.7},
+      {"nombre": "media", "dias": 68, "kc": 1.0, "ky": 1.0},
+      {"nombre": "final", "dias": 44, "kc": 0.55, "ky": 0.5}
+    ],
+    "rendimiento_ref_t_ha": 1.8,
+    "costos_soles_ha": {"semilla": 66, "fertilizante": 789, "jornales": 594, "cosecha": 0, "otros": 706},
+    "precio_soles_kg": {"mediana": 5.31, "p10": 3.84, "p90": 5.81},
+    "restricciones": {"no_repetir_familia_consecutiva": true, "min_campanias_descanso": 1},
+    "provisional": true,
+    "fuente": "Rendimiento: p90 de INEI ENA 2016-2025 Huanuco, parcelas de un solo cultivo con flag ok (grano, n=115), mismo criterio que da 19.2 t/ha para la papa (ficha INIA: 18). Ventana: meses donde siembra el 73 % de esos productores. Duracion: meses siembra-cosecha de la ENA relativos a la papa. Precio: SIEA/MIDAGRI precio en chacra Huanuco 2020-2023 (p10/mediana/p90 mensual). Costos: INEI 2021, Costos de produccion en base a la ENA 2018, Cuadro 39, total de UA pequenas sin arrendamiento, la cosecha va dentro de jornales. Sigue provisional: kc/ky (orden de magnitud FAO-56/FAO-33).",
+    "provisional_campos": ["etapas.kc", "etapas.ky"]
+  },
+  "cebada": {
+    "nombre": "Cebada", "variedad": "UNA-80", "familia": "poaceae",
+    "duracion_dias": 165,
+    "ventana_siembra": [{"desde": "11-01", "hasta": "02-28"}],
+    "etapas": [
+      {"nombre": "inicial", "dias": 29, "kc": 0.35, "ky": 0.35},
+      {"nombre": "desarrollo", "dias": 42, "kc": 0.75, "ky": 0.65},
+      {"nombre": "media", "dias": 59, "kc": 1.1, "ky": 1.0},
+      {"nombre": "final", "dias": 35, "kc": 0.45, "ky": 0.4}
+    ],
+    "rendimiento_ref_t_ha": 1.68,
+    "costos_soles_ha": {"semilla": 194, "fertilizante": 380, "jornales": 472, "cosecha": 0, "otros": 369},
+    "precio_soles_kg": {"mediana": 2.28, "p10": 1.97, "p90": 2.71},
+    "restricciones": {"no_repetir_familia_consecutiva": true, "min_campanias_descanso": 0},
+    "provisional": true,
+    "fuente": "Rendimiento: p90 de INEI ENA 2016-2025 Huanuco, parcelas de un solo cultivo con flag ok (grano, n=1195), mismo criterio que da 19.2 t/ha para la papa (ficha INIA: 18). Ventana: meses donde siembra el 87 % de esos productores. Duracion: meses siembra-cosecha de la ENA relativos a la papa. Precio: SIEA/MIDAGRI precio en chacra Huanuco 2020-2023 (p10/mediana/p90 mensual). Costos: INEI 2021, Costos de produccion en base a la ENA 2018, Cuadro 32, total de UA pequenas sin arrendamiento, la cosecha va dentro de jornales. Sigue provisional: kc/ky (orden de magnitud FAO-56/FAO-33).",
+    "provisional_campos": ["etapas.kc", "etapas.ky"]
+  },
+  "avena": {
+    "nombre": "Avena forrajera", "variedad": "Mantaro 15", "familia": "poaceae",
+    "duracion_dias": 140,
+    "ventana_siembra": [{"desde": "09-01", "hasta": "01-31"}],
+    "etapas": [
+      {"nombre": "inicial", "dias": 23, "kc": 0.35, "ky": 0.3},
+      {"nombre": "desarrollo", "dias": 35, "kc": 0.7, "ky": 0.6},
+      {"nombre": "media", "dias": 53, "kc": 1.05, "ky": 0.95},
+      {"nombre": "final", "dias": 29, "kc": 0.5, "ky": 0.4}
+    ],
+    "rendimiento_ref_t_ha": 20.0,
+    "costos_soles_ha": {"semilla": 424, "fertilizante": 656, "jornales": 2, "cosecha": 0, "otros": 422},
+    "precio_soles_kg": {"mediana": 0.15, "p10": 0.13, "p90": 0.21},
+    "restricciones": {"no_repetir_familia_consecutiva": true, "min_campanias_descanso": 0},
+    "provisional": true,
+    "fuente": "Rendimiento: p90 de INEI ENA 2016-2025 Huanuco, parcelas de un solo cultivo con flag ok (forraje en materia verde declarada, n=450), mismo criterio que da 19.2 t/ha para la papa (ficha INIA: 18). Ventana: meses donde siembra el 78 % de esos productores. Duracion: meses siembra-cosecha de la ENA relativos a la papa. Precio: SIEA/MIDAGRI precio en chacra Huanuco 2020-2023 (p10/mediana/p90 mensual). Costos: INEI 2021, Costos de produccion en base a la ENA 2018, Cuadro 21 (promedio nacional, no publica UA pequenas), total de UA pequenas sin arrendamiento, la cosecha va dentro de jornales. Sigue provisional: kc/ky (orden de magnitud FAO-56/FAO-33).",
+    "provisional_campos": ["etapas.kc", "etapas.ky"]
+  },
+  "haba": {
+    "nombre": "Haba", "variedad": "Senorita", "familia": "fabaceae",
+    "duracion_dias": 190,
+    "ventana_siembra": [{"desde": "09-01", "hasta": "11-30"}],
+    "etapas": [
+      {"nombre": "inicial", "dias": 32, "kc": 0.45, "ky": 0.4},
+      {"nombre": "desarrollo", "dias": 44, "kc": 0.8, "ky": 0.75},
+      {"nombre": "media", "dias": 70, "kc": 1.1, "ky": 1.05},
+      {"nombre": "final", "dias": 44, "kc": 0.55, "ky": 0.5}
+    ],
+    "rendimiento_ref_t_ha": 1.64,
+    "costos_soles_ha": {"semilla": 512, "fertilizante": 145, "jornales": 360, "cosecha": 0, "otros": 137},
+    "precio_soles_kg": {"mediana": 2.89, "p10": 2.51, "p90": 3.54},
+    "restricciones": {"no_repetir_familia_consecutiva": true, "min_campanias_descanso": 0},
+    "fija_nitrogeno": true,
+    "provisional": true,
+    "fuente": "Rendimiento: p90 de INEI ENA 2016-2025 Huanuco, parcelas de un solo cultivo con flag ok (grano seco, n=984), mismo criterio que da 19.2 t/ha para la papa (ficha INIA: 18). Ventana: meses donde siembra el 74 % de esos productores. Duracion: meses siembra-cosecha de la ENA relativos a la papa. Precio: SIEA/MIDAGRI precio en chacra Huanuco 2020-2023 (p10/mediana/p90 mensual). Costos: INEI 2021, Costos de produccion en base a la ENA 2018, Cuadro 41 (solo hay UA pequenas), total de UA pequenas sin arrendamiento, la cosecha va dentro de jornales. Sigue provisional: kc/ky (orden de magnitud FAO-56/FAO-33).",
+    "provisional_campos": ["etapas.kc", "etapas.ky"]
+  },
+  "tarwi": {
+    "nombre": "Tarwi", "variedad": "Altagracia", "familia": "fabaceae",
+    "duracion_dias": 190,
+    "ventana_siembra": [{"desde": "10-01", "hasta": "01-31"}],
+    "etapas": [
+      {"nombre": "inicial", "dias": 33, "kc": 0.4, "ky": 0.35},
+      {"nombre": "desarrollo", "dias": 48, "kc": 0.75, "ky": 0.7},
+      {"nombre": "media", "dias": 66, "kc": 1.05, "ky": 1.0},
+      {"nombre": "final", "dias": 43, "kc": 0.5, "ky": 0.45}
+    ],
+    "rendimiento_ref_t_ha": 1.44,
+    "costos_soles_ha": {"semilla": 900, "fertilizante": 0, "jornales": 128, "cosecha": 862, "otros": 21},
+    "precio_soles_kg": {"mediana": 4.91, "p10": 3.55, "p90": 5.63},
+    "restricciones": {"no_repetir_familia_consecutiva": true, "min_campanias_descanso": 0},
+    "fija_nitrogeno": true,
+    "provisional": true,
+    "fuente": "Rendimiento: p90 de INEI ENA 2016-2025 Huanuco, parcelas de un solo cultivo con flag ok (grano seco, n=379), mismo criterio que da 19.2 t/ha para la papa (ficha INIA: 18). Ventana: meses donde siembra el 75 % de esos productores. Duracion: meses siembra-cosecha de la ENA relativos a la papa. Precio: SIEA/MIDAGRI precio en chacra Huanuco 2020-2023 (p10/mediana/p90 mensual). Costos: Swisscontact, Estudio sistemico del complejo productivo del tarwi (Peru), tecnologia tradicional, S/ 1 911,80 por ha. Sigue provisional: kc/ky (orden de magnitud FAO-56/FAO-33).",
+    "provisional_campos": ["etapas.kc", "etapas.ky"]
+  }
+}

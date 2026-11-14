@@ -1,0 +1,36 @@
+{
+  "_meta": {
+    "version": "0.1.0-provisional",
+    "nota": "capacidad_campo_mm y punto_marchitez_mm siguen siendo provisionales: SoilGrids no los publica. Las propiedades medidas estan en textura_medida; derivarlas es engine/suelo_hidrico.py, bloque de Breyner.",
+    "unidades": {
+      "capacidad_campo_mm": "mm en la profundidad declarada",
+      "punto_marchitez_mm": "mm",
+      "profundidad_cm": "cm"
+    }
+  },
+  "hco_0412": {
+    "celda_id": "hco_0412",
+    "localidad": "Huanuco",
+    "textura": "franco",
+    "capacidad_campo_mm": 142,
+    "punto_marchitez_mm": 58,
+    "profundidad_cm": 60,
+    "materia_organica_pct": 2.4,
+    "fuente": "SoilGrids v2.0 (recorte)",
+    "incertidumbre": "media",
+    "provisional": true,
+    "textura_medida": {
+      "arcilla_pct": 25.12,
+      "arena_pct": 38.94,
+      "limo_pct": 35.94,
+      "carbono_organico_g_kg": 36.19,
+      "densidad_aparente_kg_dm3": 1.19,
+      "ph_h2o": 6.18,
+      "cic_cmol_kg": 22.41,
+      "nitrogeno_g_kg": 3.3,
+      "profundidad_resumen_cm": 30,
+      "fuente": "SoilGrids v2.0 WCS, medias 0-30 cm ponderadas por espesor, media de 1402 filas de Ambo",
+      "nota": "Producto modelado, no analisis de laboratorio. Sin anio de observacion homogeneo."
+    }
+  }
+}
