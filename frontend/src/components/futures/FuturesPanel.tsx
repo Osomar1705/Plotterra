@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import type { Alternative, Comparison } from '../../types/fieldshift';
 import { CropIllustration } from '../CropIllustration';
 import { FuturesGrid } from './FuturesGrid';
-import { FAMILY_LABEL, scenarioLabel, signedMoney, summarize } from './futuresModel';
+import { FAMILY_LABEL, profitLine, scenarioLabel, signedMoney, summarize } from './futuresModel';
 
 const TITLE = { economy: 'Economía', water: 'Agua', soil: 'Suelo', unknown: 'Alternativa' } as const;
 
@@ -49,10 +49,11 @@ export function FuturesPanel({ comparison, open, onClose }: { comparison: Compar
             return <article key={alt.id} className={`fp-col fp-col--${usual ? 'usual' : alt.type}`}>
               <h3>{title}</h3>
               <div className="fp-seq">{alt.campaigns.map((c, i) => <span key={i}><CropIllustration crop={c.cropId ?? c.crop} size={22} />{c.crop}</span>)}</div>
-              <p className="fp-big">Gana en <b>{s.wins}</b> de {s.total}</p>
-              <FuturesGrid values={alt.outcomes!.marginByScenario} scenarios={comparison.scenarios} size="full" order={order}
+              <p className="fp-big">{!usual && s.best !== undefined ? <>La mejor en <b>{s.best}</b> de {s.total}</> : <>Gana en <b>{s.wins}</b> de {s.total}</>}</p>
+              <p className={`fp-profit ${s.losses > 0 ? 'neg' : ''}`}>{profitLine(s)}</p>
+              <FuturesGrid values={alt.outcomes!.marginByScenario} ranks={usual ? undefined : alt.outcomes!.rankByScenario} scenarios={comparison.scenarios} size="full" order={order}
                 highlightIndex={hover} onHoverIndex={setHover}
-                ariaLabel={`${title}: gana en ${s.wins} de ${s.total} futuros`} />
+                ariaLabel={`${title}: ${profitLine(s).toLowerCase()} futuros`} />
               <dl className="fp-stats">
                 {s.mean !== undefined && <><dt>Promedio</dt><dd>{signedMoney(s.mean)} /ha</dd></>}
                 {s.adverse !== undefined && <><dt>10 peores futuros</dt><dd className={s.adverse < 0 ? 'neg' : ''}>{signedMoney(s.adverse)} /ha</dd></>}

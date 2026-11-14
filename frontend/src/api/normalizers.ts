@@ -186,10 +186,40 @@ function normalizeScenarios(rows: any) {
   }));
 }
 
+/**
+ * En cuantos futuros cada alternativa deja mas margen que las otras.
+ *
+ * "Futuros con ganancia" (margen > 0) llega a 100/100 en casi todas las
+ * rotaciones rentables y no ayuda a elegir. Comparar el mismo futuro entre las
+ * opciones si: las cuentas suman 100 entre las tarjetas. Un empate cuenta para
+ * todas las empatadas.
+ */
+function markBestOf(alternatives: Alternative[]) {
+  const withOutcomes = alternatives.filter((a) => a.outcomes?.marginByScenario?.length);
+  if (withOutcomes.length < 2) return;
+  const n = withOutcomes[0].outcomes!.marginByScenario.length;
+  if (withOutcomes.some((a) => a.outcomes!.marginByScenario.length !== n)) return;
+  const best = new Map(withOutcomes.map((a) => [a, 0]));
+  const ranks = new Map(withOutcomes.map((a) => [a, [] as number[]]));
+  for (let j = 0; j < n; j++) {
+    const values = withOutcomes.map((a) => a.outcomes!.marginByScenario[j]);
+    const top = Math.max(...values);
+    for (const a of withOutcomes) {
+      const v = a.outcomes!.marginByScenario[j];
+      if (v === top) best.set(a, best.get(a)! + 1);
+      // Cuantas opciones dejan mas que esta en ese futuro (los empates comparten puesto).
+      ranks.get(a)!.push(values.filter((x) => x > v).length);
+    }
+  }
+  for (const a of withOutcomes) { a.outcomes!.best = best.get(a); a.outcomes!.rankByScenario = ranks.get(a); }
+}
+
 export function normalizeComparison(raw: any): Comparison {
   const payload = first(raw, 'comparison', 'comparacion', 'resultado') ?? raw;
   const alternatives = first(payload, 'alternatives', 'alternativas') ?? [];
   const activeChanges = first(payload, 'active_changes', 'cambios_activos', 'escenarios_aplicados', 'cambios') ?? [];
+  const normalizedAlternatives = alternatives.map(normalizeAlternative);
+  markBestOf(normalizedAlternatives);
   return {
     id: String(first(payload, 'comparison_id', 'id', 'scenario_id', 'comparacion_id') ?? 'unknown'),
     plotId: String(first(payload, 'plot_id', 'parcel_id', 'parcela_id') ?? 'unknown'),
@@ -204,7 +234,7 @@ export function normalizeComparison(raw: any): Comparison {
       unit: first(c, 'unit', 'unidad'),
       label: first(c, 'label', 'etiqueta'),
     })),
-    alternatives: alternatives.map(normalizeAlternative),
+    alternatives: normalizedAlternatives,
     sourceResult: first(payload, 'fuente_resultado', 'source_result', 'sourceResult'),
     parentComparisonId: first(payload, 'parent_comparison_id', 'comparacion_padre_id', 'derivada_de'),
     scenarios: normalizeScenarios(first(payload, 'scenarios') ?? payload?.simulacion?.escenarios),
@@ -235,19 +265,19 @@ function passportMetricsFromGroups(g: any): PassportMetric[] {
   const fmt = (n: unknown) => soles(n)?.toLocaleString('es-PE') ?? '—';
   const e = g?.economia, a = g?.agua, s = g?.suelo, r = g?.riesgo, q = g?.calidad_informacion;
   if (e) {
-    add('margen_mediana', 'Margen típico (mediana)', soles(e.margen_soles_ha_mediana), 'S/ por ha', `Suma de las ${e.horizonte_campanias ?? 3} campañas, en el escenario del medio.`);
+    add('margen_mediana', 'Margen típico', `S/ ${fmt(e.margen_soles_ha_mediana)}`, 'por ha', `Suma de las ${e.horizonte_campanias ?? 3} campañas, en el escenario del medio.`);
     if (e.margen_soles_ha_p10 != null && e.margen_soles_ha_p90 != null)
-      add('margen_rango', 'Rango de margen (10 % peor – 10 % mejor)', `S/ ${fmt(e.margen_soles_ha_p10)} – ${fmt(e.margen_soles_ha_p90)}`, 'por ha', 'Entre qué valores cae el margen en 8 de cada 10 escenarios.');
-    add('margen_adverso', 'Margen en los peores años', soles(e.cvar_10_soles_ha), 'S/ por ha', 'Promedio del 10 % de escenarios con menos margen.');
-    add('costos', 'Costos de producción', soles(e.costos_soles_ha), 'S/ por ha', e.costos_provisionales ? 'Costos provisionales.' : 'INEI, costos de producción.');
+      add('margen_rango', 'Rango de margen', `S/ ${fmt(e.margen_soles_ha_p10)} – ${fmt(e.margen_soles_ha_p90)}`, 'por ha', 'Entre qué valores cae el margen en 8 de cada 10 escenarios.');
+    add('margen_adverso', 'En los peores años', `S/ ${fmt(e.cvar_10_soles_ha)}`, 'por ha', 'Promedio del 10 % de escenarios con menos margen.');
+    add('costos', 'Costos de producción', `S/ ${fmt(e.costos_soles_ha)}`, 'por ha', e.costos_provisionales ? 'Costos provisionales.' : 'INEI, costos de producción.');
     const sens = e.margen_sensibilidad_costos;
-    if (sens) add('sensibilidad', 'Si los costos fueran ±25 %', `S/ ${fmt(sens.si_costaran_25_mas)} – ${fmt(sens.si_costaran_25_menos)}`, 'por ha', 'Margen típico si los costos estuvieran 25 % arriba o abajo.');
+    if (sens) add('sensibilidad', 'Si los costos varían ±25 %', `S/ ${fmt(sens.si_costaran_25_mas)} – ${fmt(sens.si_costaran_25_menos)}`, 'por ha', 'Margen típico si los costos estuvieran 25 % arriba o abajo.');
   }
   if (a) {
-    add('demanda_agua', 'Agua que necesitan los cultivos', num(a.demanda_mm), 'mm', 'Evapotranspiración del cultivo en las campañas (FAO-56).');
-    add('deficit', 'Agua que faltaría (típico)', num(a.deficit_mm_mediana), 'mm', `En años secos (10 % peor): ${num(a.deficit_mm_p90) ?? '—'} mm.`);
+    add('demanda_agua', 'Agua que necesitan', num(a.demanda_mm), 'mm', 'Evapotranspiración del cultivo en las campañas (FAO-56).');
+    add('deficit', 'Agua que faltaría', num(a.deficit_mm_mediana), 'mm', `En años secos (10 % peor): ${num(a.deficit_mm_p90) ?? '—'} mm.`);
   }
-  if (s) add('suelo', 'Compatibilidad de la rotación', `${s.nivel ?? s.compatibilidad ?? '—'}${num(s.indice) !== null ? ` (${num(s.indice)!.toFixed(2)})` : ''}`, undefined, s.razon);
+  if (s) add('suelo', 'Suelo', `${s.nivel ?? s.compatibilidad ?? '—'}${num(s.indice) !== null ? ` (${num(s.indice)!.toFixed(2)})` : ''}`, undefined, s.razon);
   if (r) add('riesgo', 'Riesgo', r.nivel ?? null, undefined, r.principal ?? undefined);
   if (q) add('calidad', 'Calidad de la información', q.nivel ?? null, undefined, [q.dato_critico, q.accion_sugerida].filter(Boolean).join('. ') || undefined);
   return out;

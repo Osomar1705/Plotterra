@@ -30,15 +30,22 @@ RANGOS = {
 }
 
 
-def _reparto(n: int) -> list[str]:
-    """Reparte n escenarios entre las familias conservando sus proporciones."""
-    total = sum(FAMILIAS.values())
-    cuenta = {f: max(1, round(n * p / total)) for f, p in FAMILIAS.items()}
+def _reparto(n: int, con_riego: bool = True) -> list[str]:
+    """Reparte n escenarios entre las familias conservando sus proporciones.
+
+    Sin riego, "menos riego" no cambia nada (recortar cero da cero): su cuota
+    pasa a "menor lluvia", que es el golpe que si sufre una chacra de secano.
+    """
+    pesos = dict(FAMILIAS)
+    if not con_riego:
+        pesos["menor_lluvia"] += pesos.pop("menos_riego")
+    total = sum(pesos.values())
+    cuenta = {f: max(1, round(n * p / total)) for f, p in pesos.items()}
     familias: list[str] = []
     for f, c in cuenta.items():
         familias.extend([f] * c)
     # El redondeo puede pasarse o quedarse corto: se ajusta con la familia mayor.
-    mayor = max(FAMILIAS, key=lambda f: FAMILIAS[f])
+    mayor = max(pesos, key=lambda f: pesos[f])
     while len(familias) > n:
         familias.remove(mayor if mayor in familias else familias[-1])
     while len(familias) < n:
@@ -46,7 +53,9 @@ def _reparto(n: int) -> list[str]:
     return familias[:n]
 
 
-def generar_escenarios(n: int, semilla: int, anios_disponibles: list[int]) -> list[dict[str, Any]]:
+def generar_escenarios(
+    n: int, semilla: int, anios_disponibles: list[int], con_riego: bool = True
+) -> list[dict[str, Any]]:
     """n escenarios reproducibles. Con la misma semilla devuelve lo mismo."""
     if not anios_disponibles:
         raise ValueError("no hay anios climaticos disponibles para muestrear")
@@ -55,7 +64,7 @@ def generar_escenarios(n: int, semilla: int, anios_disponibles: list[int]) -> li
     anios = sorted(anios_disponibles)
     escenarios: list[dict[str, Any]] = []
 
-    for i, familia in enumerate(_reparto(max(1, int(n)))):
+    for i, familia in enumerate(_reparto(max(1, int(n)), con_riego)):
         factores = {"factor_lluvia": 1.0, "factor_riego": 1.0, "factor_precio": 1.0}
         for campo, (lo, hi) in RANGOS.get(familia, {}).items():
             factores[campo] = round(rng.uniform(lo, hi), 3)

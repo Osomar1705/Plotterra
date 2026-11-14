@@ -56,6 +56,10 @@ export interface Outcomes {
   /** Margen del horizonte (S/ por ha, 3 campañas) en cada escenario, en el orden de Comparison.scenarios. */
   marginByScenario: number[];
   wins?: number;
+  /** Futuros en que esta opcion deja mas margen que las otras dos (las tres suman ~100). */
+  best?: number;
+  /** Posicion de esta opcion en cada futuro frente a las otras: 0 la mejor, 1 segunda, 2 la peor. */
+  rankByScenario?: number[];
   losses?: number;
   mean?: number;
   adverse?: number;

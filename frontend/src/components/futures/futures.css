@@ -221,3 +221,16 @@
 .entry-hero{border:1px solid var(--line)}
 @keyframes float{0%,100%{transform:rotate(1.5deg) translateY(0)}50%{transform:rotate(1.5deg) translateY(-6px)}}
 .sr-bg{opacity:.16}
+
+/* Ganancia como dato secundario bajo "la mejor opcion en X de 100". */
+.oc-profit,.fp-profit,.pv-profit{font-size:12px;color:var(--muted)}
+.oc-profit.neg,.fp-profit.neg,.pv-profit.neg{color:var(--danger,#A33A2E);font-weight:700}
+.fp-profit,.pv-profit{margin:-4px 0 8px}
+
+/* Cuadricula por puesto frente a las otras opciones (ver FuturesGrid.ranks). */
+.fg-mid rect:first-child{fill:#E6B84A}
+.fg-low rect:first-child{fill:#E08A55}
+.fg-sw.fg-mid{background:#E6B84A}.fg-sw.fg-low{background:#E08A55}.fg-sw.fg-loss-3{background:var(--loss-strong)}
+.fg-legend--rank{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:8px;font-size:11px;color:var(--muted)}
+.fg-legend--rank span{display:inline-flex;align-items:center;gap:5px}
+.fg-legend--rank .fg-sw{display:inline-block;width:10px;height:10px;border-radius:2px}

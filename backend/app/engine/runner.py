@@ -14,6 +14,7 @@ reutiliza en todas las rotaciones que la incluyan en esa posicion.
 """
 from __future__ import annotations
 
+import random
 import statistics
 from datetime import date, timedelta
 from typing import Any
@@ -87,10 +88,18 @@ def ejecutar_comparacion(condiciones: Condiciones, datasets: Datasets) -> Result
             "el motor real necesita clima diario; datasets.clima_diario llego en None"
         )
     clima = _indexar_clima(datasets.clima_diario)
-    anios = sorted({y for (y, _, _) in clima})
+    todos = {y for (y, _, _) in clima}
+    # Una campania que cruza fin de anio sigue en el anio siguiente del clima
+    # historico. Si el anio base es el ultimo disponible, ese tramo no existe y
+    # el escenario se perdia (unos 10 de 100). Solo se sortean anios con el
+    # siguiente completo; si no hubiera ninguno, se usan todos.
+    anios = sorted(y for y in todos if (y + 1) in todos) or sorted(todos)
 
     # --- paso 2: escenarios
-    escenarios = scenarios.generar_escenarios(condiciones.n_escenarios, condiciones.semilla, anios)
+    con_riego = float(condiciones.lamina_mm_campania or 0.0) > 0 and condiciones.modo_agua != "secano"
+    escenarios = scenarios.generar_escenarios(
+        condiciones.n_escenarios, condiciones.semilla, anios, con_riego=con_riego
+    )
 
     # --- paso 3: simulacion por tramos, cacheada por (cultivo, posicion, escenario)
     horizonte = max(1, int(condiciones.horizonte_campanias))
@@ -110,12 +119,16 @@ def ejecutar_comparacion(condiciones: Condiciones, datasets: Datasets) -> Result
                 if not serie:
                     continue
                 balance = balance_hidrico(
-                    serie, datasets.suelo, ficha.etapas, riego_por_campania * esc["factor_riego"]
+                    serie, datasets.suelo, ficha.etapas, riego_por_campania * esc["factor_riego"],
+                    a_demanda=condiciones.modo_agua == "riego_disponible",
                 )
-                rend = rendimiento_t_ha(ficha, balance)
+                rend = rendimiento_t_ha(ficha, balance) * _factor_cosecha(
+                    datasets.variabilidad, fichas, cultivo, condiciones.semilla, j, posicion
+                )
+                mercado = _factor_mercado(ficha, condiciones.semilla, j, posicion)
                 tramos[(cultivo, posicion, j)] = {
                     "margen": margen_soles_ha(
-                        ficha, rend, esc["factor_precio"] * condiciones.factor_precio
+                        ficha, rend, mercado * esc["factor_precio"] * condiciones.factor_precio
                     ),
                     "deficit": balance.deficit_mm,
                     "demanda": balance.demanda_mm,
@@ -149,6 +162,79 @@ def ejecutar_comparacion(condiciones: Condiciones, datasets: Datasets) -> Result
         escenarios_evaluados=len(escenarios),
         escenarios=escenarios_expuestos,
     )
+
+
+def _factor_mercado(ficha: Any, semilla: int, escenario: int, posicion: int) -> float:
+    """Precio de esa campania en ese futuro, relativo a la mediana.
+
+    El precio en chacra no es siempre la mediana: varia de un ano a otro. Se
+    sortea entre el p10 y el p90 mensual de la ficha (SIEA/MIDAGRI), con
+    interpolacion lineal por tramos alrededor de la mediana. Solo se usa el
+    rango observado, sin inventar colas. La semilla hace que el mismo futuro
+    tenga el mismo precio en todas las rotaciones que siembran ese cultivo.
+    """
+    p = ficha.precio_soles_kg
+    med = float(p["mediana"])
+    if med <= 0:
+        return 1.0
+    lo, hi = float(p.get("p10", med)), float(p.get("p90", med))
+    u = random.Random(f"{semilla}|{escenario}|{posicion}|{ficha.cultivo}").uniform(0.1, 0.9)
+    precio = lo + (med - lo) * (u - 0.1) / 0.4 if u < 0.5 else med + (hi - med) * (u - 0.5) / 0.4
+    return precio / med
+
+
+def _cuantil(cuantiles: list[float], u: float) -> float:
+    """Valor en la posicion u (0..1) de una lista de cuantiles 0,05..0,95 equiespaciados."""
+    if len(cuantiles) == 1:
+        return cuantiles[0]
+    pos = min(max((u - 0.05) / 0.9, 0.0), 1.0) * (len(cuantiles) - 1)
+    i = min(int(pos), len(cuantiles) - 2)
+    return cuantiles[i] + (cuantiles[i + 1] - cuantiles[i]) * (pos - i)
+
+
+def _brecha(variabilidad: dict[str, Any], fichas: dict, cultivo: str) -> float:
+    """Cosecha tipica del distrito / rendimiento de referencia de la ficha.
+
+    La ficha usa el p90 de parcelas (lo que logra el mejor 10 %) como techo sin
+    estres hidrico. La estadistica MIDAGRI por distrito dice cuanto se cosecha
+    de verdad: papa 12,8 t/ha frente a 18. Sin esta brecha el agricultor
+    simulado cosecha como el mejor 10 % todos los anios. Los cultivos sin datos
+    (quinua, avena) usan la brecha mediana de los que si tienen: es un supuesto.
+    """
+    def propia(c: str) -> float | None:
+        mediano = (variabilidad.get("cultivos", {}).get(c) or {}).get("rendimiento_mediano_t_ha")
+        ref = fichas[c].rendimiento_ref_t_ha if c in fichas else None
+        return min(1.0, mediano / ref) if mediano and ref else None
+
+    b = propia(cultivo)
+    if b is not None:
+        return b
+    otras = sorted(x for x in (propia(c) for c in fichas) if x is not None)
+    return statistics.median(otras) if otras else 1.0
+
+
+def _factor_cosecha(
+    variabilidad: dict[str, Any] | None, fichas: dict, cultivo: str, semilla: int, escenario: int, posicion: int
+) -> float:
+    """Cuanto de lo que permite el agua se cosecha de verdad en esa campania.
+
+    El balance hidrico solo baja el rendimiento por falta de agua. En la chacra
+    se cosecha menos que el techo de la ficha (ver _brecha), hay anios malos
+    (plagas, manejo) y area que se pierde (heladas, granizo). Todo sale de la
+    estadistica MIDAGRI por distrito: brecha, variacion entre anios del mismo
+    distrito y, donde se registra, area perdida. Sin datos, variacion conjunta.
+    """
+    if not variabilidad:
+        return 1.0
+    ficha = variabilidad.get("cultivos", {}).get(cultivo) or {}
+    relativo = ficha.get("rendimiento_relativo") or variabilidad.get("conjunto", {}).get("rendimiento_relativo")
+    rng = random.Random(f"{semilla}|{escenario}|{posicion}|{cultivo}|cosecha")
+    factor = _brecha(variabilidad, fichas, cultivo)
+    factor *= _cuantil(relativo, rng.random()) if relativo else 1.0
+    perdida = ficha.get("perdida_area")
+    if perdida:
+        factor *= 1.0 - _cuantil(perdida, rng.random())
+    return max(0.0, factor)
 
 
 def _futuros_comunes(alternativas: list, escenarios: list[dict[str, Any]]) -> list[dict[str, Any]]:
