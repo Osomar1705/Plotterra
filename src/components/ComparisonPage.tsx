@@ -25,11 +25,14 @@ export function ComparisonPage(){
   const [assistantOpen,setAssistantOpen]=useState(false);
   const [assistantHasResult,setAssistantHasResult]=useState(false);
 
-  useEffect(()=>{(async()=>{setLoading(true);setError(null);try{
+  // `alive` evita que una carga descartada (React monta dos veces en desarrollo,
+  // o el usuario sale antes de que responda) pinte su error sobre la buena.
+  useEffect(()=>{let alive=true;(async()=>{setLoading(true);setError(null);try{
     const q=readQueryContext(); const entry=readEntryConditions();
-    if(q.comparisonId) setComparison(await getComparison(q.comparisonId));
-    else setComparison(await createComparison({...entry,plotId:q.plotId??entry?.plotId} as EntryConditions));
-  }catch(e:any){setError(e)}finally{setLoading(false)}})()},[]);
+    const next=q.comparisonId ? await getComparison(q.comparisonId)
+      : await createComparison({...entry,plotId:q.plotId??entry?.plotId} as EntryConditions);
+    if(alive){setComparison(next);setError(null)}
+  }catch(e:any){if(alive)setError(e)}finally{if(alive)setLoading(false)}})();return()=>{alive=false}},[]);
 
   const activeLabel = comparison?.activeChanges.at(-1)?.label ?? (comparison?.activeChanges.length ? 'Escenario modificado' : null);
   const area = comparison?.areaHa ?? 3.5;

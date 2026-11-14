@@ -203,7 +203,7 @@ export function PlotMap(props: Props) {
         {mode === 'empty' && (
           <div className="map-hint">
             <div>
-              <p>Acerca el mapa hasta ver tu terreno. Luego selecciona el perimetro para dibujarla.</p>
+              <p>Acerca el mapa hasta ver tu terreno. Luego selecciona el perímetro para dibujarlo.</p>
               <button type="button" className="primary-btn" onClick={props.onStartDraw}>Dibujar parcela</button>
             </div>
           </div>
