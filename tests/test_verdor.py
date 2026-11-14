@@ -83,6 +83,31 @@ def test_la_parcela_declarada_tambien_tiene_contexto_del_distrito(cliente):
     assert v["verdor_distrito"]["nivel"] == "distrito"
 
 
+def test_los_84_mensajes_se_leen_bien():
+    """Recorre todos los distritos: sin "en de" y sin meses inventados en la selva."""
+    from app.config import CONFIG
+    from app.data.verdor import MESES, ContextoSatelital
+
+    ctx = ContextoSatelital(CONFIG.datasets_dir)
+    ctx._cargar()
+    assert len(ctx.verdor) == 84
+    for ubigeo in ctx.verdor:
+        d = ctx.distrito(ubigeo)
+        texto = d["mensaje_agricultor"]
+        assert "en de" not in texto and "  " not in texto, (ubigeo, texto)
+        if not d["ciclo_distinguible"]:
+            assert d["amplitud_ciclo"] < 0.20
+            assert not any(m in texto for m in MESES), (ubigeo, texto)
+        else:
+            assert not set(d["meses_verdes"]) & set(
+                m for m in d["meses_mas_secos"] if f" {MESES[m - 1]}" in texto.split("mas seco")[1]
+            ), (ubigeo, texto)
+    # El caso que destapo la revision: casi todo el anio "verde" y a la vez "seco".
+    assert ctx.distrito("100610")["ciclo_distinguible"] is False
+    e = ctx.estres_vegetacion("100201")["mensaje_agricultor"]
+    assert "en de" not in e and "de julio a septiembre" in e
+
+
 def test_las_reglas_de_clasificacion():
     assert clasificar([0.1, 0.15, 0.2, 0.25, 0.22])[0] == "sin_vegetacion"
     assert clasificar([0.7, 0.72, 0.75, 0.8, 0.78, 0.74])[0] == "vegetacion_permanente"

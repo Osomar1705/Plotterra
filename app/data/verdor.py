@@ -70,7 +70,10 @@ MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto
 
 
 def _meses_texto(meses: list[int]) -> str:
-    """[12, 1, 2, 3] -> "de diciembre a marzo"; meses sueltos -> "julio y septiembre"."""
+    """Frase completa con su preposicion, para no anteponerle nada en la plantilla.
+
+    [12, 1, 2, 3] -> "de diciembre a marzo"; meses sueltos -> "en julio y septiembre".
+    """
     conjunto = sorted(set(meses))
     if not conjunto:
         return ""
@@ -81,7 +84,29 @@ def _meses_texto(meses: list[int]) -> str:
             if set(bloque) == set(conjunto):
                 return f"de {MESES[bloque[0] - 1]} a {MESES[bloque[-1] - 1]}"
     nombres = [MESES[m - 1] for m in conjunto]
-    return nombres[0] if len(nombres) == 1 else ", ".join(nombres[:-1]) + " y " + nombres[-1]
+    return "en " + (nombres[0] if len(nombres) == 1 else ", ".join(nombres[:-1]) + " y " + nombres[-1])
+
+
+def _mensaje_distrito(nombre: str, d: dict[str, Any]) -> tuple[bool, str]:
+    """(ciclo_distinguible, mensaje). Mismas reglas que clasificar() para la parcela.
+
+    Con amplitud < AMPLITUD_CICLO el "mes mas verde" y el "mas seco" se separan
+    por centesimas (en la selva el NDVI pasa de 0,75 todo el anio): nombrar
+    meses seria afirmar un calendario que el satelite no ve.
+    """
+    valores = [m["ndvi_mediana"] for m in d["ciclo_tipico"]]
+    if d["amplitud_ciclo"] < AMPLITUD_CICLO:
+        if min(valores) > PISO_SIEMPRE_VERDE:
+            texto = (f"Las chacras de {nombre} se ven verdes todo el anio: el satelite no distingue "
+                     "una epoca seca.")
+        else:
+            texto = (f"En las chacras de {nombre} el verdor cambia poco a lo largo del anio: el satelite "
+                     "no distingue una epoca verde y otra seca.")
+        return False, texto + " Es el distrito, no tu parcela exacta."
+    verdes = sorted(d["meses_verdes"])
+    secos = sorted(m for m in d["meses_mas_secos"] if m not in verdes) or [d["mes_mas_seco"]]
+    return True, (f"En las chacras de {nombre} el satelite ve el campo mas verde {_meses_texto(verdes)} "
+                  f"y mas seco {_meses_texto(secos)}. Es el distrito, no tu parcela exacta.")
 
 
 class ContextoSatelital:
@@ -120,15 +145,16 @@ class ContextoSatelital:
         if d is None:
             return None
         verdes, secos = d["meses_verdes"], d["meses_mas_secos"]
+        distinguible, mensaje = _mensaje_distrito(d["distrito"].title(), d)
         return {
             "nivel": "distrito",
             "celda_id": str(celda_id),
             "distrito": d["distrito"],
-            "mensaje_agricultor": (
-                f"En las chacras de {d['distrito'].title()} el satelite ve el campo mas verde en "
-                f"{_meses_texto(sorted(verdes))} y mas seco en {_meses_texto(sorted(secos))}. "
-                "Es el distrito, no tu parcela exacta."
-            ),
+            "mensaje_agricultor": mensaje,
+            # False en distritos (sobre todo de selva) donde el verdor casi no cambia:
+            # ahi meses_verdes y meses_mas_secos no significan nada y no se muestran.
+            "ciclo_distinguible": distinguible,
+            # Puede traer menos de 12 meses: un mes sin imagenes despejadas no se rellena.
             "ciclo_tipico": d["ciclo_tipico"],
             "amplitud_ciclo": d["amplitud_ciclo"],
             "mes_mas_verde": d["mes_mas_verde"],
@@ -157,7 +183,7 @@ class ContextoSatelital:
             "nivel": "distrito",
             "indicador": "ESI",
             "mensaje_agricultor": (
-                f"Desde el espacio, las plantas de las chacras de Ambo muestran mas falta de agua en "
+                f"Desde el espacio, las plantas de las chacras de Ambo muestran mas falta de agua "
                 f"{_meses_texto(sorted(peores))}: es la epoca seca."
             ),
             "lectura": e["_meta"]["lectura"],
