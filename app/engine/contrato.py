@@ -16,7 +16,7 @@ from typing import Any, Protocol
 
 from app.schemas.comparacion import Alternativa, Descartadas, PlanHabitualEvaluado
 
-VERSION_MOTOR = "0.1.0"
+VERSION_MOTOR = "0.2.0"
 
 
 # --------------------------------------------------------------------------
