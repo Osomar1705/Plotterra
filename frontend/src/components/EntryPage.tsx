@@ -8,6 +8,7 @@ import { createPlot } from '../api/fieldshiftApi';
 import { saveEntryConditions } from '../integration/entryContext';
 import { PlotMap, type MapMode } from './PlotMap';
 import { AndeanLandscape, CropIllustration } from './CropIllustration';
+import { Photo } from './Photo';
 import { checkPolygon, formatHa } from '../lib/plotGeometry';
 import '../styles/parcel-experience.css';
 import { DEMO_PLOT_LOCALITY, DEMO_PLOT_POINTS } from '../lib/demoPlot';
@@ -206,6 +207,13 @@ export function EntryPage() {
             <h1>Prepara tu próxima siembra</h1>
             <p>Dibuja tu parcela, confirma tres datos de tu campaña y compara alternativas para economía, agua y suelo.</p>
           </div>
+          {/* Tarjeta con foto real del diseno original; al dibujar la parcela cede el lugar a su resumen. */}
+          {!hasPlot && (
+            <figure className="entry-hero-card">
+              <Photo k="andenes" eager credit={false} kenBurns={false} />
+              <figcaption>Andenes, valle del Colca · Foto: Jospastor · Wikimedia Commons</figcaption>
+            </figure>
+          )}
           {hasPlot && (
             <div className="parcel-meta">
               <div><CheckIcon />Parcela de {formatHa(areaHa)}</div>
