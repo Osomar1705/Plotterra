@@ -113,7 +113,7 @@ Lo pendiente está en los [issues abiertos](https://github.com/fieldshift-nasa/b
 | `FIELDSHIFT_DB` | `datos/fieldshift.sqlite3` | SQLite de sesiones y ejecuciones |
 | `FIELDSHIFT_DATASETS` | `datasets/` | Carpeta de datasets |
 | `FIELDSHIFT_PRESUPUESTO_MS` | `8000` | Techo de cálculo antes de rendirse |
-| `FIELDSHIFT_MODELO_LLM` | `claude-opus-5-5` | Modelo del chatbot |
-| `ANTHROPIC_API_KEY` | — | Sin ella, `/consultas` usa el intérprete por reglas |
+| `FIELDSHIFT_MODELO_LLM` | `gpt-5.4-mini` | Modelo del chatbot |
+| `OPENAI_API_KEY` | — | Sin ella, `/consultas` usa el intérprete por reglas |
 
 Las fuentes de cada dataset están en [`datasets/FUENTES.md`](datasets/FUENTES.md).

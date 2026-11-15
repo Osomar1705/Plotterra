@@ -12,9 +12,8 @@ export function PlanRisk({comparison,alternative,children}:{comparison:Compariso
   const v=alternative.outcomes?.marginByScenario;const meta=comparison.scenarios;
   if(!v?.length||!meta||meta.length!==v.length)return null;
   const mean=(f:ScenarioFamily)=>avg(v.filter((_,i)=>meta[i].family===f));
-  const typical=mean('tipica');
-  const rows=FAMILY_ORDER.filter(f=>f!=='tipica'&&meta.some(s=>s.family===f)).map(f=>({f,delta:mean(f)-typical}));
-  const maxAbs=Math.max(1,...rows.map(r=>Math.abs(r.delta)));
+  const rows=FAMILY_ORDER.filter(f=>meta.some(s=>s.family===f)).map(f=>({f,val:mean(f)}));
+  const maxAbs=Math.max(1,...rows.map(r=>Math.abs(r.val)));
   const sorted=[...v].sort((a,b)=>a-b);const n=Math.min(10,sorted.length);
   const worst=avg(sorted.slice(0,n)),best=avg(sorted.slice(-n)),all=avg(v);
   const lo=sorted[0],hi=sorted[sorted.length-1],span=Math.max(1,hi-lo);
@@ -22,14 +21,14 @@ export function PlanRisk({comparison,alternative,children}:{comparison:Compariso
   const zero=lo<0&&hi>0?pos(0):null;
   return <section className="pv-card pr" aria-labelledby="pr-title">
     <h2 id="pr-title">What hurts this plan most?</h2>
-    <p className="pr-sub">Change in average margin versus typical conditions ({signedMoney(typical)} per ha), for the same plan.</p>
+    <p className="pr-sub">Average result per ha in each kind of test, for the same plan. Green earns money, orange loses it.</p>
     <ul className="pr-bars">
-      {[...rows].sort((a,b)=>a.delta-b.delta).map(({f,delta},index)=><li key={f}>
+      {[...rows].sort((a,b)=>a.val-b.val).map(({f,val},index)=><li key={f}>
         <span className="pr-name">{FAMILY_LABEL[f]}</span>
-        <span className="pr-track" aria-hidden="true"><motion.i className={delta<0?'neg':'pos'} style={{width:`${Math.abs(delta)/maxAbs*100}%`,originX:0}}
+        <span className="pr-track" aria-hidden="true"><motion.i className={val<0?'neg':'pos'} style={{width:`${Math.abs(val)/maxAbs*100}%`,originX:0}}
          initial={{scaleX:reduced?1:0.55,opacity:reduced?1:0.55}} whileInView={{scaleX:1,opacity:1}} viewport={{once:true,amount:0.2}}
          transition={{duration:reduced?0:.55,delay:reduced?0:index*.04,ease:SOFT_EASE}}/></span>
-        <strong>{delta>0?'+':''}{signedMoney(delta)}</strong>
+        <strong className={val<0?'neg':''}>{signedMoney(val)}</strong>
       </li>)}
     </ul>
     <div className="pr-range">

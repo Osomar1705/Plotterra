@@ -10,6 +10,7 @@ import { GUIDE_ALTERNATIVE_NAMES } from './types';
 import type { GuideClarification, GuideMessage, GuideReply } from './types';
 import { GuideFormattedText } from './GuideFormattedText';
 import { changeLabelEn } from '../lib/uiCopy';
+import { VoiceWave, SpeakingEq } from './VoiceWave';
 
 /**
  * Guía FieldShift · panel conversacional.
@@ -55,6 +56,7 @@ const CAPABILITIES=[
 ];
 
 type SpeechRec={lang:string;interimResults:boolean;onresult:(e:any)=>void;onend:()=>void;onerror:()=>void;start:()=>void;stop:()=>void};
+const HINTS=['What if I have 30% less irrigation?','Which plan is safer?','Why is this crop here?'];
 const SpeechCtor:(new()=>SpeechRec)|undefined=typeof window!=='undefined'?((window as any).SpeechRecognition||(window as any).webkitSpeechRecognition):undefined;
 
 export function GuideDrawer(){
@@ -69,6 +71,8 @@ export function GuideDrawer(){
  const [pendingClarification,setPendingClarification]=useState<GuideClarification|null>(null);
  const [aiHealth,setAiHealth]=useState<{ready:boolean;model:string;message?:string}|null>(null);
  const [listening,setListening]=useState(false);
+ const [hint,setHint]=useState(0);
+ useEffect(()=>{if(open)return;const iv=window.setInterval(()=>setHint(h=>(h+1)%HINTS.length),5200);return()=>window.clearInterval(iv)},[open]);
  const [speakingId,setSpeakingId]=useState<number|null>(null);
  const nextId=useRef(1);
  const conversationId=useRef(`fs_${Math.random().toString(36).slice(2,11)}`);
@@ -191,7 +195,12 @@ export function GuideDrawer(){
  const empty=turns.length===0&&!busy;
 
  return <>
-  {!open && <button ref={launcher} className="guide-launcher" onClick={()=>setOpen(true)} aria-label="Open Plotterra guide"><span className="guide-launcher-mark"><SproutIcon size={23}/></span><span>Questions? Ask me</span></button>}
+  {!open && <div className="guide-launcher-wrap">
+    <motion.div key={hint} className="guide-hint" initial={{opacity:0,y:8,scale:.96}} animate={{opacity:1,y:0,scale:1}} transition={{delay:hint===0?1.6:0,duration:.35}}>
+      <small>Try asking</small><span>“{HINTS[hint]}”</span>
+    </motion.div>
+    <button ref={launcher} className="guide-launcher" onClick={()=>setOpen(true)} aria-label="Open Plotterra guide"><span className="guide-launcher-mark"><SproutIcon size={24}/></span><span className="guide-launcher-text"><b>Ask the guide</b><small>AI · answers with your results</small></span></button>
+  </div>}
   <AnimatePresence initial={false}>
   {/* pointerEvents en exit: si la salida no se anima (pestana oculta) el fondo no debe seguir tapando la pagina */}
   {open&&<motion.div key="guide-shade" className="guide-backdrop" onClick={close} initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0,pointerEvents:'none'}} transition={{duration:.2}}/>}
@@ -225,7 +234,7 @@ export function GuideDrawer(){
       </div>
      :<div key={t.id} className={`guide-turn guide-turn--${t.role}`}>
       {t.role==='assistant'&&<span className="guide-turn-icon"><LeafIcon size={17}/></span>}
-      <div className="guide-bubble"><GuideFormattedText text={t.text}/>{t.role==='assistant'&&<div className="guide-message-tools">{'speechSynthesis' in window&&<button onClick={()=>speak(t)} aria-label={speakingId===t.id?'Stop reading':'Listen to reply'}>{speakingId===t.id?'■ Stop':'🔊 Listen'}</button>}{t.sources&&t.sources.length>0&&<span className="guide-source-count">Source: {t.sources.slice(0,2).join(' · ')}</span>}</div>}</div>
+      <div className={`guide-bubble ${speakingId===t.id?"is-speaking":""}`}><GuideFormattedText text={t.text}/>{t.role==='assistant'&&<div className="guide-message-tools">{'speechSynthesis' in window&&<button onClick={()=>speak(t)} aria-label={speakingId===t.id?'Stop reading':'Listen to reply'}>{speakingId===t.id?<><SpeakingEq/> Stop</>:'🔊 Listen'}</button>}{t.sources&&t.sources.length>0&&<span className="guide-source-count">Source: {t.sources.slice(0,2).join(' · ')}</span>}</div>}</div>
     </div>)}
 
     {busy&&<div className="guide-turn guide-turn--assistant"><span className="guide-turn-icon guide-thinking"><SparkIcon size={17}/></span><div className="guide-bubble guide-bubble--typing">Checking your results <span/><span/><span/></div></div>}
@@ -240,7 +249,8 @@ export function GuideDrawer(){
    </div>
 
    {!empty&&!busy&&!pending&&!simulating&&chips.length>0&&<div className="guide-suggestions" aria-label="Suggested questions">{chips.map(s=><button key={s} onClick={()=>void ask(s)}>{s}</button>)}</div>}
-   <form className="guide-compose" onSubmit={submit}>
+   {listening&&<div className="guide-voice"><VoiceWave active={listening}/><span>Listening…</span><button type="button" onClick={dictate}>Done</button></div>}
+   <form className={`guide-compose ${listening?"is-listening":""}`} onSubmit={submit}>
     <input ref={input} value={draft} onChange={e=>setDraft(e.target.value)} disabled={busy||simulating} placeholder={listening?'Listening…':'Type or dictate a question…'} aria-label="Question for the Plotterra guide"/>
     {SpeechCtor&&<button type="button" className={`guide-mic ${listening?'on':''}`} onClick={dictate} disabled={busy||simulating} aria-label={listening?'Stop listening':'Dictate question'} aria-pressed={listening}>🎙</button>}
     <button type="submit" disabled={busy||simulating||!draft.trim()} aria-label="Send question"><ChatIcon size={19}/></button>

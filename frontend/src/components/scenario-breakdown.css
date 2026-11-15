@@ -23,3 +23,7 @@
 @media(max-width:640px){.scenario-review__groups{grid-template-columns:1fr}.scenario-review__header{align-items:stretch;flex-direction:column}.scenario-review__total{align-items:start;min-width:0}.scenario-review__footnote{width:100%;margin-left:0}}
 
 .sb-profit{margin:6px 0 0;font-size:13px;color:var(--muted)}.sb-profit.neg{color:var(--loss-strong,#B5471B);font-weight:700}
+
+.sb-tip{position:fixed;z-index:80;pointer-events:none;background:#fff;border:1px solid #dce7e2;border-radius:12px;padding:9px 11px;box-shadow:0 12px 30px rgba(11,54,68,.2);display:flex;flex-direction:column;gap:2px;min-width:150px;max-width:230px;font-size:12px;color:#16313A}
+.sb-tip strong{font:800 15px Manrope,sans-serif;color:#0B3644}
+.sb-tip svg{display:block;margin:6px 0 2px}.sb-tip small{color:#65757B;font-size:10.5px}

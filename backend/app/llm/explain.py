@@ -74,7 +74,7 @@ def redactar_por_llm(alternativa: Alternativa, mejor_margen: float | None) -> Ex
     La barrera contra cifras inventadas es la regla 1 del sistema mas el hecho
     de que el modelo solo ve las cifras ya calculadas, nunca los datos crudos.
     """
-    if not CONFIG.anthropic_api_key:
+    if not CONFIG.openai_api_key:
         return None
 
     from app.llm.cliente import responder

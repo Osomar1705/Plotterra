@@ -5,21 +5,21 @@ import { demoGuideReply } from './demoAdvisor';
 import { isUsingMocks } from '../api/fieldshiftApi';
 import { changeLabelEn } from '../lib/uiCopy';
 
-// AI-first: incluso con VITE_USE_LOCAL_MOCKS=true, las consultas usan OpenAI.
+// En Render el asistente usa el backend FastAPI y OpenAI.
 // El modo determinista SOLO se activa de manera explícita para pruebas sin clave.
 const mode=String(import.meta.env.VITE_GUIDE_MODE??'ai');
-const endpoint=String(import.meta.env.VITE_GUIDE_API_URL??'/api/v1/consultas');
+const endpoint=String(import.meta.env.VITE_GUIDE_API_URL??'/api/v1/guide-chat');
 const str=(v:unknown)=>typeof v==='string'?v:undefined;
 export const guideIsDemo=()=>mode==='demo';
 
 export async function guideHealth():Promise<{ready:boolean;model:string;message?:string}>{
  if(guideIsDemo())return {ready:true,model:'demo replies'};
- const url=endpoint.replace(/\/consultas(?:\?.*)?$/,'/guide-health');
+ const url=endpoint.replace(/\/(?:consultas|guide-chat)(?:\?.*)?$/,'/guide-health');
  try{
-  const response=await fetch(url,{cache:'no-store'});
+  const response=await fetch(`${url}?probe=true`,{cache:'no-store'});
   const data=await response.json();
-  return {ready:response.ok&&data.ready===true,model:str(data.model)??'GPT-4o mini',message:str(data.message)};
- }catch{return {ready:false,model:'GPT-4o mini',message:'Inicia el servidor de IA con npm run dev.'}}
+  return {ready:response.ok&&data.probe?.ok===true,model:str(data.model)??'OpenAI assistant',message:data.probe?.error?.pista??data.probe?.error?.detalle??(data.probe?.ok?str(data.message):'OPENAI_API_KEY is missing or the AI API is unavailable. Check Render environment variables.')};
+ }catch{return {ready:false,model:'OpenAI assistant',message:'Revisa la URL del backend y el despliegue en Render.'}}
 }
 
 function normalizeChange(v:unknown):AppliedChange|undefined{
@@ -53,7 +53,7 @@ function normalizeGuide(raw:unknown,conversationId:string):GuideReply{
  };
 }
 
-/** La clave privada se guarda en el servidor Node. El navegador solo ve /api/v1/consultas. */
+/** Las credenciales se guardan exclusivamente en FastAPI (Render), no en React. */
 export async function askGuide(input:GuideRequest):Promise<GuideReply>{
  // El servidor necesita saber si hay motor real (cualquier cambio) o solo la demo local (30 % menos riego).
  const req:GuideRequest={...input,context:{...input.context,engine:isUsingMocks()?'local_mock':'backend',displayFx:{penPerUsd:PEN_PER_USD,asOf:FX_DATE}}};
@@ -74,9 +74,9 @@ export async function askGuide(input:GuideRequest):Promise<GuideReply>{
  };
  let response:Response;
  try{response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})}
- catch{throw {farmerMessage:'Cannot connect to the AI. Start the app using npm run dev and check that the AI server is running.'}}
+ catch{throw {farmerMessage:'Cannot connect to the AI backend. Check the Render service URL and status.'}}
  let raw:unknown;
  try{raw=await response.json()}catch{throw {farmerMessage:'The AI returned an invalid reply.'}}
- if(!response.ok){const obj=raw as Record<string,unknown>|null;throw {farmerMessage:str(obj?.mensaje_agricultor??obj?.message)??'Could not contact the AI.',runId:str(obj?.run_id)}}
+ if(!response.ok){const obj=raw as Record<string,unknown>|null;const nested=obj?.error as Record<string,unknown>|undefined;throw {farmerMessage:str(nested?.mensaje_agricultor??obj?.mensaje_agricultor??obj?.message)??`AI request failed (HTTP ${response.status})`,runId:str(nested?.run_id??obj?.run_id)}}
  return normalizeGuide(raw,req.conversationId);
 }

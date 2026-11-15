@@ -20,8 +20,12 @@ services:
       - key: FIELDSHIFT_DB
         value: /srv/datos/fieldshift.sqlite3
       # Sin clave el chat usa el interprete por reglas y todo lo demas funciona.
-      - key: ANTHROPIC_API_KEY
+      - key: OPENAI_API_KEY
         sync: false
+      - key: FIELDSHIFT_PRESUPUESTO_MS
+        value: "20000"
+      - key: FIELDSHIFT_MODELO_LLM
+        value: gpt-5.4-mini
 
   - type: web
     name: plotterra-frontend
@@ -47,9 +51,9 @@ services:
         value: https://plotterra-backend.onrender.com/api/v1
       - key: VITE_USE_LOCAL_MOCKS
         value: "false"
-      # La Guia (chat) usa /consultas del backend: con ANTHROPIC_API_KEY en el
+      # La Guia (chat) usa /guide-chat del backend: con OPENAI_API_KEY en el
       # backend responde un LLM y sin ella el interprete por reglas.
       - key: VITE_GUIDE_MODE
         value: ai
       - key: VITE_GUIDE_API_URL
-        value: https://plotterra-backend.onrender.com/api/v1/consultas
+        value: https://plotterra-backend.onrender.com/api/v1/guide-chat

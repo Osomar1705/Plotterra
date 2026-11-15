@@ -10,6 +10,8 @@ import { AlternativeCard } from './AlternativeCard';
 import { PinIcon } from './Icons';
 import { BrandLogo } from './BrandLogo';
 import { SimulationReveal } from './futures/SimulationReveal';
+import { AMBIENCE_TEXT, HeroAmbience } from './futures/HeroAmbience';
+import type { AlternativeType } from '../types/fieldshift';
 import { optionName } from '../lib/uiCopy';
 import './futures/futures.css';
 
@@ -23,6 +25,7 @@ export function ComparisonPage(){
  const [processing,setProcessing]=useState(false);
  const [error,setError]=useState<FieldShiftApiError|null>(null);
  const [reveal,setReveal]=useState<Reveal|null>(null);
+ const [ambience,setAmbience]=useState<AlternativeType|null>(null);
  const revealDone=useRef<(()=>void)|null>(null);
  const {setPage,setParcel,setComparison:publishComparison,registerRunner,registerUndo}=useGuide();
  useEffect(()=>{setPage('comparison');const entry=readEntryConditions();if(entry)setParcel(entry)},[setPage,setParcel]);
@@ -81,13 +84,15 @@ export function ComparisonPage(){
   {comparison&&<main className="comparison-page comparison-page--simple">
    <motion.section className="cmp-hero cmp-hero--photo" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}}>
     <Photo k="andenes" eager/>
-    <div className="cmp-hero-inner"><div><h1>Choose what matters most to you</h1><p>Every plan makes a different balance between income, water and soil.</p></div>
+    <HeroAmbience mode={ambience}/>
+    <div className="cmp-hero-inner"><div><h1>Choose what matters most to you</h1>
+     <AnimatePresence mode="wait"><motion.p key={ambience??'idle'} initial={{opacity:0,y:4}} animate={{opacity:1,y:0}} exit={{opacity:0,transition:{duration:.1}}} transition={{duration:.22}}>{ambience?AMBIENCE_TEXT[ambience]:'Every plan makes a different balance between income, water and soil.'}</motion.p></AnimatePresence></div>
     {area!==undefined&&<div className="cmp-hero-meta"><span><PinIcon size={16}/> Your plot · {area} ha</span></div>}</div>
    </motion.section>
    {activeLabel&&<div className="updated-banner"><span>✓ Results updated: {visibleChange(activeLabel)}</span><button onClick={()=>void undo()}>Undo change</button></div>}
    {error&&<div className="error-banner"><div><span>{error.farmerMessage}</span></div></div>}
-   <section className="cards-grid cards-grid--simple" aria-label="Three crop-plan options">{ordered.map((a,i)=><AlternativeCard key={a.id} index={i} alternative={a}
-    priority={!activeLabel&&a.type===comparison.priority} onOpenPlan={openPlan}/>)}</section>
+   <section className="cards-grid cards-grid--simple cards-grid--glow" aria-label="Three crop-plan options" onPointerMove={e=>{const b=e.currentTarget.getBoundingClientRect();e.currentTarget.style.setProperty('--gx',`${e.clientX-b.left}px`);e.currentTarget.style.setProperty('--gy',`${e.clientY-b.top}px`)}}>{ordered.map((a,i)=><AlternativeCard key={a.id} index={i} alternative={a}
+    priority={!activeLabel&&a.type===comparison.priority} onOpenPlan={openPlan} onHover={setAmbience}/>)}</section>
    <a className="edit-link" href="/">← Edit plot details</a>
   </main>}
   <AnimatePresence>{reveal&&<SimulationReveal key="reveal" values={reveal.values} previousValues={reveal.previous} scenarios={comparison?.scenarios}

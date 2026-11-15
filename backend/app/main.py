@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.errors import registrar_manejadores
 from app.api.routes_comparaciones import router as router_comparaciones
 from app.api.routes_consultas import router as router_consultas
+from app.api.routes_guide_chat import router as router_guide_chat
 from app.api.routes_parcelas import router as router_parcelas
 from app.api.routes_salud import router as router_salud
 from app.config import CONFIG
@@ -75,7 +76,7 @@ app.add_middleware(
 
 registrar_manejadores(app)
 
-for router in (router_salud, router_parcelas, router_comparaciones, router_consultas):
+for router in (router_salud, router_parcelas, router_comparaciones, router_consultas, router_guide_chat):
     app.include_router(router, prefix=CONFIG.base_path)
 
 

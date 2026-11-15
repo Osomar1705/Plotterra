@@ -13,7 +13,7 @@ class Config:
     db_path: Path
     datasets_dir: Path
     motor: str
-    anthropic_api_key: str | None
+    openai_api_key: str | None
     modelo_llm: str
     presupuesto_ms: int
     base_path: str = "/api/v1"
@@ -27,13 +27,13 @@ def limpiar_clave(cruda: str | None) -> str | None:
     """Quita lo que se suele pegar junto con la clave en el panel de Render.
 
     Espacios o saltos de linea al final, comillas, o la linea entera del .env
-    ("ANTHROPIC_API_KEY=sk-ant-..."). Cualquiera de esos hace que la API
+    ("OPENAI_API_KEY=sk-..."). Cualquiera de esos hace que la API
     responda 401 y el chat caiga a reglas sin que nadie lo note.
     """
     if not cruda:
         return None
     clave = cruda.strip()
-    if clave.upper().startswith("ANTHROPIC_API_KEY="):
+    if clave.upper().startswith("OPENAI_API_KEY="):
         clave = clave.split("=", 1)[1].strip()
     if clave.lower().startswith("bearer "):
         clave = clave[7:].strip()
@@ -48,9 +48,9 @@ def cargar_config() -> Config:
         db_path=db,
         datasets_dir=datasets,
         motor=os.getenv("FIELDSHIFT_MOTOR", "mock").strip().lower(),
-        anthropic_api_key=limpiar_clave(os.getenv("ANTHROPIC_API_KEY")),
-        modelo_llm=(os.getenv("FIELDSHIFT_MODELO_LLM") or "claude-opus-5-5").strip(),
-        presupuesto_ms=int(os.getenv("FIELDSHIFT_PRESUPUESTO_MS", "8000")),
+        openai_api_key=limpiar_clave(os.getenv("OPENAI_API_KEY")),
+        modelo_llm=(os.getenv("FIELDSHIFT_MODELO_LLM") or "gpt-5.4-mini").strip(),
+        presupuesto_ms=int(os.getenv("FIELDSHIFT_PRESUPUESTO_MS", "20000")),
     )
 
 

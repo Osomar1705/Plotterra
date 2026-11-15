@@ -11,7 +11,7 @@ import { FAMILY_LABEL, FAMILY_ORDER, scenarioLabel, signedMoney, toneScale } fro
  */
 export function FuturesGrid({
   values, scaleValues, scenarios, size = 'mini', order = 'value', highlightIndex = null, onHoverIndex, ranks,
-  revealed = true, staggerMs = 10, previousValues, layoutId, ariaLabel, cellPx,
+  revealed = true, staggerMs = 10, previousValues, layoutId, ariaLabel, cellPx, shown, onSelectIndex, selectedIndex,
 }: {
   values: number[];
   scaleValues?: number[]; // use a consistent color scale across scenario groups
@@ -33,6 +33,11 @@ export function FuturesGrid({
   layoutId?: string;
   ariaLabel?: string;
   cellPx?: number;   // tamaño de celda personalizado (overlay de simulación)
+  /** Si se da, cada celda aparece cuando shown(i) es true (animación guiada por la simulación). */
+  shown?: (i: number) => boolean;
+  /** Clic en una celda: la selección queda marcada hasta que se elige otra. */
+  onSelectIndex?: (i: number) => void;
+  selectedIndex?: number | null;
 }) {
   const uid = useId().replace(/:/g, '');
   const scale = useMemo(() => toneScale(scaleValues ?? (previousValues ? [...values, ...previousValues] : values)), [values, previousValues, scaleValues]);
@@ -80,16 +85,17 @@ export function FuturesGrid({
               const x = (k % cols) * (cell + gap);
               const y = Math.floor(k / cols) * (cell + gap);
               const v = values[i];
-              const t = revealed ? tone(v, i) : 'empty';
-              const delay = revealed ? (seq++) * staggerMs : 0;
-              const isActive = active === i;
+              const on = revealed && (!shown || shown(i));
+              const t = on ? tone(v, i) : 'empty';
+              const delay = on && !shown ? (seq++) * staggerMs : 0;
+              const isActive = active === i || selectedIndex === i;
               return <g key={i} className={`fg-cell fg-${t} ${isActive ? 'is-active' : ''}`}
                         style={{ '--cell-delay': `${delay}ms`, transformOrigin: `${x + cell / 2}px ${y + cell / 2}px` } as CSSProperties}
                         onMouseEnter={() => setH(i)} onFocus={() => setH(i)} onBlur={() => setH(null)}
-                        onTouchStart={() => setH(i)} tabIndex={size === 'full' ? 0 : -1}>
+                        onTouchStart={() => setH(i)} onClick={() => onSelectIndex?.(i)} tabIndex={size === 'full' ? 0 : -1}>
                 <rect x={x} y={y} width={cell} height={cell} rx={cell <= 12 ? 2.5 : 3.5} />
                 {cell >= 18 && <path className="fg-furrow" d={`M${x + 5} ${y + cell * .38} H${x + cell - 5} M${x + 5} ${y + cell * .62} H${x + cell - 5}`} />}
-                {revealed && v < 0 && <rect x={x} y={y} width={cell} height={cell} rx={cell <= 12 ? 2.5 : 3.5} fill={`url(#hatch-${uid})`} pointerEvents="none" />}
+                {on && v < 0 && <rect x={x} y={y} width={cell} height={cell} rx={cell <= 12 ? 2.5 : 3.5} fill={`url(#hatch-${uid})`} pointerEvents="none" />}
               </g>;
             })}
           </svg>

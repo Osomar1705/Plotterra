@@ -100,3 +100,4 @@
 .p8-data[open] summary::after{transform:rotate(180deg)}
 /* Columna derecha algo más holgada para acercarse al alto de la izquierda (con datos cerrados) */
 @media(min-width:981px){.p8-grid{align-items:start}.sb{gap:16px}.sb-list{gap:28px}.sb-read{margin-top:4px}}
+.pr-bars strong:not(.neg){color:#0b6b4f}

@@ -43,8 +43,7 @@ def health() -> dict:
 def guide_health(probe: bool = False) -> dict:
     """La Guia del frontend pregunta esto antes de abrir el chat.
 
-    Cuando no hay servidor de IA propio, el frontend manda sus consultas a
-    /consultas de este backend: con clave usa el LLM y, sin ella, el interprete
+    El frontend envia el chat a /guide-chat de este backend: con clave usa el LLM y, sin ella, el interprete
     por reglas. Las dos opciones responden, asi que ready es siempre true.
 
     Con ?probe=true hace una llamada minima al modelo y dice si funciona y,
@@ -52,12 +51,12 @@ def guide_health(probe: bool = False) -> dict:
     """
     from app.llm.cliente import probar, ultimo_error
 
-    con_llm = bool(CONFIG.anthropic_api_key)
+    con_llm = bool(CONFIG.openai_api_key)
     salida = {
-        "ready": True,
-        "provider": "anthropic" if con_llm else "reglas",
+        "ready": con_llm,
+        "provider": "openai" if con_llm else "reglas",
         "model": CONFIG.modelo_llm if con_llm else "interprete por reglas",
-        "message": "Guia conectada al motor FieldShift",
+        "message": "OpenAI configurado (comprobar con probe=true)" if con_llm else "OPENAI_API_KEY no configurada; se utilizaran respuestas por reglas",
         "last_llm_error": ultimo_error(),
     }
     if probe:

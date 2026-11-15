@@ -321,7 +321,7 @@ def interpretar_por_llm(texto: str, catalogo: set[str]) -> Interpretacion | None
     Nota: el acuerdo original decia "temperatura 0". La API ya no acepta ese
     parametro: ahora se obtiene lo mismo obligando el esquema de salida.
     """
-    if not CONFIG.anthropic_api_key:
+    if not CONFIG.openai_api_key:
         return None
 
     from app.api.cambios import etiqueta_de, validar_parametros
