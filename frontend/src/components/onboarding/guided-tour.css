@@ -49,3 +49,19 @@
 .tour-invite .primary-btn{height:42px;border-radius:12px;padding:0 16px;font-size:15px}
 .tour-invite-no{border:0;background:none;color:var(--muted,#65757B);font-size:14px;cursor:pointer;text-decoration:underline;white-space:nowrap}
 @media (max-width:719px){.tour-invite{left:12px;right:12px;bottom:12px;flex-wrap:wrap}.tour-invite-text{flex:1;min-width:150px}}
+
+/* Pantallas bajas (laptops de 768 px, ventanas chicas): la tarjeta medía ~360 px
+   y no cabía junto a lo resaltado; se tapaban o se salía de la vista. Misma
+   información, más compacta. */
+@media (max-height:820px){
+  .tour-card{padding:14px 18px 12px}
+  .tour-top{margin-bottom:8px}
+  .tour-icon{width:46px;height:46px;font-size:32px;border-radius:14px}
+  .tour-body{gap:12px}
+  .tour-body h2{font-size:20px;margin:0 0 4px}
+  .tour-body p{font-size:16.5px;line-height:1.35}
+  .tour-listen{margin-top:10px;height:42px;font-size:16px}
+  .tour-dots{margin:8px 0 2px}
+  .tour-actions{margin-top:6px}
+  .tour-actions .primary-btn,.tour-actions .ghost-btn{height:44px;font-size:16px}
+}

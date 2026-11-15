@@ -82,6 +82,18 @@ export function GuidedTour({ open, onClose }: { open: boolean; onClose: () => vo
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [speaking, setSpeaking] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  // Alto real de la tarjeta: con texto grande mide 360-420 px, no los ~290 que
+  // se suponian, y en pantallas de 768 px se salia de la vista o tapaba lo resaltado.
+  const [cardH, setCardH] = useState(320);
+  useLayoutEffect(() => {
+    const c = cardRef.current;
+    if (!open || !c) return;
+    const update = () => setCardH(c.offsetHeight || 320);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(c);
+    return () => ro.disconnect();
+  }, [open, i, lang]);
   const step = STEPS[i];
   const t = UI[lang];
 
@@ -96,12 +108,20 @@ export function GuidedTour({ open, onClose }: { open: boolean; onClose: () => vo
     const el = document.querySelector(step.target) as HTMLElement | null;
     // En celular la tarjeta va abajo: lo resaltado se sube a la parte de arriba de la pantalla.
     const movil = window.innerWidth < 720;
-    if (el && movil) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 84, behavior: 'smooth' });
+    // Si lo resaltado y la tarjeta caben uno debajo del otro, lo resaltado se sube
+    // bajo la cabecera para dejar sitio a la tarjeta; si no, se centra.
+    const r = el?.getBoundingClientRect();
+    // Arriba siempre que lo resaltado quepa: el espacio libre queda abajo, junto,
+    // y si la tarjeta no entra entera tapa solo el borde inferior.
+    const cabe = r && r.height + 100 <= window.innerHeight;
+    if (el && r && (movil || cabe)) window.scrollTo({ top: r.top + window.scrollY - 84, behavior: 'smooth' });
     else el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     const id = window.setTimeout(medir, 420);
     medir();
     window.addEventListener('resize', medir); window.addEventListener('scroll', medir, true);
     return () => { window.clearTimeout(id); window.removeEventListener('resize', medir); window.removeEventListener('scroll', medir, true); };
+  // cardH no entra en las dependencias: volver a desplazar cada vez que cambia el alto sacudiria la pagina.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, i, step.target, medir]);
 
   const callar = () => { window.speechSynthesis?.cancel(); setSpeaking(false); };
@@ -133,22 +153,23 @@ export function GuidedTour({ open, onClose }: { open: boolean; onClose: () => vo
   function siguiente() { if (i < STEPS.length - 1) setI(i + 1); else cerrar(); }
   function cambiarIdioma(l: Lang) { setLang(l); guardar(STORE + '_lang', l); }
 
-  // Tarjeta debajo de lo resaltado si cabe; si no, encima. En celular va abajo, fija.
+  // Tarjeta debajo de lo resaltado si cabe, si no encima, si no al costado y, como
+  // ultimo recurso, pegada abajo. Siempre dentro de la pantalla.
   const pos = useMemo(() => {
-    const movil = window.innerWidth < 720;
-    // En celular la tarjeta va abajo; si lo resaltado quedo en la mitad de abajo (final de la pagina), va arriba.
-    if (!rect || movil) return (rect && rect.top > window.innerHeight * 0.42 ? { left: 12, right: 12, top: 12 } : { left: 12, right: 12, bottom: 12 }) as CSSProperties;
-    const ancho = Math.min(440, window.innerWidth - 32);
-    const left = Math.min(Math.max(16, rect.left + rect.width / 2 - ancho / 2), window.innerWidth - ancho - 16);
-    // Si lo resaltado es alto (el mapa), la tarjeta va al costado para no taparlo.
-    if (rect.height > 300) {
-      const der = window.innerWidth - rect.right > ancho + 32;
-      const izq = rect.left > ancho + 32;
-      if (der || izq) return { left: der ? rect.right + 24 : rect.left - ancho - 24, top: Math.max(16, Math.min(rect.top + 20, window.innerHeight - 340)), width: ancho } as CSSProperties;
-    }
-    const abajo = window.innerHeight - rect.bottom > 300;
-    return (abajo ? { left, top: rect.bottom + 18, width: ancho } : { left, top: Math.max(16, rect.top - 18 - 290), width: ancho }) as CSSProperties;
-  }, [rect]);
+    const vw = window.innerWidth, vh = window.innerHeight, h = cardH, gap = 18, top0 = 80;
+    const movil = vw < 720;
+    if (!rect || movil) return (rect && rect.top > vh * 0.42 ? { left: 12, right: 12, top: 12 } : { left: 12, right: 12, bottom: 12 }) as CSSProperties;
+    const ancho = Math.min(440, vw - 32);
+    const left = Math.min(Math.max(16, rect.left + rect.width / 2 - ancho / 2), vw - ancho - 16);
+    const clampTop = (t: number) => Math.max(16, Math.min(t, vh - h - 16));
+    if (vh - rect.bottom >= h + gap + 16) return { left, top: rect.bottom + gap, width: ancho } as CSSProperties;
+    if (rect.top - top0 >= h + gap) return { left, top: rect.top - gap - h, width: ancho } as CSSProperties;
+    const der = vw - rect.right > ancho + 32, izq = rect.left > ancho + 32;
+    if (der || izq) return { left: der ? rect.right + 24 : rect.left - ancho - 24, top: clampTop(rect.top), width: ancho } as CSSProperties;
+    // No cabe sin tapar: se pega al borde con mas espacio libre.
+    const masAbajo = vh - rect.bottom > rect.top;
+    return { left, top: masAbajo ? clampTop(vh - h - 16) : clampTop(top0), width: ancho } as CSSProperties;
+  }, [rect, cardH]);
 
   if (!open) return null;
   const pad = 10;
