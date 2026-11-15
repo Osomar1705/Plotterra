@@ -321,7 +321,9 @@ def _agregar(
         "cvar_10": round(sum(margenes[:n_cola]) / n_cola, 2),
         "demanda_mm": round(statistics.median(demandas), 1),
         "deficit_mediana": round(statistics.median(deficits), 1),
-        "deficit_p90": round(_percentil(deficits, 90), 1),
+        # _percentil exige la lista ordenada: sin sorted() devolvia el deficit de un
+        # escenario cualquiera (el p90 podia salir menor que la mediana).
+        "deficit_p90": round(_percentil(sorted(deficits), 90), 1),
         "campanias_con_deficit": sum(1 for d in deficit_mediana_campania if d > 1.0),
         "indice_suelo": indice,
         "razon_suelo": razon,

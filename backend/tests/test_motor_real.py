@@ -306,3 +306,15 @@ def test_con_poca_agua_hay_futuros_con_perdida(datasets):
         pytest.skip("datasets/variabilidad_rendimiento.json no esta presente")
     r = ejecutar_comparacion(_riego(lamina_mm_campania=60.0), datasets)
     assert any(a.outcomes["wins"] < len(a.futuros.margen_por_escenario) for a in r.alternativas)
+
+
+def test_el_deficit_p90_nunca_es_menor_que_la_mediana(datasets):
+    """El p90 es el deficit de un anio seco: no puede quedar por debajo del tipico.
+
+    Antes se tomaba el percentil sobre la lista sin ordenar y salia, por ejemplo,
+    33 mm de p90 contra 42 mm de mediana en secano.
+    """
+    for modo, lamina in (("secano", 0.0), ("riego", 60.0), ("riego", 180.0)):
+        r = ejecutar_comparacion(_condiciones(modo_agua=modo, lamina_mm_campania=lamina), datasets)
+        for a in r.alternativas:
+            assert a.agua.deficit_mm_p90 >= a.agua.deficit_mm_mediana, (modo, lamina, a.criterio)
