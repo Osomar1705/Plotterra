@@ -3,9 +3,11 @@ import type { Outcomes, ScenarioFamily, ScenarioMeta } from '../../types/fieldsh
 
 export const FAMILY_LABEL: Record<ScenarioFamily, string> = {
   tipica: 'Typical conditions',
-  menos_lluvia: '30% less rain',
-  menos_riego: '30% less irrigation',
-  caida_precio: '30% lower prices',
+  // The engine draws a different shock in every test (e.g. rain 15-45 % lower):
+  // the family label does not promise a fixed figure; each test shows its own.
+  menos_lluvia: 'Less rain',
+  menos_riego: 'Less irrigation',
+  caida_precio: 'Lower prices',
   combinado: 'Combined changes',
 };
 export const FAMILY_ORDER: ScenarioFamily[] = ['tipica', 'menos_lluvia', 'menos_riego', 'caida_precio', 'combinado'];
@@ -35,11 +37,19 @@ export function summarize(o: Outcomes) {
   return { total: v.length, wins, losses: o.losses ?? v.filter((x) => x < 0).length, mean: avg, adverse };
 }
 
+/** "−22 % rain · −40 % irrigation" with the real factors of the test; else the family label. */
+function familyDetail(s: ScenarioMeta) {
+  const cut = (f: number | undefined, what: string) => (f !== undefined && f < 0.995 ? `−${Math.round((1 - f) * 100)} % ${what}` : '');
+  const parts = [cut(s.rainFactor, 'rain'), cut(s.irrigationFactor, 'irrigation'), cut(s.priceFactor, 'price')].filter(Boolean);
+  return parts.length ? parts.join(' · ') : FAMILY_LABEL[s.family];
+}
+
 export function scenarioLabel(i: number, scenarios?: ScenarioMeta[], withFamily = true) {
   const s = scenarios?.[i];
   if (!s) return `Case ${i + 1}`;
-  const years = s.climateYears.length ? `weather years ${s.climateYears[0].slice(0, 4)}–${s.climateYears.at(-1)!.slice(-4)}` : '';
-  return [`Case ${i + 1}`, years, withFamily ? FAMILY_LABEL[s.family] : ''].filter(Boolean).join(' · ');
+  const first = s.climateYears[0]?.slice(0, 4), last = s.climateYears.at(-1)?.slice(-4);
+  const years = first ? `weather ${first === last ? first : `${first}–${last}`}` : '';
+  return [`Case ${i + 1}`, years, withFamily ? familyDetail(s) : ''].filter(Boolean).join(' · ');
 }
 
 export const prefersReducedMotion = () =>

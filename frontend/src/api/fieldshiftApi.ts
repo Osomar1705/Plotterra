@@ -150,9 +150,28 @@ export async function getAlternativePassport(comparisonId: string, alternativeId
       assumptions:['Los valores mock sirven para demostrar la interfaz y deben sustituirse por resultados del backend.','La herramienta orienta la comparación; no reemplaza el criterio del agricultor.'],
     };
   }
-  const raw = await request(`/comparaciones/${encodeURIComponent(comparisonId)}/alternativas/${encodeURIComponent(alternativeId)}/pasaporte`);
-  const metrics = raw?.metrics ?? raw?.metricas ?? [];
-  return { alternativeId, sourceResult:raw?.source_result ?? raw?.fuente_resultado, engineVersion:raw?.engine_version ?? raw?.version_motor, datasetVersion:raw?.dataset_version ?? raw?.version_datos, metrics:metrics.map((m:any,i:number)=>({id:String(m.id??i),label:m.label??m.nombre??'Indicador',value:m.value??m.valor??null,unit:m.unit??m.unidad,definition:m.definition??m.definicion,source:m.source??m.fuente,status:m.status??m.estado??'Disponible'})), sources:raw?.sources??raw?.fuentes??[], assumptions:raw?.assumptions??raw?.supuestos??[] };
+  const id = encodeURIComponent(comparisonId);
+  // Sources, assumptions and versions belong to the whole run: they come from
+  // /datos-y-supuestos. If that call fails the passport is still shown.
+  const [raw, data] = await Promise.all([
+    request(`/comparaciones/${id}/alternativas/${encodeURIComponent(alternativeId)}/pasaporte`),
+    request(`/comparaciones/${id}/datos-y-supuestos`).catch(() => null),
+  ]);
+  // The backend groups the passport metrics by topic ({economia, agua, ...}),
+  // not as a list: calling .map on that object broke the whole section.
+  const rawMetrics = raw?.metrics ?? raw?.metricas;
+  const metrics = Array.isArray(rawMetrics) ? rawMetrics : [];
+  const sources: string[] = raw?.sources ?? raw?.fuentes ?? (data?.fuentes ?? []).map((f: any) => typeof f === 'string' ? f
+    : `${f.dato ? `${String(f.dato)[0].toUpperCase()}${String(f.dato).slice(1)}: ` : ''}${f.fuente ?? ''}${f.provisional ? ' (provisional)' : ''}`).filter(Boolean);
+  const assumptions: string[] = raw?.assumptions ?? raw?.supuestos ?? [...(data?.supuestos ?? []), ...(data?.limitaciones ?? [])];
+  return {
+    alternativeId,
+    sourceResult: raw?.source_result ?? raw?.fuente_resultado ?? data?.versiones?.fuente_resultado,
+    engineVersion: raw?.engine_version ?? raw?.version_motor ?? data?.versiones?.motor,
+    datasetVersion: raw?.dataset_version ?? raw?.version_datos ?? data?.versiones?.datasets,
+    metrics: metrics.map((m:any,i:number)=>({id:String(m.id??i),label:m.label??m.nombre??'Indicador',value:m.value??m.valor??null,unit:m.unit??m.unidad,definition:m.definition??m.definicion,source:m.source??m.fuente,status:m.status??m.estado??'Disponible'})),
+    sources, assumptions,
+  };
 }
 
 export function isUsingMocks() { return USE_MOCKS; }

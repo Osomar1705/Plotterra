@@ -44,7 +44,8 @@ export function waterLabel(a:Alternative){
 export function riskName(risk:string){return ({low:'Low',medium:'Medium',high:'High',unknown:'Not rated'} as Record<string,string>)[risk]??'Not rated';}
 export function soilName(soil:string){return ({compatible:'Good fit',bueno:'Good fit',regular:'Fair',pobre:'Poor',high:'High',medium:'Medium',low:'Low',unknown:'Not rated'} as Record<string,string>)[soil]??soil;}
 export const caseName:Record<ScenarioFamily,string>={
- tipica:'Typical conditions',menos_lluvia:'30% less rain',menos_riego:'30% less irrigation',caida_precio:'30% lower prices',combinado:'Changes combined',
+ // The engine draws its own shock per test (not a fixed 30 %); the hover label shows the real one.
+ tipica:'Typical conditions',menos_lluvia:'Less rain',menos_riego:'Less irrigation',caida_precio:'Lower prices',combinado:'Changes combined',
 };
 export function translateKnownEngineNote(note?:string|null){
   if(!note)return '';
@@ -55,4 +56,28 @@ export function translateKnownEngineNote(note?:string|null){
   if(/^Datos de demostraci[oó]n\.?$/i.test(value))return 'Illustrative data';
   // Unknown engine-provided notes are not silently translated or misrepresented.
   return value;
+}
+
+/**
+ * Change labels come from the backend in Spanish ("riego -30 %", "sin cebada",
+ * "papa en campania 1", "prioridad suelo"). The screen is in English.
+ */
+export function changeLabelEn(label?: string | null): string {
+  if (!label) return 'Changed scenario';
+  const t = label.trim();
+  const crop = (c: string) => CROPS[c.toLowerCase()] ?? c;
+  let m = t.match(/^(riego|lluvia|precio)\s*([+−-])\s*(\d+)\s*%$/i);
+  if (m) {
+    const what = { riego: 'irrigation', lluvia: 'rain', precio: 'prices' }[m[1].toLowerCase() as 'riego' | 'lluvia' | 'precio'];
+    return `${m[3]}% ${m[2] === '+' ? 'more' : 'less'} ${what}`;
+  }
+  m = t.match(/^(\d+)\s*% menos riego$/i);
+  if (m) return `${m[1]}% less irrigation`;
+  m = t.match(/^sin\s+(\S+)$/i);
+  if (m) return `Without ${crop(m[1])}`;
+  m = t.match(/^(\S+)\s+en campa(?:ni|ñ)a\s+(\d)$/i);
+  if (m) return `${crop(m[1])} in season ${m[2]}`;
+  m = t.match(/^prioridad\s+(\S+)$/i);
+  if (m) return `Priority: ${({ agua: 'water', suelo: 'soil', economia: 'income' } as Record<string, string>)[m[1].toLowerCase()] ?? m[1]}`;
+  return t;
 }

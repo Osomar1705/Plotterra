@@ -21,3 +21,5 @@
 .scenario-review__ungrouped p{color:#607c75;font-size:13px}
 @media(max-width:1000px){.scenario-review__groups{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:640px){.scenario-review__groups{grid-template-columns:1fr}.scenario-review__header{align-items:stretch;flex-direction:column}.scenario-review__total{align-items:start;min-width:0}.scenario-review__footnote{width:100%;margin-left:0}}
+
+.sb-profit{margin:6px 0 0;font-size:13px;color:var(--muted)}.sb-profit.neg{color:var(--loss-strong,#B5471B);font-weight:700}

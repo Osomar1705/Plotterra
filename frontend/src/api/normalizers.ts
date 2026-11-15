@@ -105,6 +105,12 @@ const FAMILY_ALIASES: Record<string,string> = {
   condiciones_tipicas:'tipica', menor_lluvia:'menos_lluvia', caida_de_precio:'caida_precio', combinado_adverso:'combinado',
   typical:'tipica', less_rain:'menos_lluvia', less_irrigation:'menos_riego', lower_prices:'caida_precio', combined:'combinado',
 };
+/** Optional number: undefined when missing or not a number. */
+const factor = (v: unknown): number | undefined => {
+  const n = Number(v);
+  return v === null || v === undefined || v === '' || !Number.isFinite(n) ? undefined : n;
+};
+
 function normalizeScenarios(rows: any) {
   if (!Array.isArray(rows)) return undefined;
   return rows.map((r: any, i: number) => ({
@@ -112,13 +118,42 @@ function normalizeScenarios(rows: any) {
     family: (() => { const f=String(first(r, 'familia', 'family')??''); return (FAMILIES.includes(f)?f:FAMILY_ALIASES[f]??'tipica') as import('../types/fieldshift').ScenarioFamily; })(),
     climateYears: first(r, 'anios_clima', 'climateYears') ?? [],
     baseId: first(r, 'futuro_base', 'baseId'),
+    rainFactor: factor(first(r, 'factor_lluvia', 'rainFactor')),
+    irrigationFactor: factor(first(r, 'factor_riego', 'irrigationFactor')),
+    priceFactor: factor(first(r, 'factor_precio', 'priceFactor')),
   }));
+}
+
+/**
+ * In how many tests each option earns more than the others.
+ *
+ * "Tests with gain" (margin > 0) reaches 100/100 for almost every profitable
+ * rotation and does not help to choose. Comparing the same test across options
+ * does: the counts add up to 100. A tie counts for every tied option.
+ */
+function markBestOf(alternatives: Alternative[]) {
+  const withOutcomes = alternatives.filter((a) => a.outcomes?.marginByScenario?.length);
+  if (withOutcomes.length < 2) return;
+  const n = withOutcomes[0].outcomes!.marginByScenario.length;
+  if (withOutcomes.some((a) => a.outcomes!.marginByScenario.length !== n)) return;
+  const best = new Map(withOutcomes.map((a) => [a, 0]));
+  const ranks = new Map(withOutcomes.map((a) => [a, [] as number[]]));
+  for (let j = 0; j < n; j++) {
+    const values = withOutcomes.map((a) => a.outcomes!.marginByScenario[j]);
+    const top = Math.max(...values);
+    for (const a of withOutcomes) {
+      const v = a.outcomes!.marginByScenario[j];
+      if (v === top) best.set(a, best.get(a)! + 1);
+      ranks.get(a)!.push(values.filter((x) => x > v).length);
+    }
+  }
+  for (const a of withOutcomes) { a.outcomes!.best = best.get(a); a.outcomes!.rankByScenario = ranks.get(a); }
 }
 
 export function normalizeComparison(raw: any): Comparison {
   const payload = first(raw, 'comparison', 'comparacion', 'resultado') ?? raw;
   const alternatives = first(payload, 'alternatives', 'alternativas') ?? [];
-  const activeChanges = first(payload, 'active_changes', 'cambios_activos', 'cambios') ?? [];
+  const activeChanges = first(payload, 'active_changes', 'cambios_activos', 'escenarios_aplicados', 'cambios') ?? [];
   return {
     id: String(first(payload, 'comparison_id', 'id', 'scenario_id', 'comparacion_id') ?? 'unknown'),
     plotId: String(first(payload, 'plot_id', 'parcel_id', 'parcela_id') ?? 'unknown'),
@@ -127,17 +162,19 @@ export function normalizeComparison(raw: any): Comparison {
     status: String(first(payload, 'status', 'estado') ?? 'ready').toLowerCase() as Comparison['status'],
     activeChanges: activeChanges.map((c: any) => ({
       id: first(c, 'change_id', 'id', 'cambio_id'),
-      type: String(first(c, 'type', 'tipo') ?? 'unknown'),
+      type: String(first(c, 'type', 'tipo', 'intent') ?? 'unknown'),
       operation: first(c, 'operation', 'operacion'),
       value: first(c, 'value', 'valor'),
       unit: first(c, 'unit', 'unidad'),
       label: first(c, 'label', 'etiqueta'),
     })),
-    alternatives: alternatives.map(normalizeAlternative),
+    alternatives: (() => { const list = alternatives.map(normalizeAlternative); markBestOf(list); return list; })(),
     sourceResult: first(payload, 'fuente_resultado', 'source_result', 'sourceResult'),
-    parentComparisonId: first(payload, 'parent_comparison_id', 'comparacion_padre_id'),
+    parentComparisonId: first(payload, 'parent_comparison_id', 'comparacion_padre_id', 'derivada_de'),
     scenarios: normalizeScenarios(first(payload, 'scenarios') ?? payload?.simulacion?.escenarios),
-    usualPlan: (() => { const u = first(payload, 'usual_plan', 'plan_habitual'); return u ? normalizeAlternative(u) : undefined; })(),
+    // The backend sends plan_habitual as a summary {evaluado, margen...}, not as an
+    // alternative: only normalize it when it brings its own seasons.
+    usualPlan: (() => { const u = first(payload, 'usual_plan', 'plan_habitual'); return u && (u.campaigns || u.campanas || u.secuencia) ? normalizeAlternative(u) : undefined; })(),
     rainfallMonthlyMm: first(payload, 'rainfall_monthly_mm', 'rainfallMonthlyMm'),
     engineVersion: first(payload, 'engine_version', 'motor_version'),
     datasetVersion: first(payload, 'dataset_version'),

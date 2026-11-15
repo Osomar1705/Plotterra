@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { changeLabelEn } from '../lib/uiCopy';
 import { useGuide } from '../assistant/GuideProvider';
 import { AnimatePresence, motion } from 'motion/react';
 import { Photo } from './Photo';
@@ -11,7 +12,7 @@ import { SimulationReveal } from './futures/SimulationReveal';
 import { optionName } from '../lib/uiCopy';
 import './futures/futures.css';
 
-const visibleChange=(label?:string|null)=>label?.replace(/Riego\s*[−-]?30\s*%|30\s*% menos riego/gi,'30% less irrigation')??'Changed scenario';
+const visibleChange=(label?:string|null)=>changeLabelEn(label);
 type Reveal={values?:number[];previous?:number[];label?:string|null;note?:string|null};
 
 export function ComparisonPage(){

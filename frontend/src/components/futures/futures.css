@@ -292,3 +292,11 @@
 .entry-hero--photo .parcel-meta>div,.entry-hero--photo .parcel-meta small{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);color:#fff;backdrop-filter:blur(6px)}
 .entry-hero--photo .photo-credit{z-index:3;top:8px;bottom:auto}
 @media(max-width:680px){.hero-row.entry-hero.entry-hero--photo{padding-top:42px!important}.entry-hero--photo .photo-credit{max-width:calc(100% - 20px)}}
+
+/* Grid colored by position against the other options (FuturesGrid.ranks). */
+.fg-mid rect:first-child{fill:#E6B84A}
+.fg-low rect:first-child{fill:#E08A55}
+.fg-sw.fg-mid{background:#E6B84A}.fg-sw.fg-low{background:#E08A55}.fg-sw.fg-loss-3{background:var(--loss-strong)}.fg-sw.fg-gain-3{background:var(--gain-strong)}
+.fg-legend--rank{display:flex;flex-wrap:wrap;gap:6px 12px;margin:6px 0 2px;font-size:11px;color:var(--muted)}
+.fg-legend--rank span{display:inline-flex;align-items:center;gap:5px}
+.fg-legend--rank .fg-sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin:0}

@@ -10,11 +10,18 @@ import { FAMILY_LABEL, FAMILY_ORDER, scenarioLabel, signedMoney, toneScale } fro
  * Las pérdidas llevan rayado diagonal además del color (no depende solo del color).
  */
 export function FuturesGrid({
-  values, scaleValues, scenarios, size = 'mini', order = 'value', highlightIndex = null, onHoverIndex,
+  values, scaleValues, scenarios, size = 'mini', order = 'value', highlightIndex = null, onHoverIndex, ranks,
   revealed = true, staggerMs = 10, previousValues, layoutId, ariaLabel, cellPx,
 }: {
   values: number[];
   scaleValues?: number[]; // use a consistent color scale across scenario groups
+  /**
+   * Position of this option in each test (0 = best of the three). When given,
+   * the color tells how it did against the others in that same test: green best,
+   * yellow second, orange last; losses stay solid red and hatched. Coloring only
+   * by gain left the whole grid green.
+   */
+  ranks?: number[];
   scenarios?: ScenarioMeta[];
   size?: 'mini' | 'full';
   order?: 'value' | 'scenario';
@@ -28,7 +35,13 @@ export function FuturesGrid({
   cellPx?: number;   // tamaño de celda personalizado (overlay de simulación)
 }) {
   const uid = useId().replace(/:/g, '');
-  const tone = useMemo(() => toneScale(scaleValues ?? (previousValues ? [...values, ...previousValues] : values)), [values, previousValues, scaleValues]);
+  const scale = useMemo(() => toneScale(scaleValues ?? (previousValues ? [...values, ...previousValues] : values)), [values, previousValues, scaleValues]);
+  const byRank = ranks?.length === values.length;
+  const tone = (v: number, i: number) => {
+    if (!byRank) return scale(v);
+    if (v < 0) return 'loss-3';
+    return ranks![i] === 0 ? 'gain-3' : ranks![i] === 1 ? 'mid' : 'low';
+  };
   const [hover, setHover] = useState<number | null>(null);
   const cell = cellPx ?? (size === 'mini' ? 10 : 15);
   const gap = cellPx ? Math.max(2, Math.round(cellPx / 8)) : 2;
@@ -67,7 +80,7 @@ export function FuturesGrid({
               const x = (k % cols) * (cell + gap);
               const y = Math.floor(k / cols) * (cell + gap);
               const v = values[i];
-              const t = revealed ? tone(v) : 'empty';
+              const t = revealed ? tone(v, i) : 'empty';
               const delay = revealed ? (seq++) * staggerMs : 0;
               const isActive = active === i;
               return <g key={i} className={`fg-cell fg-${t} ${isActive ? 'is-active' : ''}`}

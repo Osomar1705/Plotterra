@@ -35,6 +35,10 @@ export interface ScenarioMeta {
   family: ScenarioFamily;
   climateYears: string[];
   baseId?: string;
+  /** Factores del escenario (1 = sin cambio). El motor real los sortea por futuro. */
+  rainFactor?: number;
+  irrigationFactor?: number;
+  priceFactor?: number;
 }
 
 export interface Outcomes {
@@ -44,6 +48,10 @@ export interface Outcomes {
   losses?: number;
   mean?: number;
   adverse?: number;
+  /** Tests in which this option earns more than the other two (the three add up to ~100). */
+  best?: number;
+  /** Position of this option in each test vs the others: 0 best, 1 second, 2 last. */
+  rankByScenario?: number[];
 }
 
 export interface StressRow {
