@@ -15,6 +15,16 @@ const meta: Record<AlternativeType, { subtitle:string; explanation:string; Icon:
  soil:{subtitle:'Focus: soil fit',explanation:'For farmers who care about crop compatibility with their land. This is not a soil-fertility guarantee.',Icon:SproutIcon},
 };
 
+const fmtMm=(n:number)=>Math.round(n).toLocaleString('en-US');
+/** Mediana = anio tipico; p90 = anio seco. Un "0 mm" solo no dice nada al agricultor. */
+function waterNote(a:Alternative){
+ const {value,dryYear}=a.water;
+ if(dryYear===undefined)return 'Typical year · whole plan';
+ if(Math.round(dryYear)<=0)return 'Rain and your irrigation cover it, even in a dry year';
+ if(Math.round(value)<=0)return `None in a typical year · ${fmtMm(dryYear)} mm in a dry year`;
+ return `Typical year · ${fmtMm(dryYear)} mm in a dry year`;
+}
+
 export function AlternativeCard({alternative,priority,onOpenPlan,index=0}:{
  alternative:Alternative;priority:boolean;onOpenPlan:(id:string)=>void;index?:number;
 }){
@@ -30,7 +40,7 @@ export function AlternativeCard({alternative,priority,onOpenPlan,index=0}:{
    </ol>
    <div className="oc-main-metrics">
     <div><span><CoinsIcon size={16}/> Estimated margin</span><strong>{s?.mean!==undefined?signedMoney(s.mean):`${displayMoney(alternative.margin.min,alternative.margin.currency)}–${displayMoney(alternative.margin.max,alternative.margin.currency)}`}</strong><small>{s?.mean!==undefined?'Average · per ha':'Estimate · per ha'}</small></div>
-    <div><span><WaterIcon size={16}/> {waterLabel(alternative)}</span><strong>{alternative.water.value} <small>{alternative.water.unit}</small></strong><small>{alternative.water.period?`Period: ${alternative.water.period==='campaña'?'season':alternative.water.period}`:'Check the period in the model details'}</small></div>
+    <div><span><WaterIcon size={16}/> {waterLabel(alternative)}</span><strong>{fmtMm(alternative.water.value)} <small>{alternative.water.unit}</small></strong><small>{waterNote(alternative)}</small></div>
    </div>
    <div className="oc-actions oc-actions--only"><button className="oc-plan-btn" onClick={()=>onOpenPlan(alternative.id)}>View this plan →</button></div>
  </motion.article>;

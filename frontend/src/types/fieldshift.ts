@@ -76,7 +76,7 @@ export interface Alternative {
   name?: string;
   campaigns: Campaign[];
   margin: { min: number; max: number; currency: string; basis: string; period?: string };
-  water: { metric: string; value: number; unit: string; period?: string };
+  water: { metric: string; value: number; unit: string; period?: string; dryYear?: number; demand?: number };
   soil: { compatibility: string };
   risk: { level: RiskLevel; mainCause?: string | null };
   dataQuality: { level: DataQualityLevel; mainGap?: string | null };

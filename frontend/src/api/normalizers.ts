@@ -1,6 +1,7 @@
 import type { Alternative, AlternativeType, Comparison, FieldShiftApiError } from '../types/fieldshift';
 
 const first = (obj: any, ...keys: string[]) => keys.map((k) => obj?.[k]).find((v) => v !== undefined && v !== null);
+const numOrUndef = (v: unknown): number | undefined => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? undefined : Number(v));
 const altType = (v: unknown): AlternativeType => {
   const s = String(v ?? '').toLowerCase();
   if (['water', 'agua'].includes(s)) return 'water';
@@ -48,6 +49,10 @@ export function normalizeAlternative(raw: any): Alternative {
       metric: String(first(water, 'metric', 'metrica') ?? 'demand'),
       value: Number(first(water, 'value', 'valor') ?? 0),
       unit: String(first(water, 'unit', 'unidad') ?? 'mm'),
+      // El valor es la mediana (anio tipico); el p90 es el anio seco. Sin el,
+      // la tarjeta mostraba "0 mm" cuando en un anio seco si falta agua.
+      dryYear: numOrUndef(first(water, 'deficit_mm_p90', 'dry_year')),
+      demand: numOrUndef(first(water, 'demanda_mm', 'demand_mm')),
     },
     soil: { compatibility: String(first(soil, 'compatibility', 'compatibilidad') ?? 'unknown') },
     risk: {

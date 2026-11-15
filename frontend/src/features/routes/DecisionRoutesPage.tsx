@@ -91,7 +91,7 @@ export function DecisionRoutesPage({comparisonId,alternativeId}:{comparisonId:st
        <h1 id="plan-name">{optionName[selected.type]}</h1></div>
       <div className="p8-kpis">
        <div><span><CoinsIcon size={15}/> Margin</span><strong>{s?.mean!==undefined?signedMoney(s.mean):`${displayMoney(selected.margin.min,selected.margin.currency)}–${displayMoney(selected.margin.max,selected.margin.currency)}`}</strong><small>per ha · {camps.length} seasons</small></div>
-       <div><span><WaterIcon size={15}/> {waterLabel(selected)}</span><strong>{selected.water.value} {selected.water.unit}</strong><small>{selected.water.period==='campaña'?'per season':selected.water.period??''}</small></div>
+       <div><span><WaterIcon size={15}/> {waterLabel(selected)}</span><strong>{Math.round(selected.water.value)} {selected.water.unit}</strong><small>{selected.water.dryYear!==undefined?`typical year · ${Math.round(selected.water.dryYear)} ${selected.water.unit} if dry`:'typical year'}</small></div>
        <div><span><SproutIcon size={15}/> Soil</span><strong>{soilName(selected.soil.compatibility)}</strong><small>Risk: {riskName(selected.risk.level)}</small></div>
       </div>
      </div>
