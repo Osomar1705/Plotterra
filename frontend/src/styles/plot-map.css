@@ -325,3 +325,12 @@
 .plot-map>.map-quick{position:static;display:flex;padding:8px 10px;gap:8px;pointer-events:auto;border-top:1px solid var(--line)}
 .plot-map .map-chip{height:auto;min-height:44px;white-space:normal;padding:8px 10px;font-size:13px;box-shadow:none;flex:1}
 .plot-map .map-drawing-help{font-size:13px;padding:9px 12px;line-height:1.4;margin:0;color:var(--muted)}
+
+/* "I prefer to draw it": el .link-btn global trae margin-top:20px y lo bajaba
+   respecto al input. Aqui va alineado a la derecha y en movil pasa abajo. */
+.typed-area .typed-area-row { flex-wrap: wrap }
+.typed-area .typed-area-row .link-btn { margin: 0 0 0 auto; white-space: nowrap; padding: 8px 0 }
+.typed-area .typed-area-row input:focus { outline: 2px solid var(--navy); outline-offset: 1px }
+@media (max-width: 480px) {
+  .typed-area .typed-area-row .link-btn { margin-left: 0; flex-basis: 100%; text-align: left }
+}

@@ -58,6 +58,7 @@ export function EntryPage() {
   const [denied, setDenied] = useState(false);
   const [typedArea, setTypedArea] = useState<string>('');
   const [useTypedArea, setUseTypedArea] = useState(false);
+  const [drawRequest, setDrawRequest] = useState(0);
   const [locality, setLocality] = useState('Ambo, Huánuco');
 
   // --- condiciones ---
@@ -239,6 +240,7 @@ export function EntryPage() {
               onUndoPoint={() => { setPoints(points.slice(0, -1)); setClosed(false); setDrawing(true); }}
               onClear={() => { setPoints([]); setClosed(false); setDrawing(false); setUseTypedArea(false); }}
               onTypeArea={() => { setUseTypedArea(true); setDrawing(false); setClosed(false); }}
+              drawRequest={drawRequest}
             />
 
             {useTypedArea && (
@@ -248,13 +250,14 @@ export function EntryPage() {
                   <input
                     id="typedArea" type="number" min="0.05" max="50" step="0.1"
                     value={typedArea} onChange={(e) => setTypedArea(e.target.value)} placeholder="1.8"
+                    inputMode="decimal" autoFocus aria-describedby="typedAreaHelp"
                   />
                   <span>ha</span>
-                  <button type="button" className="link-btn" onClick={() => { setUseTypedArea(false); setDrawing(true); }}>
+                  <button type="button" className="link-btn" onClick={() => { setUseTypedArea(false); setDrawing(true); setClosed(false); setDrawRequest((n) => n + 1); }}>
                     I prefer to draw it
                   </button>
                 </div>
-                <p className="field-help">You can continue with the area and location, although a drawn plot outline provides more detail.</p>
+                <p className="field-help" id="typedAreaHelp">You can continue with the area and location, although a drawn plot outline provides more detail.</p>
               </div>
             )}
 

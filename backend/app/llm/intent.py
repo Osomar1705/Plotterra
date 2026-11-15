@@ -296,6 +296,8 @@ _SISTEMA = """Interpretas lo que un agricultor peruano pregunta sobre su campani
 
 Intents y sus parametros:
 - ajustar_riego: factor (0.1 a 1.5). "30 % menos riego" es 0.7; "el doble" es 1.5.
+- ajustar_lluvia: factor (0.1 a 2.0). "si llueve 20 % menos" es 0.8; "un anio seco" es 0.7.
+- ajustar_precio: factor (0.1 a 3.0) sobre los precios de venta. "si el precio cae 25 %" es 0.75.
 - excluir_cultivo: cultivo (uno del catalogo).
 - fijar_cultivo_campania: cultivo (del catalogo) y campania (1, 2 o 3).
 - cambiar_prioridad: prioridad (agua, suelo o economia).
@@ -303,7 +305,8 @@ Intents y sus parametros:
 
 Reglas:
 - Usa solo cultivos del catalogo que se te da. Si menciona uno que no esta, elige explicar con confianza baja.
-- descripcion: una linea en espanol llano, sin tecnicismos, diciendo que se va a recalcular.
+- descripcion: una linea llana, sin tecnicismos, diciendo que se va a recalcular. Escribela en el idioma de la pregunta (espanol o ingles).
+- La pregunta puede venir en ingles: interpretala igual (irrigation = riego, rain = lluvia, price = precio).
 - confianza: 0 a 1. Por debajo de 0.5 si la pregunta es ambigua.
 - Nunca inventes rendimientos, precios ni margenes. Solo parametros del cambio."""
 
@@ -333,7 +336,7 @@ def interpretar_por_llm(texto: str, catalogo: set[str]) -> Interpretacion | None
         return None
 
     parametros: dict = {}
-    if salida.intent is Intent.ajustar_riego and salida.factor is not None:
+    if salida.intent in (Intent.ajustar_riego, Intent.ajustar_lluvia, Intent.ajustar_precio) and salida.factor is not None:
         parametros = {"factor": round(float(salida.factor), 2)}
     elif salida.intent is Intent.excluir_cultivo and salida.cultivo:
         parametros = {"cultivo": salida.cultivo, "motivo": "decision_del_agricultor"}
