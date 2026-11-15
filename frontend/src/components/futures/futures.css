@@ -304,3 +304,6 @@
 /* Al cerrar: deja pasar los clics al instante y se oculta al terminar la salida
    (0.35 s), aunque la animacion de motion no llegue a correr. */
 .sr-overlay.is-closing{pointer-events:none;visibility:hidden;transition:visibility 0s .4s}
+/* Demanda de agua del plan: con riego el deficit suele ser 0 en las tres, y esto
+   es lo que las distingue. */
+.oc-main-metrics>div>small.oc-water-need{display:block;margin-top:4px;color:#2f6f86;font-weight:600}

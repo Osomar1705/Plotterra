@@ -40,7 +40,7 @@ export function AlternativeCard({alternative,priority,onOpenPlan,index=0}:{
    </ol>
    <div className="oc-main-metrics">
     <div><span><CoinsIcon size={16}/> Estimated margin</span><strong>{s?.mean!==undefined?signedMoney(s.mean):`${displayMoney(alternative.margin.min,alternative.margin.currency)}–${displayMoney(alternative.margin.max,alternative.margin.currency)}`}</strong><small>{s?.mean!==undefined?'Average · per ha':'Estimate · per ha'}</small></div>
-    <div><span><WaterIcon size={16}/> {waterLabel(alternative)}</span><strong>{fmtMm(alternative.water.value)} <small>{alternative.water.unit}</small></strong><small>{waterNote(alternative)}</small></div>
+    <div><span><WaterIcon size={16}/> {waterLabel(alternative)}</span><strong>{fmtMm(alternative.water.value)} <small>{alternative.water.unit}</small></strong><small>{waterNote(alternative)}</small>{alternative.water.demand!==undefined&&<small className="oc-water-need">Crops need {fmtMm(alternative.water.demand)} mm in {alternative.campaigns.length} seasons</small>}</div>
    </div>
    <div className="oc-actions oc-actions--only"><button className="oc-plan-btn" onClick={()=>onOpenPlan(alternative.id)}>View this plan →</button></div>
  </motion.article>;
