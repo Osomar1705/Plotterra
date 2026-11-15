@@ -19,7 +19,16 @@ export function SimulationReveal({ values, previousValues, scenarios, changeLabe
   const [tick, setTick] = useState(-1);
   const [summary, setSummary] = useState(false);
   const done = useRef(false);
-  const finish = () => { if (!done.current) { done.current = true; onDone(); } };
+  // Al terminar deja de tapar la pagina al instante: si la animacion de salida
+  // no corre (pestana en segundo plano, ahorro de bateria), el overlay seguia
+  // encima bloqueando "View this plan" y el boton "See results" ya no hacia nada.
+  const [closing, setClosing] = useState(false);
+  const finish = () => { if (!done.current) { done.current = true; setClosing(true); onDone(); } };
+
+  // Una simulacion nueva puede reutilizar esta instancia mientras sale la anterior.
+  useEffect(() => {
+    if (!values) { done.current = false; setClosing(false); setSummary(false); setTick(-1); }
+  }, [values]);
 
   useEffect(() => {
     if (!values) return;
@@ -45,7 +54,7 @@ export function SimulationReveal({ values, previousValues, scenarios, changeLabe
     ? values.filter((v, i) => v < 0 && (previousValues[i] ?? 0) >= 0).length : 0;
   const fam = values && tick >= 0 && scenarios?.[tick] ? FAMILY_LABEL[scenarios[tick].family] : null;
 
-  return <motion.div className="sr-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: .35 } }}>
+  return <motion.div className={`sr-overlay${closing ? ' is-closing' : ''}`} aria-hidden={closing || undefined} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: .35 } }}>
     <div className="sr-card">
       <span className="sr-kicker">{changeLabel ? `Running scenario · ${changeLabel}` : 'Scenario simulation'}</span>
       <h2>{values ? 'Testing your plot in 100 possible futures' : 'Preparing 100 possible futures for your plot…'}</h2>
