@@ -1,5 +1,8 @@
 # Movimiento de Plotterra
 
+Ampliación posterior: [ACERCAMIENTO_3D.md](ACERCAMIENTO_3D.md). La entrada oblicua
+inicial se sustituyó por una cámara y geometría tridimensionales.
+
 Base: `main` en `799d3ed` (v9). Rama: `feat/movimiento-suave`.
 
 La parcela, las opciones y el plan conservan sus textos, datos y controles. El
@@ -18,8 +21,8 @@ sesión de revisión. Su técnica de 3D en tiempo real se contrastó con el caso
 publicado por Bader Rutter. No se observó su sección Testing funcionando aquí.
 Tend y Farm Minerals sí se abrieron e inspeccionaron en navegador.
 
-Esta implementación usa planos fotográficos y perspectiva CSS, no una escena
-volumétrica WebGL. Se aprovecha Motion 14.6.0, ya instalado en el proyecto; no se
+El primer bloque utilizaba planos fotográficos y perspectiva CSS. La ampliación
+actual añade una escena de geometría 3D en la simulación; véase el documento anterior. Se aprovecha Motion 14.6.0, ya instalado en el proyecto; no se
 incorporan dependencias ni se exige reinstalar paquetes.
 
 ## Recorrido visual
@@ -36,10 +39,10 @@ incorporan dependencias ni se exige reinstalar paquetes.
 4. **Detalle y ayuda:** apertura y cierre suaves. Los detalles siguen usando el
    elemento nativo; donde no se soporta la interpolación de altura, abren sin esa
    transición. El formulario y las llamadas de la guía no se modifican.
-5. **Simulación:** entrada de la cuadrícula en perspectiva y asentamiento al
-   llegar los resultados. Se conserva el significado de cada celda. El cierre
-   automático pasa de aproximadamente 2,6 a 1,75 segundos tras recibir 100
-   resultados, y el control existente para continuar sigue disponible.
+5. **Simulación:** el acercamiento actual dura 2,2 segundos y desemboca en la
+   cuadrícula con resultados reales. Después conserva la secuencia de celdas y
+   el resumen durante aproximadamente 1,75 segundos. Se puede continuar antes
+   con el botón existente; la cámara no representa progreso del motor.
 
 La animación establece el orden de lectura: contexto → alternativas → temporada
 seleccionada → efectos. No añade narrativa escrita, lemas, instrucciones, opciones
@@ -66,7 +69,9 @@ CC BY-SA 4.0 en `public/media/ATTRIBUTION.txt`. La copia local pesa unos 597 kB 
 elimina la dependencia de red externa para mostrar esa cabecera. No se retocó el
 contenido de la foto.
 
-## Verificación
+## Verificación del primer bloque
+
+Para los controles actuales (47 pruebas), véase ACERCAMIENTO_3D.md.
 
 - `npm run build`: correcto con el modo de backend real.
 - `node tests/drawing/run.mjs`: 25 pruebas correctas.

@@ -1,0 +1,41 @@
+/* A self-contained camera scene; it never transforms the map or page controls. */
+.sr-overlay{overflow-y:auto;overscroll-behavior:contain;align-items:safe center}
+.sr-overlay .sr-card--cinema{width:min(840px,96vw);padding:22px 18px 18px}
+.sr-overlay .sr-card--cinema h2{margin-bottom:0;max-width:620px;margin-inline:auto;text-wrap:balance}
+.sr-cinema{--scene-size:clamp(248px,43svh,380px);height:var(--scene-size);position:relative;isolation:isolate;width:100%}
+.sr-field{position:absolute;inset:0;pointer-events:none;transition:opacity 500ms var(--motion-ease)}
+.sr-field-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.sr-field-shadow{position:absolute;left:50%;top:60%;width:48%;height:15%;border-radius:50%;background:radial-gradient(ellipse,#263e2e25,transparent 70%);translate:-50% -50%;filter:blur(9px)}
+.sr-cinema .sr-grid--landing{position:absolute;left:50%;top:50%;translate:-50% -50%;width:calc(var(--scene-size)*.848);margin:0}
+.sr-cinema .sr-grid--landing .fg{max-width:none}
+.sr-cinema .sr-grid--landing .fg svg{max-width:none!important;display:block}
+.sr-cinema:not(.sr-cinema--results) .sr-grid--landing{pointer-events:none}
+.sr-cinema--landed .sr-field{opacity:0}
+.sr-cinema .sr-grid--landing.is-waiting{animation:none}
+.sr-overlay .sr-card--cinema .sr-ticker{margin-top:0;min-height:52px}
+.sr-overlay .sr-card--cinema .sr-skip{min-height:44px;padding:10px 22px;border-radius:24px;transition:background-color 180ms ease,translate 360ms var(--motion-ease)}
+.sr-overlay .sr-card--cinema .sr-skip:hover{background:#006f6510}
+.sr-field-fallback{position:absolute;inset:0;display:grid;place-items:center;perspective:850px}
+.sr-field--webgl .sr-field-fallback,.sr-field--canvas .sr-field-fallback,.sr-field--fallback .sr-field-canvas{display:none}
+.sr-field-fallback>div{width:calc(var(--scene-size)*.848);aspect-ratio:1;display:grid;grid-template-columns:repeat(10,1fr);gap:3px;transform-style:preserve-3d;animation:field-dolly 2200ms cubic-bezier(.45,0,.25,1) both}
+.sr-field-fallback i{position:relative;background:repeating-linear-gradient(0deg,#8b9c55 0 3px,#a6ad6b 3px 5px);border:1px solid #879455;border-radius:2px;box-shadow:0 5px #6e6347,3px 6px 6px #1c3c2519;transform:translateZ(3px)}
+@keyframes field-dolly{from{transform:rotateX(60deg) rotateZ(-32deg) scale(.45)}to{transform:rotateX(0) rotateZ(0) scale(1)}}
+@media(max-width:600px){
+ .sr-overlay .sr-card--cinema{padding:18px 12px;width:100%;max-width:100vw}
+ .sr-overlay .sr-card--cinema h2{font-size:22px;max-width:340px}
+ .sr-cinema{--scene-size:clamp(245px,40svh,330px)}
+ .sr-field-shadow{width:65%}
+ .sr-overlay .sr-card--cinema .sr-ticker{padding-inline:12px;font-size:13px;min-height:58px}
+ .sr-overlay .sr-card--cinema .sr-ticker strong{font-size:17px}
+}
+@media(max-height:640px){
+ .sr-overlay .sr-card--cinema{padding-block:10px}
+ .sr-overlay .sr-card--cinema h2{font-size:20px}
+ .sr-cinema{--scene-size:clamp(160px,38svh,245px)}
+ .sr-overlay .sr-card--cinema .sr-ticker{min-height:42px}
+}
+@media(prefers-reduced-motion:reduce){
+ .sr-field{display:none}
+ .sr-cinema .sr-grid--landing{opacity:1!important}
+ .sr-field-fallback>div{animation:none;transform:none}
+}

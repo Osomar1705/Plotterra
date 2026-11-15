@@ -1,6 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { SOFT_EASE } from '../../motion/policy';
+import { FieldApproach } from '../../motion/FieldApproach';
+import { CAMERA_DURATION } from '../../motion/fieldCamera';
+import '../../motion/field-approach.css';
 import type { ScenarioMeta } from '../../types/fieldshift';
 import { FuturesGrid } from './FuturesGrid';
 import { FAMILY_LABEL, prefersReducedMotion, scenarioLabel } from './futuresModel';
@@ -18,13 +21,29 @@ export function SimulationReveal({ values, previousValues, scenarios, changeLabe
   note?: string | null;
 }) {
   const reduced = useReducedMotion();
+  const titleId = useId();
+  const card = useRef<HTMLDivElement>(null);
   const [tick, setTick] = useState(-1);
   const [summary, setSummary] = useState(false);
+  const [landed, setLanded] = useState(() => prefersReducedMotion());
   const done = useRef(false);
   const finish = () => { if (!done.current) { done.current = true; onDone(); } };
 
   useEffect(() => {
-    if (!values) return;
+    const previous = document.activeElement;
+    card.current?.focus({preventScroll:true});
+    return () => { if(previous instanceof HTMLElement && previous.isConnected) previous.focus({preventScroll:true}); };
+  }, []);
+  useEffect(() => { if(values) card.current?.querySelector('button')?.focus({preventScroll:true}); }, [values]);
+
+  useEffect(() => {
+    if (reduced) { setLanded(true); return; }
+    const end = window.setTimeout(() => setLanded(true), CAMERA_DURATION);
+    return () => window.clearTimeout(end);
+  }, [reduced]);
+
+  useEffect(() => {
+    if (!values || !landed) return;
     if (prefersReducedMotion()) { finish(); return; }
     let i = 0;
     const iv = window.setInterval(() => {
@@ -33,10 +52,13 @@ export function SimulationReveal({ values, previousValues, scenarios, changeLabe
     }, STAGGER * 3);
     const end = window.setTimeout(finish, values.length * STAGGER + 300 + HOLD_SUMMARY);
     return () => { window.clearInterval(iv); window.clearTimeout(end); };
-  }, [values]);
+  }, [values, landed]);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && values) finish(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && values) finish();
+      if (e.key === 'Tab') {e.preventDefault();(card.current?.querySelector('button')??card.current)?.focus({preventScroll:true});}
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   });
@@ -47,17 +69,17 @@ export function SimulationReveal({ values, previousValues, scenarios, changeLabe
     ? values.filter((v, i) => v < 0 && (previousValues[i] ?? 0) >= 0).length : 0;
   const fam = values && tick >= 0 && scenarios?.[tick] ? FAMILY_LABEL[scenarios[tick].family] : null;
 
-  return <motion.div className="sr-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: .35 } }}>
-    <motion.div className="sr-card" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-4}} transition={{duration:.3,ease:SOFT_EASE}}>
+  return <motion.div className="sr-overlay" role="dialog" aria-modal="true" aria-labelledby={titleId} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: .35 } }}>
+    <motion.div ref={card} tabIndex={-1} className="sr-card sr-card--cinema" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-4}} transition={{duration:.3,ease:SOFT_EASE}}>
       <span className="sr-kicker">{changeLabel ? `Running scenario · ${changeLabel}` : 'Scenario simulation'}</span>
-      <h2>{values ? 'Testing your plot in 100 possible futures' : 'Preparing 100 possible futures for your plot…'}</h2>
-      <div className={`sr-grid ${values ? '' : 'is-waiting'}`}>
-       <motion.div className="sr-grid-plane" style={{transformPerspective:1000}}
-        initial={{rotateX:reduced?0:14,rotateY:reduced?0:-9,scale:reduced?1:0.97}}
-        animate={{rotateX:reduced||values?0:8,rotateY:reduced||values?0:-4,scale:1}}
-        transition={{type:'spring',stiffness:85,damping:26}}>
+      <h2 id={titleId}>{values ? 'Testing your plot in 100 possible futures' : 'Preparing 100 possible futures for your plot…'}</h2>
+      <div className={`sr-cinema ${landed ? 'sr-cinema--landed' : ''} ${landed && values ? 'sr-cinema--results' : ''}`}>
+       {!reduced && <FieldApproach/>}
+       <motion.div className={`sr-grid sr-grid--landing ${values ? '' : 'is-waiting'}`}
+        initial={false} animate={{opacity:landed || reduced?1:0}}
+        transition={{duration:reduced?0:.5,ease:SOFT_EASE}}>
         <FuturesGrid values={values ?? placeholder} scenarios={scenarios} size="mini" order="scenario"
-          revealed={!!values} staggerMs={STAGGER} previousValues={previousValues} layoutId={layoutId} cellPx={22}
+          revealed={!!values && landed} staggerMs={STAGGER} previousValues={previousValues} layoutId={layoutId} cellPx={22}
           ariaLabel="Simulation of 100 possible futures" />
        </motion.div>
       </div>
