@@ -49,7 +49,7 @@ export function PlanWhyAI({comparison, alternative, parcel, onOpenGuide}:{
     <div className="plan-ai__heading"><span className="plan-ai__mark"><SparkIcon size={21}/></span><div>
       <span className="pv-simple-kicker">4 · Understand the recommendation</span>
       <h2 id="plan-ai-title">Why this plan?</h2>
-      <p>Personalized explanation based on FieldShift results, not a new calculation.</p>
+      <p>Personalized explanation based on Plotterra results, not a new calculation.</p>
     </div></div>
     {answer.state==='ready'?<div className="plan-ai__answer"><GuideFormattedText text={answer.message}/></div>
       :<div className="plan-ai__notice" role="status">{answer.state==='loading'?<><span className="plan-ai__spinner"/>Checking the selected plan with AI…</>:answer.message}</div>}

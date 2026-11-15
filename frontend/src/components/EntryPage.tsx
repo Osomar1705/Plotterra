@@ -9,12 +9,13 @@ import { saveEntryConditions } from '../integration/entryContext';
 import { PlotMap, type MapMode } from './PlotMap';
 import { CropIllustration } from './CropIllustration';
 import { Photo } from './Photo';
+import { BrandLogo } from './BrandLogo';
 import { cropName } from '../lib/uiCopy';
 import { checkPolygon, formatHa } from '../lib/plotGeometry';
 import { DEMO_PLOT_LOCALITY, DEMO_PLOT_POINTS } from '../lib/demoPlot';
 import {
   AlertIcon, CalendarIcon, CheckIcon, ClockIcon, CoinsIcon, InfoIcon,
-  LeafIcon, RainIcon, SproutIcon, WaterIcon,
+  RainIcon, SproutIcon, WaterIcon,
 } from './Icons';
 
 const CROPS = ['Papa', 'Quinua', 'Cebada', 'Avena', 'Haba', 'Tarwi'];
@@ -187,7 +188,7 @@ export function EntryPage() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <a className="brand" href="/"><LeafIcon />FieldShift</a>
+        <BrandLogo />
         <nav className="steps"><strong>1&nbsp; Plot</strong><span>2&nbsp; Options</span><span>3&nbsp; Plan</span></nav>
       </header>
 

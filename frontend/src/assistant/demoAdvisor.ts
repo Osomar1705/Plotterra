@@ -9,9 +9,9 @@ const risk=(s:string)=>({low:'bajo',medium:'medio',high:'alto',unknown:'no deter
 const fmtMargin=(a:Alternative)=>`S/ ${num(a.margin.min)}–${num(a.margin.max)} por ${a.margin.basis==='ha'?'hectárea':a.margin.basis}`;
 const has=(s:string,...words:string[])=>words.some(w=>s.includes(w));
 const make=(status:GuideReply['status'],message:string,options:Partial<GuideReply>={}):GuideReply=>({status,message,...options});
-const common=['How does FieldShift work?','What data does it use?','What does the priority mean?'];
+const common=['How does Plotterra work?','What data does it use?','What does the priority mean?'];
 const suggestions={
-  parcel:['What details do I need?','Why does irrigation matter?','What data does FieldShift use?'],
+  parcel:['What details do I need?','Why does irrigation matter?','What data does Plotterra use?'],
   comparison:['Which plan is safer?','What if I have 30% less irrigation?','Which needs less water?'],
   plan:['Why is this crop here?','How safe is this plan?','Where do the numbers come from?'],
 };
@@ -25,7 +25,7 @@ function explanationForAlternative(a:Alternative,ctx:GuideContext):GuideReply {
   const title=name[a.type];
   const key=a.type==='economy'?`su margen estimado es ${fmtMargin(a)}`:a.type==='water'?`requiere ${a.water.value} ${a.water.unit} en el horizonte evaluado`:`presenta compatibilidad de suelo ${soil(a.soil.compatibility)}`;
   return make('answered',`La alternativa ${title} se muestra porque prioriza ${a.type==='economy'?'el margen económico':a.type==='water'?'la menor demanda de agua':'la compatibilidad de la rotación'}: ${key}. También tiene riesgo ${risk(a.risk.level)} y una secuencia de ${a.campaigns.map(c=>c.crop).join(' → ')}. No es necesariamente la mejor para todas las parcelas.`,{
-    intent:'EXPLAIN_ALTERNATIVE',suggestions:['¿Cuál usa menos agua?','¿Cuál tiene menor riesgo?','¿Por qué va aquí este cultivo?'],sources:['Resultados FieldShift',...(ctx.comparison?.sourceResult==='mock'?['Datos de demostración']:[])]
+    intent:'EXPLAIN_ALTERNATIVE',suggestions:['¿Cuál usa menos agua?','¿Cuál tiene menor riesgo?','¿Por qué va aquí este cultivo?'],sources:['Resultados Plotterra',...(ctx.comparison?.sourceResult==='mock'?['Datos de demostración']:[])]
   });
 }
 function cropExplanation(ctx:GuideContext,s:string):GuideReply {
@@ -40,10 +40,10 @@ function cropExplanation(ctx:GuideContext,s:string):GuideReply {
   const place=index===0?'abre la rotación':index===a.campaigns.length-1?'cierra la rotación':`va después de ${before} y antes de ${after}`;
   const metrics=c.metrics;
   const details=metrics&&Object.values(metrics).filter(x=>x?.value!==null&&x?.value!==undefined);
-  let message=`${c.crop} ${place} en ${c.window}, dentro de la alternativa ${name[a.type]}. Es parte de la secuencia ${a.campaigns.map(v=>v.crop).join(' → ')} que FieldShift evaluó. `;
+  let message=`${c.crop} ${place} en ${c.window}, dentro de la alternativa ${name[a.type]}. Es parte de la secuencia ${a.campaigns.map(v=>v.crop).join(' → ')} que Plotterra evaluó. `;
   if(details?.length){message+=`Esta campaña tiene ${details.map(x=>`${x?.label??'un indicador'}: ${x?.value} ${x?.unit??''}`).join('; ')}.`}
   else {message+='Tengo resultados para la rotación completa, pero no indicadores agronómicos específicos de este cultivo. No sería correcto atribuirle una mejora de suelo, rendimiento o resistencia al agua sin esos datos.'}
-  return make('answered',message,{intent:'EXPLAIN_CROP_POSITION',suggestions:['¿Qué debo vigilar en esta campaña?','¿Cómo se compara este plan?','¿Qué datos utiliza?'],sources:['Secuencia del plan','Resultados FieldShift']});
+  return make('answered',message,{intent:'EXPLAIN_CROP_POSITION',suggestions:['¿Qué debo vigilar en esta campaña?','¿Cómo se compara este plan?','¿Qué datos utiliza?'],sources:['Secuencia del plan','Resultados Plotterra']});
 }
 
 /** Demo explicativa y determinista. No invoca un LLM ni inventa cálculos agronómicos. */
@@ -52,7 +52,7 @@ export function demoGuideReply(req:GuideRequest):GuideReply {
  const s=norm(req.message);
  const alts=ctx.comparison?.alternatives??[];
  const quality=ctx.comparison?.sourceResult==='mock'?['Datos de demostración']:[];
- const info={sources:['Resultados FieldShift',...quality]};
+ const info={sources:['Resultados Plotterra',...quality]};
  if(req.message.startsWith('RESUMEN_POST_SIMULACION')){
   const rows=alts.filter(a=>a.outcomes?.marginByScenario?.length).map(a=>({a,w:a.outcomes!.marginByScenario.filter(x=>x>0).length,n:a.outcomes!.marginByScenario.length})).sort((x,y)=>y.w-x.w);
   const label=ctx.comparison?.activeChanges.at(-1)?.label??'el cambio';
@@ -64,7 +64,7 @@ export function demoGuideReply(req:GuideRequest):GuideReply {
  const waterMention=has(s,'riego','irrigacion','regar','menos agua','agua disponible','sin agua','sequia');
  const scenarioIntent=has(s,'que pasa si','que pasaria si','simula','simular','probar un cambio','recalcula','cambiar la','modificar el','si tengo','si no puedo','quiero empezar','empezar con','al inicio','sin cebada') || /^\d{1,2}\s*%$/.test(s);
  if(has(s,'pesticida','plaguicida','fungicida','herbicida','fertilizante recomendado','medicina'))
-   return make('unsupported','No tengo datos verificados para recomendar tratamientos o productos. Sí puedo ayudarte a entender agua, margen, suelo, riesgo y rotaciones calculadas por FieldShift.',{suggestions:common.slice(0,2)});
+   return make('unsupported','No tengo datos verificados para recomendar tratamientos o productos. Sí puedo ayudarte a entender agua, margen, suelo, riesgo y rotaciones calculadas por Plotterra.',{suggestions:common.slice(0,2)});
  if(has(s,'que puedes hacer','ayuda','que puedo pregunt','ejemplos','como te uso'))
    return make('answered','Puedo explicarte de dónde salen los datos, comparar Economía, Agua y Suelo, revisar por qué aparece un cultivo en una campaña y ayudarte a probar escenarios con confirmación.',{intent:'HELP',suggestions:suggestions[ctx.page]});
  if((scenarioIntent&&waterMention)||(/^\d{1,2}\s*%$/.test(s)&&has(previous,'riego','agua'))) {
@@ -79,26 +79,26 @@ export function demoGuideReply(req:GuideRequest):GuideReply {
  }
  if(scenarioIntent && has(s,'sin cebada','excluir cebada','no usar cebada','no uso cebada','no puedo sembrar cebada','papa al inicio','empezar con papa')) {
    const cebada=has(s,'cebada');
-   if(ctx.page!=='comparison') return make('needs_clarification','Para aplicar un escenario, entra primero a Opciones.',{suggestions:['¿Cómo funciona FieldShift?']});
+   if(ctx.page!=='comparison') return make('needs_clarification','Para aplicar un escenario, entra primero a Opciones.',{suggestions:['¿Cómo funciona Plotterra?']});
    if(ctx.engine==='local_mock'||(!ctx.engine&&ctx.comparison?.sourceResult==='mock'))return make('unsupported','La interfaz reconoce este cambio, pero el modo demostración aún no tiene resultados calculados para él. Con el motor real conectado sí podrá evaluarlo.',{suggestions:['¿Qué pasa si tengo 30% menos riego?']});
    const change:AppliedChange=cebada?{type:'exclude_crop',operation:'exclude',value:'cebada',unit:'crop',label:'Sin cebada'}:{type:'first_crop',operation:'set',value:'papa',unit:'crop',label:'Papa al inicio'};
    return make('proposed_change',`Entendí: ${change.label}. Confirmemos antes de recalcular las tres alternativas.`,{intent:'PROPOSE_SCENARIO',change,requiresConfirmation:true});
  }
  if(has(s,'como funciona','como decide','modelo','red neuronal','algoritmo','simulacion','40 casos','100 combinaciones'))
-   return make('answered','FieldShift combina las condiciones que indicaste para tu parcela con datos ambientales disponibles y evalúa secuencias de cultivos. El motor calcula margen, agua, compatibilidad y riesgo; yo te ayudo a entender los resultados. Las etapas de 40/100 casos mostradas en la demo son ilustrativas y deben validarse con el motor real.',{intent:'EXPLAIN_SYSTEM',suggestions:['¿Qué datos utiliza?','¿Por qué existen tres opciones?','¿Cuál usa menos agua?'],sources:['Condiciones de parcela','Motor FieldShift']});
+   return make('answered','Plotterra combina las condiciones que indicaste para tu parcela con datos ambientales disponibles y evalúa secuencias de cultivos. El motor calcula margen, agua, compatibilidad y riesgo; yo te ayudo a entender los resultados. Las etapas de 40/100 casos mostradas en la demo son ilustrativas y deben validarse con el motor real.',{intent:'EXPLAIN_SYSTEM',suggestions:['¿Qué datos utiliza?','¿Por qué existen tres opciones?','¿Cuál usa menos agua?'],sources:['Condiciones de parcela','Motor Plotterra']});
  if(has(s,'datos limitados','calidad de datos','datos suficientes','informacion suficiente','calidad de informacion')){
    const a=relevantAlt(ctx,s);return a?make('answered',`${name[a.type]} presenta calidad de información ${a.dataQuality.level==='sufficient'?'suficiente':a.dataQuality.level==='limited'?'limitada':'por confirmar'}. ${a.dataQuality.mainGap?'El sistema señala: '+a.dataQuality.mainGap+'.':'No tengo un desglose adicional para precisar cuáles datos faltan.'}`,{intent:'EXPLAIN_DATA_QUALITY',suggestions:['¿Qué datos utiliza?','¿Por qué esta alternativa?'],...info}):make('needs_clarification','¿Para qué alternativa quieres revisar la calidad de datos?');
  }
  if(has(s,'datos','nasa','midagri','fuente','lluvia','satelital','temperatura','relieve','humedad','de donde'))
-   return make('answered','El proyecto contempla datos ambientales de NASA, como lluvia, humedad del suelo, temperatura y relieve, y referencias agrícolas de MIDAGRI, además de lo que indicaste para tu parcela. Esos son datos de entrada; los márgenes, el agua y el riesgo mostrados son resultados del motor FieldShift. La conexión final determinará qué fuentes se usaron efectivamente en cada cálculo.',{intent:'EXPLAIN_DATA',suggestions:['¿Cómo compara las rotaciones?','¿Qué datos puse yo?','¿Por qué esta alternativa?'],sources:['NASA (fuentes del proyecto)','MIDAGRI (fuentes del proyecto)','Datos de tu parcela']});
+   return make('answered','El proyecto contempla datos ambientales de NASA, como lluvia, humedad del suelo, temperatura y relieve, y referencias agrícolas de MIDAGRI, además de lo que indicaste para tu parcela. Esos son datos de entrada; los márgenes, el agua y el riesgo mostrados son resultados del motor Plotterra. La conexión final determinará qué fuentes se usaron efectivamente en cada cálculo.',{intent:'EXPLAIN_DATA',suggestions:['¿Cómo compara las rotaciones?','¿Qué datos puse yo?','¿Por qué esta alternativa?'],sources:['NASA (fuentes del proyecto)','MIDAGRI (fuentes del proyecto)','Datos de tu parcela']});
  if(has(s,'que puse','mis datos','mi parcela','mi prioridad','prioridad')) {
    const p=ctx.parcel;
-   return make('answered',`Tu parcela se está considerando con ${p?.areaHa?`${p.areaHa} ha`:'el área indicada'}${p?.locality?` en ${p.locality}`:''}. ${p?.previousCrop?`Cultivo anterior: ${p.previousCrop}. `:''}${p?.waterMode?`Disponibilidad de agua: ${p.waterMode==='rainfed'?'solo lluvia':p.waterMode==='scheduled'?'riego por turnos':'riego disponible'}. `:''}La prioridad sirve para destacar una alternativa, sin ocultar los otros criterios.`,{intent:'EXPLAIN_PARCEL',suggestions:['¿Qué datos utiliza?','¿Cómo funciona FieldShift?']});
+   return make('answered',`Tu parcela se está considerando con ${p?.areaHa?`${p.areaHa} ha`:'el área indicada'}${p?.locality?` en ${p.locality}`:''}. ${p?.previousCrop?`Cultivo anterior: ${p.previousCrop}. `:''}${p?.waterMode?`Disponibilidad de agua: ${p.waterMode==='rainfed'?'solo lluvia':p.waterMode==='scheduled'?'riego por turnos':'riego disponible'}. `:''}La prioridad sirve para destacar una alternativa, sin ocultar los otros criterios.`,{intent:'EXPLAIN_PARCEL',suggestions:['¿Qué datos utiliza?','¿Cómo funciona Plotterra?']});
  }
  if(has(s,'por que va','por que esta primero','por que esta despues','por que va primero','por que papa','por que quinua','por que maiz','esta campaña','este cultivo','que debo vigilar','funcion cumple','por que esta siembra'))
    return cropExplanation(ctx,s);
  if(!alts.length){
-   if(ctx.page==='parcel')return make('answered','Primero dibuja o declara tu parcela, indica cultivo anterior, agua disponible y prioridad. Después FieldShift generará tres alternativas para comparar. Todavía no hay resultados de una rotación para explicar.',{intent:'HELP',suggestions:suggestions.parcel});
+   if(ctx.page==='parcel')return make('answered','Primero dibuja o declara tu parcela, indica cultivo anterior, agua disponible y prioridad. Después Plotterra generará tres alternativas para comparar. Todavía no hay resultados de una rotación para explicar.',{intent:'HELP',suggestions:suggestions.parcel});
    return make('needs_clarification','Aún no tengo una comparación calculada que pueda consultar. Genera primero tus opciones y luego podré explicarlas con sus cifras.',{suggestions:common});
  }
  if(has(s,'cuanto menos','y cuanto menos','cual usa menos agua','cual necesita menos agua','menor demanda','mas agua','menos agua') && !scenarioIntent){
@@ -113,7 +113,7 @@ export function demoGuideReply(req:GuideRequest):GuideReply {
   const rows=alts.filter(a=>a.outcomes?.marginByScenario?.length).map(a=>{const v=a.outcomes!.marginByScenario;const w=v.filter(x=>x>0).length;return {a,w,n:v.length,share:Math.round(w/v.length*10)}}).sort((x,y)=>y.w-x.w);
   if(!rows.length)return make('answered','Cuando el motor termine la comparación podré decirte en cuántos casos gana cada opción.');
   const best=rows[0];
-  return make('answered',`Probamos cada opción en los **mismos ${best.n} casos** (años reales de clima y golpes de −30 % de lluvia, riego o precio).\n${rows.map(r=>`- **${name[r.a.type]}**: ganó en **${r.w} de ${r.n}** (≈ ${r.share} de cada 10)`).join('\n')}\nNo es una garantía: muestra qué tan seguido aguanta cada plan en condiciones distintas.`,{intent:'EXPLAIN_SAFETY',suggestions:['¿Qué pasa si tengo 30% menos riego?','¿Por qué esta rotación?','¿Qué datos utiliza?'],sources:['Prueba en 100 casos FieldShift',...(ctx.comparison?.sourceResult==='mock'?['Datos de demostración']:[])]});
+  return make('answered',`Probamos cada opción en los **mismos ${best.n} casos** (años reales de clima y golpes de −30 % de lluvia, riego o precio).\n${rows.map(r=>`- **${name[r.a.type]}**: ganó en **${r.w} de ${r.n}** (≈ ${r.share} de cada 10)`).join('\n')}\nNo es una garantía: muestra qué tan seguido aguanta cada plan en condiciones distintas.`,{intent:'EXPLAIN_SAFETY',suggestions:['¿Qué pasa si tengo 30% menos riego?','¿Por qué esta rotación?','¿Qué datos utiliza?'],sources:['Prueba en 100 casos Plotterra',...(ctx.comparison?.sourceResult==='mock'?['Datos de demostración']:[])]});
  }
  if(has(s,'cual conviene','que conviene ahora','cual es mejor','cual me recomiendas','cual elegir','mejor opcion')){
    const wet=[...alts].sort((a,b)=>a.water.value-b.water.value)[0];const earn=[...alts].sort((a,b)=>b.margin.max-a.margin.max)[0];

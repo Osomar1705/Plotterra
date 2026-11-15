@@ -5,6 +5,7 @@ import { readEntryConditions } from '../../integration/entryContext';
 import type { Alternative, Campaign, Comparison, FieldShiftApiError } from '../../types/fieldshift';
 import { getComparison, isUsingMocks } from '../../api/fieldshiftApi';
 import { CoinsIcon, LeafIcon, SproutIcon, WaterIcon } from '../../components/Icons';
+import { BrandLogo } from '../../components/BrandLogo';
 import { CropIllustration } from '../../components/CropIllustration';
 import { PlanEvidence } from '../../components/PlanEvidence';
 import { PlanRisk } from '../../components/PlanRisk';
@@ -47,7 +48,7 @@ export function DecisionRoutesPage({comparisonId,alternativeId}:{comparisonId:st
  const entry=useMemo(()=>readEntryConditions()??undefined,[]);
  useEffect(()=>{setPage('plan');if(entry)setParcel(entry)},[setPage,setParcel,entry]);
  useEffect(()=>{
-  document.title='FieldShift · Your plan';let alive=true;
+  document.title='Plotterra · Your plan';let alive=true;
   (async()=>{try{
     if(!comparisonId&&!isUsingMocks())throw new Error('Open this plan from the Options page.');
     const c=await getComparison(comparisonId||'cmp_demo_base');if(alive)setComparison(c);
@@ -78,7 +79,7 @@ export function DecisionRoutesPage({comparisonId,alternativeId}:{comparisonId:st
  const metricChips=(['yield','water','economy','soil'] as const).flatMap(k=>{const m=cm?.[k];return m&&m.value!==null&&m.value!==undefined&&m.status!=='unavailable'?[{...m,key:k as string}]:[];});
 
  return <div className="plan-shell pv pv--simple pv--v7 pv--v8">
-  <header className="topbar"><a className="brand" href="/"><LeafIcon/>FieldShift</a><nav className="steps"><a href="/">1&nbsp; Plot</a><a href={optionsHref}>2&nbsp; Options</a><strong>3&nbsp; Plan</strong></nav></header>
+  <header className="topbar"><BrandLogo/><nav className="steps"><a href="/">1&nbsp; Plot</a><a href={optionsHref}>2&nbsp; Options</a><strong>3&nbsp; Plan</strong></nav></header>
   <main className="p8">
    <div className="p8-grid">
     <div className="p8-left">
