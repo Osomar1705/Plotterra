@@ -23,6 +23,24 @@ class Config:
         return self.motor != "real"
 
 
+def limpiar_clave(cruda: str | None) -> str | None:
+    """Quita lo que se suele pegar junto con la clave en el panel de Render.
+
+    Espacios o saltos de linea al final, comillas, o la linea entera del .env
+    ("ANTHROPIC_API_KEY=sk-ant-..."). Cualquiera de esos hace que la API
+    responda 401 y el chat caiga a reglas sin que nadie lo note.
+    """
+    if not cruda:
+        return None
+    clave = cruda.strip()
+    if clave.upper().startswith("ANTHROPIC_API_KEY="):
+        clave = clave.split("=", 1)[1].strip()
+    if clave.lower().startswith("bearer "):
+        clave = clave[7:].strip()
+    clave = clave.strip("\"'` ")
+    return clave or None
+
+
 def cargar_config() -> Config:
     db = Path(os.getenv("FIELDSHIFT_DB", RAIZ / "datos" / "fieldshift.sqlite3"))
     datasets = Path(os.getenv("FIELDSHIFT_DATASETS", RAIZ / "datasets"))
@@ -30,8 +48,8 @@ def cargar_config() -> Config:
         db_path=db,
         datasets_dir=datasets,
         motor=os.getenv("FIELDSHIFT_MOTOR", "mock").strip().lower(),
-        anthropic_api_key=os.getenv("ANTHROPIC_API_KEY") or None,
-        modelo_llm=os.getenv("FIELDSHIFT_MODELO_LLM", "claude-opus-5-5"),
+        anthropic_api_key=limpiar_clave(os.getenv("ANTHROPIC_API_KEY")),
+        modelo_llm=(os.getenv("FIELDSHIFT_MODELO_LLM") or "claude-opus-5-5").strip(),
         presupuesto_ms=int(os.getenv("FIELDSHIFT_PRESUPUESTO_MS", "8000")),
     )
 

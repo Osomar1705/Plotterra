@@ -182,3 +182,67 @@ def test_consulta_en_ingles_no_entendida_responde_en_ingles(cliente, condiciones
     r = cliente.post(f"{BASE}/consultas", json={"comparison_id": cmp_id, "message": "hello there"}).json()
     assert r["status"] == "needs_clarification"
     assert r["mensaje"].startswith("We did not understand") and r["sugerencias"][0].startswith("What if")
+
+
+# --- Cliente real con transporte simulado: ningun test toca la red ---------
+
+import json
+
+import anthropic
+import httpx2
+
+from app.config import limpiar_clave
+
+
+def _cliente_simulado(monkeypatch, status, cuerpo):
+    def responder_http(_req):
+        return httpx2.Response(status, json=cuerpo)
+
+    falso = anthropic.Anthropic(
+        api_key="sk-ant-test", max_retries=0,
+        http_client=httpx2.Client(transport=httpx2.MockTransport(responder_http)),
+    )
+    _clave(monkeypatch, "sk-ant-test")
+    monkeypatch.setattr(cliente_mod, "_cliente", falso)
+    monkeypatch.setattr(cliente_mod, "_intentado", True)
+    monkeypatch.setattr(cliente_mod, "_ultimo_error", None)
+    monkeypatch.setattr(cliente_mod, "_ultima_prueba", None)
+
+
+def test_clave_invalida_queda_registrada_con_pista(monkeypatch):
+    _cliente_simulado(monkeypatch, 401, {"type": "error", "error": {"type": "authentication_error", "message": "invalid x-api-key"}})
+    interpretacion, quien = intent_mod.interpretar("quiero 30% menos riego", CATALOGO)
+    assert quien == "reglas" and interpretacion is not None
+    err = cliente_mod.ultimo_error()
+    assert err["status"] == 401 and "authentication_error" in err["detalle"]
+    assert "ANTHROPIC_API_KEY" in err["pista"]
+    assert "sk-ant-test" not in json.dumps(err)
+
+
+def test_sin_saldo_se_explica(monkeypatch):
+    _cliente_simulado(monkeypatch, 400, {"type": "error", "error": {"type": "invalid_request_error", "message": "Your credit balance is too low"}})
+    resultado = cliente_mod.probar()
+    assert resultado["ok"] is False and "saldo" in resultado["error"]["pista"]
+    assert cliente_mod.probar()["en_cache"] is True  # no se repite la llamada
+
+
+def test_respuesta_valida_del_modelo_real_se_usa(monkeypatch):
+    salida = {"intent": "ajustar_precio", "factor": 0.75, "cultivo": None, "campania": None,
+              "prioridad": None, "descripcion": "Bajar los precios 25 % y comparar", "confianza": 0.9}
+    _cliente_simulado(monkeypatch, 200, {
+        "id": "msg_1", "type": "message", "role": "assistant", "model": "claude-opus-5-5",
+        "content": [{"type": "text", "text": json.dumps(salida)}],
+        "stop_reason": "end_turn", "stop_sequence": None,
+        "usage": {"input_tokens": 10, "output_tokens": 10},
+    })
+    interpretacion, quien = intent_mod.interpretar("y si el precio cae 25%?", CATALOGO)
+    assert quien == "llm"
+    assert interpretacion.intent is Intent.ajustar_precio and interpretacion.parametros == {"factor": 0.75}
+    assert cliente_mod.ultimo_error() is None
+
+
+def test_limpiar_clave_quita_lo_que_se_pega_de_mas():
+    assert limpiar_clave('  "sk-ant-abc"\n') == "sk-ant-abc"
+    assert limpiar_clave("ANTHROPIC_API_KEY=sk-ant-abc") == "sk-ant-abc"
+    assert limpiar_clave("Bearer sk-ant-abc") == "sk-ant-abc"
+    assert limpiar_clave("   ") is None and limpiar_clave(None) is None
