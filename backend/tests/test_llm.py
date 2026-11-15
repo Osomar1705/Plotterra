@@ -151,3 +151,34 @@ def test_la_lluvia_no_se_confunde_con_el_riego(monkeypatch):
     riego, _ = intent_mod.interpretar("y si riego 30% menos", CATALOGO)
     assert lluvia.intent is Intent.ajustar_lluvia
     assert riego.intent is Intent.ajustar_riego
+
+
+def test_el_interprete_por_reglas_entiende_ingles():
+    """El frontend v9 esta en ingles y en el deploy no hay clave de LLM."""
+    from app.llm.intent import interpretar_por_reglas
+    from app.schemas.consultas import Intent
+
+    cat = {"papa", "quinua", "cebada", "avena", "haba", "tarwi"}
+    casos = {
+        "What if I have 30% less irrigation?": (Intent.ajustar_riego, {"factor": 0.7}),
+        "what if it rains 20% less": (Intent.ajustar_lluvia, {"factor": 0.8}),
+        "what if prices drop 15%": (Intent.ajustar_precio, {"factor": 0.85}),
+        "I can't sell barley": (Intent.excluir_cultivo, {"cultivo": "cebada", "motivo": "sin_comprador"}),
+        "I want potato in the first season": (Intent.fijar_cultivo_campania, {"cultivo": "papa", "campania": 1}),
+        "I prefer to care about the soil": (Intent.cambiar_prioridad, {"prioridad": "suelo"}),
+    }
+    for texto, (intent, parametros) in casos.items():
+        r = interpretar_por_reglas(texto, cat)
+        assert r is not None and r.intent is intent and r.parametros == parametros, texto
+        assert not any(c in r.descripcion for c in "áéíóúñ") and "compare" in r.descripcion.lower(), texto
+    # El espanol sigue igual.
+    assert interpretar_por_reglas("no puedo vender cebada", cat).descripcion.startswith("Quitar")
+
+
+def test_consulta_en_ingles_no_entendida_responde_en_ingles(cliente, condiciones):
+    from tests.conftest import BASE
+
+    cmp_id = cliente.post(f"{BASE}/comparaciones", json=condiciones).json()["comparacion_id"]
+    r = cliente.post(f"{BASE}/consultas", json={"comparison_id": cmp_id, "message": "hello there"}).json()
+    assert r["status"] == "needs_clarification"
+    assert r["mensaje"].startswith("We did not understand") and r["sugerencias"][0].startswith("What if")

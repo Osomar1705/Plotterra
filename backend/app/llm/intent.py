@@ -26,6 +26,80 @@ SUGERENCIAS = [
     "no puedo vender cebada",
     "quiero papa en la primera campania",
 ]
+SUGERENCIAS_EN = [
+    "What if I have 30% less irrigation?",
+    "I can't sell barley",
+    "I want potato in the first season",
+]
+
+# El frontend de la v9 esta en ingles. Sin clave de LLM las consultas las
+# resuelve este interprete por reglas: se traducen las palabras clave al espanol
+# antes de aplicar las mismas reglas, y la descripcion vuelve en ingles.
+_CULTIVOS_EN = {
+    "potatoes": "papa", "potato": "papa", "quinoa": "quinua", "barley": "cebada",
+    "oats": "avena", "oat": "avena", "fava beans": "haba", "fava bean": "haba", "fava": "haba",
+    "broad beans": "haba", "broad bean": "haba", "beans": "haba", "lupin": "tarwi", "tarwi": "tarwi",
+}
+_NOMBRE_EN = {"papa": "potato", "quinua": "quinoa", "cebada": "barley", "avena": "oats", "haba": "fava bean", "tarwi": "tarwi"}
+_PRIORIDAD_EN = {"agua": "water", "suelo": "soil", "economia": "income"}
+_INGLES = [
+    (r"\bcan ?not sell\b|\bcan'?t sell\b|\bno buyer\b", "no puedo vender"),
+    (r"\bi don'?t want\b|\bi do not want\b", "no quiero"),
+    (r"\bwithout irrigation\b|\bno irrigation\b", "sin riego"),
+    (r"\bwithout\b|\bexclude\b|\bremove\b", "sin"),
+    (r"\bstart with\b|\bbegin with\b", "quiero inicio"),
+    (r"\bi want\b|\bi need\b|\bput\b", "quiero"),
+    (r"\bprefer\b|\bprioriti[sz]e\b|\bcare (more )?about\b|\bfocus on\b", "prefiero"),
+    (r"\birrigation\b|\birrigate\b|\bwatering\b", "riego"),
+    (r"\bwater\b", "agua"),
+    (r"\brainfall\b|\brains?\b|\braining\b", "lluvia"),
+    (r"\bdrought\b|\bdry year\b", "sequia"),
+    (r"\bselling prices?\b|\bprices?\b", "precio"),
+    (r"\bless\b|\blower\b|\bfewer\b|\bdrops?\b|\bfalls?\b|\bcuts?\b|\breduced?\b", "menos"),
+    (r"\bmore\b|\bhigher\b|\bincreases?d?\b|\brises?\b", "mas"),
+    (r"\bhalf\b", "mitad"),
+    (r"\bdouble\b", "doble"),
+    (r"\bfirst\b", "primera"), (r"\bsecond\b", "segunda"), (r"\bthird\b|\blast\b", "tercera"),
+    (r"\bsoil\b|\bland\b", "suelo"),
+    (r"\bmoney\b|\bincome\b|\bprofit\b|\bearnings?\b", "dinero"),
+]
+_SENAL_INGLES = re.compile(
+    r"\b(what|if|less|more|irrigation|rain|price|prices|without|want|potato|quinoa|barley|oats|"
+    r"bean|beans|fava|start|with|season|the|my|can'?t|have|lower|drop|drought|prefer|soil|water|"
+    r"hello|hi|help|how|why|which|safer|plan|show|explain)\b"
+)
+
+
+def es_ingles(texto: str) -> bool:
+    """Heuristica simple: la pregunta trae palabras en ingles y ninguna tilde ni enie."""
+    t = texto.lower()
+    return bool(_SENAL_INGLES.search(t)) and not re.search(r"[áéíóúñ¿¡]", t)
+
+
+def _traducir(texto: str) -> str:
+    t = texto.lower()
+    for en, es in sorted(_CULTIVOS_EN.items(), key=lambda kv: -len(kv[0])):
+        t = re.sub(rf"\b{en}\b", es, t)
+    for patron, es in _INGLES:
+        t = re.sub(patron, es, t)
+    return t
+
+
+def _descripcion_en(i: Interpretacion) -> str:
+    p = i.parametros
+    if "factor" in p:
+        pct = round(abs(1 - float(p["factor"])) * 100)
+        menos = float(p["factor"]) < 1
+        que = {Intent.ajustar_riego: "available irrigation", Intent.ajustar_lluvia: "rainfall",
+               Intent.ajustar_precio: "selling prices"}.get(i.intent, "it")
+        return f"{'Cut' if menos else 'Raise'} {que} by {pct}% and compare again"
+    if i.intent is Intent.excluir_cultivo:
+        return f"Remove {_NOMBRE_EN.get(p['cultivo'], p['cultivo'])} from the crops and compare again"
+    if i.intent is Intent.fijar_cultivo_campania:
+        return f"Put {_NOMBRE_EN.get(p['cultivo'], p['cultivo'])} in season {p['campania']} and compare again"
+    if i.intent is Intent.cambiar_prioridad:
+        return f"Compare again with {_PRIORIDAD_EN.get(p['prioridad'], p['prioridad'])} as the priority"
+    return i.descripcion
 
 _PRIORIDADES = {
     "agua": "agua",
@@ -67,6 +141,16 @@ def _factor_de(t: str) -> float | None:
 
 
 def interpretar_por_reglas(texto: str, catalogo: set[str]) -> Interpretacion | None:
+    """Acepta espanol o ingles; en ingles la descripcion vuelve en ingles."""
+    if es_ingles(texto):
+        resultado = _interpretar_es(_traducir(texto), catalogo)
+        if resultado is not None:
+            resultado = resultado.model_copy(update={"descripcion": _descripcion_en(resultado)})
+        return resultado
+    return _interpretar_es(texto, catalogo)
+
+
+def _interpretar_es(texto: str, catalogo: set[str]) -> Interpretacion | None:
     """Cubre los tres intents obligatorios mas cambiar_prioridad."""
     t = _normalizar(texto)
 

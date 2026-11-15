@@ -11,7 +11,7 @@ from fastapi import APIRouter
 from app.api.compat import normalizar_consulta, validar
 from app.api.errors import ErrorFieldShift
 from app.data.repository import REPO
-from app.llm.intent import SUGERENCIAS, interpretar
+from app.llm.intent import SUGERENCIAS, SUGERENCIAS_EN, es_ingles, interpretar
 from app.schemas.consultas import ConsultaCrear, RespuestaConsulta
 from app.schemas.errores import CodigoError
 
@@ -33,6 +33,7 @@ def crear_consulta(cuerpo: dict) -> RespuestaConsulta:
         )
 
     interpretacion, quien = interpretar(consulta.texto, set(REPO.fichas))
+    idioma = "en" if es_ingles(consulta.texto) else "es"
     if interpretacion is None:
         # CONSULTA_NO_ENTENDIDA va con 200: no es un error, y nunca se deja al
         # agricultor sin salida.
@@ -41,11 +42,13 @@ def crear_consulta(cuerpo: dict) -> RespuestaConsulta:
             aplicable=False,
             requiere_confirmacion=False,
             interpretado_por=quien,
-            sugerencias=SUGERENCIAS,
+            sugerencias=SUGERENCIAS_EN if idioma == "en" else SUGERENCIAS,
+            idioma=idioma,
         )
     return RespuestaConsulta(
         interpretacion=interpretacion,
         aplicable=True,
         requiere_confirmacion=True,
         interpretado_por=quien,
+        idioma=idioma,
     )

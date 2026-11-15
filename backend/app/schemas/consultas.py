@@ -58,6 +58,7 @@ class RespuestaConsulta(Base):
         default_factory=list,
         description="Tres salidas cuando no se entiende la pregunta; nunca se deja al agricultor sin salida.",
     )
+    idioma: str = Field(default="es", description="es o en: el de la pregunta, para responder igual.")
 
     # --- Alias para el asistente del frontend. Lee `status` y `cambio` en la
     # raiz; sin ellos daba "Reformular" aunque el backend hubiera entendido.
@@ -100,6 +101,8 @@ class RespuestaConsulta(Base):
         """Lo que el asistente muestra cuando no entendio."""
         if self.interpretacion:
             return self.interpretacion.descripcion
+        if self.idioma == "en":
+            return "We did not understand the question. Try one of these:"
         return "No entendimos la pregunta. Prueba con una de estas:"
 
 
