@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import './guided-tour.css';
 
 /**
@@ -151,7 +152,8 @@ export function GuidedTour({ open, onClose }: { open: boolean; onClose: () => vo
 
   if (!open) return null;
   const pad = 10;
-  return (
+  // Portal al body: asi ningun contenedor con transform o z-index de la pagina lo tapa.
+  return createPortal(
     <div className="tour" role="dialog" aria-modal="true" aria-labelledby="tour-title">
       {rect ? (
         <div className="tour-hole" style={{ left: rect.left - pad, top: rect.top - pad, width: rect.width + pad * 2, height: rect.height + pad * 2 }}>
@@ -167,9 +169,12 @@ export function GuidedTour({ open, onClose }: { open: boolean; onClose: () => vo
       <div className="tour-card" ref={cardRef} tabIndex={-1} style={pos}>
         <div className="tour-top">
           <span className="tour-count">{t.step} {i + 1} / {STEPS.length}</span>
+          <div className="tour-top-right">
           <div className="tour-lang" role="group" aria-label="Idioma / Language">
             <button type="button" className={lang === 'es' ? 'on' : ''} onClick={() => cambiarIdioma('es')}>ES</button>
             <button type="button" className={lang === 'en' ? 'on' : ''} onClick={() => cambiarIdioma('en')}>EN</button>
+          </div>
+          <button type="button" className="tour-close" onClick={cerrar} aria-label={t.skip} title={t.skip}>✕</button>
           </div>
         </div>
         <div className="tour-body">
@@ -191,9 +196,31 @@ export function GuidedTour({ open, onClose }: { open: boolean; onClose: () => vo
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
 /** true la primera vez que alguien abre la app en este navegador. */
 export function tourPendiente() { return leer(STORE) !== 'visto'; }
+
+/**
+ * Invitacion discreta (esquina de abajo) en vez de abrir la guia sola:
+ * quien ya sabe usar la app la descarta con un toque y no vuelve a salir.
+ */
+export function TourInvite({ onStart, onDismiss }: { onStart: () => void; onDismiss: () => void }) {
+  const es = (leer(STORE + '_lang') || (navigator.language?.startsWith('es') ? 'es' : 'en')) === 'es';
+  const no = () => { guardar(STORE, 'visto'); onDismiss(); };
+  return createPortal(
+    <div className="tour-invite" role="status">
+      <span className="tour-invite-icon" aria-hidden="true">👣</span>
+      <div className="tour-invite-text">
+        <strong>{es ? '¿Primera vez aquí?' : 'First time here?'}</strong>
+        <span>{es ? 'Te guiamos paso a paso.' : 'We can guide you step by step.'}</span>
+      </div>
+      <button type="button" className="primary-btn" onClick={onStart}>{es ? 'Guíame' : 'Guide me'}</button>
+      <button type="button" className="tour-invite-no" onClick={no} aria-label={es ? 'No, gracias' : 'No, thanks'}>{es ? 'No, gracias' : 'No, thanks'}</button>
+    </div>,
+    document.body,
+  );
+}

@@ -11,7 +11,7 @@ import { CropIllustration } from './CropIllustration';
 import { SoftReveal } from '../motion/SoftReveal';
 import { Photo } from './Photo';
 import { BrandLogo } from './BrandLogo';
-import { GuidedTour, tourPendiente } from './onboarding/GuidedTour';
+import { GuidedTour, TourInvite, tourPendiente } from './onboarding/GuidedTour';
 import { cropName } from '../lib/uiCopy';
 import { checkPolygon, formatHa } from '../lib/plotGeometry';
 import { DEMO_PLOT_LOCALITY, DEMO_PLOT_POINTS } from '../lib/demoPlot';
@@ -50,7 +50,8 @@ export function EntryPage() {
   const {setPage,setParcel}=useGuide();
   useEffect(()=>{setPage('parcel')},[setPage]);
   // --- parcela ---
-  const [tourOpen, setTourOpen] = useState(() => tourPendiente());
+  const [tourOpen, setTourOpen] = useState(false);
+  const [tourInvite, setTourInvite] = useState(() => tourPendiente());
   const [points, setPointsState] = useState<PlotPoint[]>([]);
   // Espejo sincrono de los puntos: varios clics seguidos llegan antes de que React
   // vuelva a renderizar, y leer el estado directamente perderia puntos.
@@ -202,7 +203,7 @@ export function EntryPage() {
             <span className="entry-kicker">Plan a better crop rotation for your plot</span>
             <h1>Plan your next planting</h1>
             <p>Enter your plot and farming conditions to compare income, water and soil options.</p>
-            <button type="button" className="tour-open-btn" onClick={() => setTourOpen(true)}>👣 Step-by-step guide · Paso a paso</button>
+            <button type="button" className="tour-open-btn" onClick={() => { setTourInvite(false); setTourOpen(true); }}>👣 Step-by-step guide · Paso a paso</button>
           </div>
           {hasPlot && (
             <div className="parcel-meta">
@@ -383,7 +384,8 @@ export function EntryPage() {
           </SoftReveal>
         </div>
       </main>
-      <GuidedTour open={tourOpen} onClose={() => setTourOpen(false)} />
+      {tourInvite && !tourOpen && <TourInvite onStart={() => { setTourInvite(false); setTourOpen(true); }} onDismiss={() => setTourInvite(false)} />}
+      <GuidedTour open={tourOpen} onClose={() => { setTourOpen(false); setTourInvite(false); }} />
 
     </div>
   );
