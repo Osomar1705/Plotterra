@@ -16,13 +16,14 @@ const meta: Record<AlternativeType, { subtitle:string; explanation:string; Icon:
 };
 
 const fmtMm=(n:number)=>Math.round(n).toLocaleString('en-US');
-/** Mediana = anio tipico; p90 = anio seco. Un "0 mm" solo no dice nada al agricultor. */
-function waterNote(a:Alternative){
- const {value,dryYear}=a.water;
- if(dryYear===undefined)return 'Typical year · whole plan';
- if(Math.round(dryYear)<=0)return 'Rain and your irrigation cover it, even in a dry year';
- if(Math.round(value)<=0)return `None in a typical year · ${fmtMm(dryYear)} mm in a dry year`;
- return `Typical year · ${fmtMm(dryYear)} mm in a dry year`;
+/** Deficit: mediana = anio tipico, p90 = anio seco. Va como texto, no como cifra
+ *  principal: con riego suele ser 0 en las tres opciones y no las distingue. */
+function shortfallNote(a:Alternative){
+ const {value,dryYear}=a.water, typ=Math.round(value);
+ const typical=typ<=0?'No shortfall in a typical year':`${fmtMm(typ)} mm short in a typical year`;
+ if(dryYear===undefined)return typical;
+ if(Math.round(dryYear)<=0)return typ<=0?'No shortfall, even in a dry year':typical;
+ return `${typical} · ${fmtMm(dryYear)} mm short in a dry year`;
 }
 
 export function AlternativeCard({alternative,priority,onOpenPlan,index=0}:{
@@ -40,7 +41,9 @@ export function AlternativeCard({alternative,priority,onOpenPlan,index=0}:{
    </ol>
    <div className="oc-main-metrics">
     <div><span><CoinsIcon size={16}/> Estimated margin</span><strong>{s?.mean!==undefined?signedMoney(s.mean):`${displayMoney(alternative.margin.min,alternative.margin.currency)}–${displayMoney(alternative.margin.max,alternative.margin.currency)}`}</strong><small>{s?.mean!==undefined?'Average · per ha':'Estimate · per ha'}</small></div>
-    <div><span><WaterIcon size={16}/> {waterLabel(alternative)}</span><strong>{fmtMm(alternative.water.value)} <small>{alternative.water.unit}</small></strong><small>{waterNote(alternative)}</small>{alternative.water.demand!==undefined&&<small className="oc-water-need">Crops need {fmtMm(alternative.water.demand)} mm in {alternative.campaigns.length} seasons</small>}</div>
+    {alternative.water.demand!==undefined
+     ? <div><span><WaterIcon size={16}/> Water the plan needs</span><strong>{fmtMm(alternative.water.demand)} <small>mm · {alternative.campaigns.length} seasons</small></strong><small>{shortfallNote(alternative)}</small></div>
+     : <div><span><WaterIcon size={16}/> {waterLabel(alternative)}</span><strong>{fmtMm(alternative.water.value)} <small>{alternative.water.unit}</small></strong><small>{shortfallNote(alternative)}</small></div>}
    </div>
    <div className="oc-actions oc-actions--only"><button className="oc-plan-btn" onClick={()=>onOpenPlan(alternative.id)}>View this plan →</button></div>
  </motion.article>;
