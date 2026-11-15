@@ -175,12 +175,12 @@ export function GuideDrawer(){
  const empty=turns.length===0&&!busy;
 
  return <>
-  {!open && <button ref={launcher} className="guide-launcher" onClick={()=>setOpen(true)} aria-label="Open FieldShift guide"><span className="guide-launcher-mark"><SproutIcon size={23}/></span><span>Questions? Ask me</span></button>}
-  {open&&<><div className="guide-backdrop" onClick={close}/><aside className="guide-drawer" role="dialog" aria-modal="true" aria-label="FieldShift guide">
+  {!open && <button ref={launcher} className="guide-launcher" onClick={()=>setOpen(true)} aria-label="Open Plotterra guide"><span className="guide-launcher-mark"><SproutIcon size={23}/></span><span>Questions? Ask me</span></button>}
+  {open&&<><div className="guide-backdrop" onClick={close}/><aside className="guide-drawer" role="dialog" aria-modal="true" aria-label="Plotterra guide">
    <span className="guide-grabber" aria-hidden="true"/>
-   <header className="guide-header"><div className="guide-identity"><span className="guide-leaf"><SproutIcon size={22}/><i className={aiOffline?'off':''}/></span><span><strong>FieldShift guide</strong><small>AI assistant · {isDemo?'demo mode':aiOffline?'AI not connected':'uses your current results'}</small></span></div><div className="guide-header-actions">{turns.length>0&&<button onClick={reset} title="New conversation" aria-label="New conversation">↺</button>}<button onClick={close} title="Close" aria-label="Close assistant"><CloseIcon size={21}/></button></div></header>
+   <header className="guide-header"><div className="guide-identity"><span className="guide-leaf"><SproutIcon size={22}/><i className={aiOffline?'off':''}/></span><span><strong>Plotterra guide</strong><small>AI assistant · {isDemo?'demo mode':aiOffline?'AI not connected':'uses your current results'}</small></span></div><div className="guide-header-actions">{turns.length>0&&<button onClick={reset} title="New conversation" aria-label="New conversation">↺</button>}<button onClick={close} title="Close" aria-label="Close assistant"><CloseIcon size={21}/></button></div></header>
    <div className="guide-context" title="The guide uses results from this screen"><span className="guide-context-tag">{context.page==='parcel'?'PLOT':context.page==='comparison'?'OPTIONS':'PLAN'}</span><span>Viewing: {contextLabel}</span></div>
-   {aiOffline&&<div className="guide-demo-note guide-ai-warning">AI is not connected: {aiHealth?.message??'start the AI server.'} The rest of FieldShift still works.</div>}
+   {aiOffline&&<div className="guide-demo-note guide-ai-warning">AI is not connected: {aiHealth?.message??'start the AI server.'} The rest of Plotterra still works.</div>}
    {!isDemo&&!aiOffline&&isUsingMocks()&&<div className="guide-demo-note guide-ai-sample">These figures are demonstration data.</div>}
 
    <div className="guide-messages" aria-live="polite">
@@ -221,7 +221,7 @@ export function GuideDrawer(){
 
    {!empty&&!busy&&!pending&&!simulating&&chips.length>0&&<div className="guide-suggestions" aria-label="Suggested questions">{chips.map(s=><button key={s} onClick={()=>void ask(s)}>{s}</button>)}</div>}
    <form className="guide-compose" onSubmit={submit}>
-    <input ref={input} value={draft} onChange={e=>setDraft(e.target.value)} disabled={busy||simulating} placeholder={listening?'Listening…':'Type or dictate a question…'} aria-label="Question for the FieldShift guide"/>
+    <input ref={input} value={draft} onChange={e=>setDraft(e.target.value)} disabled={busy||simulating} placeholder={listening?'Listening…':'Type or dictate a question…'} aria-label="Question for the Plotterra guide"/>
     {SpeechCtor&&<button type="button" className={`guide-mic ${listening?'on':''}`} onClick={dictate} disabled={busy||simulating} aria-label={listening?'Stop listening':'Dictate question'} aria-pressed={listening}>🎙</button>}
     <button type="submit" disabled={busy||simulating||!draft.trim()} aria-label="Send question"><ChatIcon size={19}/></button>
    </form>

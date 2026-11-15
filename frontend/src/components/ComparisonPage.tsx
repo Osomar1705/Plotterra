@@ -7,7 +7,8 @@ import type { AppliedChange, Comparison, EntryConditions, FieldShiftApiError } f
 import { applyChange, createComparison, getComparison, undoChange } from '../api/fieldshiftApi';
 import { readEntryConditions, readQueryContext } from '../integration/entryContext';
 import { AlternativeCard } from './AlternativeCard';
-import { LeafIcon, PinIcon } from './Icons';
+import { PinIcon } from './Icons';
+import { BrandLogo } from './BrandLogo';
 import { SimulationReveal } from './futures/SimulationReveal';
 import { optionName } from '../lib/uiCopy';
 import './futures/futures.css';
@@ -76,7 +77,7 @@ export function ComparisonPage(){
  }
  if(!loading&&!comparison)return <div className="page-center error-state"><h2>We couldn't load your options</h2><p>{error?.farmerMessage??'Please try again.'}</p></div>;
  return <div className="app-shell">
-  <header className="topbar"><a className="brand" href="/"><LeafIcon/>FieldShift</a><nav className="steps"><a href="/">1&nbsp; Plot</a><strong>2&nbsp; Options</strong><span>3&nbsp; Plan</span></nav></header>
+  <header className="topbar"><BrandLogo/><nav className="steps"><a href="/">1&nbsp; Plot</a><strong>2&nbsp; Options</strong><span>3&nbsp; Plan</span></nav></header>
   {comparison&&<main className="comparison-page comparison-page--simple">
    <motion.section className="cmp-hero cmp-hero--photo" initial={{opacity:0,y:8}} animate={{opacity:1,y:0}}>
     <Photo k="andenes" eager/>
