@@ -21,6 +21,8 @@ interface Props {
   /** closesShape = el toque cayo sobre el primer punto y cierra el contorno. */
   onAddPoint: (p: PlotPoint, closesShape?: boolean) => void;
   onReplacePoints: (points: PlotPoint[], closed: boolean) => void;
+  /** Sube cada vez que la pagina pide volver a dibujar (p. ej. desde "I prefer to draw it"). */
+  drawRequest?: number;
   onStartDraw: () => void;
   onUndoPoint: () => void;
   onClear: () => void;
@@ -113,6 +115,15 @@ export function PlotMap(props: Props) {
       mapRef.current = null;
     };
   }, []);
+
+  // El modo del mapa es estado interno: sin esto, pedir dibujar desde fuera
+  // dejaba la herramienta en 'move' y tocar el mapa no ponia esquinas.
+  useEffect(() => {
+    if (!props.drawRequest) return;
+    setTool('draw'); setNotice(null);
+    // El aviso de horas viene debajo del mapa: se sube para que se vea donde dibujar.
+    container.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [props.drawRequest]);
 
   useEffect(() => {
     drawingRef.current?.setEnabled(activeDraw);
