@@ -1,11 +1,11 @@
 import { useState } from 'react';
+import { motion } from 'motion/react';
+import { usePhotoDepth } from '../motion/usePhotoDepth';
+import { SOFT_EASE } from '../motion/policy';
 import { AndeanLandscape } from './CropIllustration';
 
-/**
- * Fotos reales de Wikimedia Commons, cargadas por el navegador del usuario (hotlink a Special:FilePath).
- * Siempre con crédito y enlace a la página del archivo (allí está su licencia).
- * Si la imagen no carga (sin internet, bloqueo de red), se muestra la ilustración propia.
- * ANTES DE PUBLICAR: revisar la licencia de cada archivo en su enlace `page`.
+/** Existing Wikimedia photographs, with a bundled copy of the header image.
+ * Credits stay outside the moving plane; unavailable images retain the illustration.
  */
 export type PhotoKey = 'andenes' | 'quinua' | 'papa';
 
@@ -16,22 +16,29 @@ export const PHOTOS: Record<PhotoKey, { file: string; author: string; caption: s
   papa: { file: 'Variedades_de_papa_cosechados_de_una_sola_chacra_en_Llullucha.jpg', author: 'Carlo Brescia', caption: 'Variedades de papa de una sola chacra, Llullucha', position: 'center' },
 };
 
-export const photoUrl = (k: PhotoKey, width = 1600) => `${COMMONS}Special:FilePath/${PHOTOS[k].file}?width=${width}`;
+export const photoUrl = (k: PhotoKey, width = 1600) => k === 'andenes' ? `${import.meta.env.BASE_URL}media/andenes-colca-1280.jpg` : `${COMMONS}Special:FilePath/${PHOTOS[k].file}?width=${width}`;
 export const photoPage = (k: PhotoKey) => `${COMMONS}File:${PHOTOS[k].file}`;
 
-export function Photo({ k, className, width = 1600, credit = true, kenBurns = true, eager = false }: {
+type PhotoProps = {
   k: PhotoKey; className?: string; width?: number; credit?: boolean; kenBurns?: boolean;
   /** Para fotos de cabecera: con lazy el navegador puede no pedirla nunca y queda el dibujo. */
   eager?: boolean;
-}) {
+};
+export function Photo(props: PhotoProps) { return <PhotoScene key={props.k} {...props}/>; }
+function PhotoScene({ k, className, width = 1600, credit = true, kenBurns = true, eager = false }: PhotoProps) {
+  const depth = usePhotoDepth();
   const [state, setState] = useState<'loading' | 'ok' | 'error'>('loading');
   const p = PHOTOS[k];
-  return <div className={`photo ${className ?? ''} photo--${state}`}>
+  return <div ref={depth.ref} className={`photo photo--depth ${className ?? ''} photo--${state}`}>
+    <motion.div className="photo-plane" style={{x:depth.x,y:depth.y,rotateX:depth.rotateX,rotateY:depth.rotateY,transformPerspective:1100,scale:depth.reduced?1:1.055}}>
     <AndeanLandscape className="photo-fallback" />
-    {state !== 'error' && <img src={photoUrl(k, width)} alt={p.caption} loading={eager ? 'eager' : 'lazy'} decoding="async"
-      className={kenBurns ? 'photo-img photo-img--kb' : 'photo-img'} style={{ objectPosition: p.position }}
+    {state !== 'error' && <motion.img src={photoUrl(k, width)} alt={p.caption} loading={eager ? 'eager' : 'lazy'} decoding="async"
+      className="photo-img" style={{ objectPosition: p.position }}
+      initial={{opacity:0,scale:depth.reduced?1:kenBurns?1.035:1.015}} animate={{opacity:state==='ok'?1:0,scale:1}}
+      transition={{duration:depth.reduced?0:0.85,ease:SOFT_EASE}}
       onLoad={() => setState('ok')} onError={() => setState('error')} />}
-    {credit && state === 'ok' && <a className="photo-credit" href={photoPage(k)} target="_blank" rel="noreferrer">
+    </motion.div>
+    {credit && state === 'ok' && <a className="photo-credit" href={photoPage(k)} target="_blank" rel="noreferrer" title={k==='andenes'?'Jospastor · CC BY-SA 4.0 · Displayed with animated perspective':undefined}>
       {p.caption} · Foto: {p.author} · Wikimedia Commons</a>}
   </div>;
 }

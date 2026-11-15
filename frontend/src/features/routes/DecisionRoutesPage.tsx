@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { SoftReveal } from '../../motion/SoftReveal';
+import { SELECTION_SPRING } from '../../motion/policy';
 import { useGuide } from '../../assistant/GuideProvider';
 import { readEntryConditions } from '../../integration/entryContext';
 import type { Alternative, Campaign, Comparison, FieldShiftApiError } from '../../types/fieldshift';
@@ -82,7 +84,7 @@ export function DecisionRoutesPage({comparisonId,alternativeId}:{comparisonId:st
   <header className="topbar"><BrandLogo/><nav className="steps"><a href="/">1&nbsp; Plot</a><a href={optionsHref}>2&nbsp; Options</a><strong>3&nbsp; Plan</strong></nav></header>
   <main className="p8">
    <div className="p8-grid">
-    <div className="p8-left">
+    <SoftReveal className="p8-left">
     <section className={`pv-card p8-plan p8-plan--${selected.type}`} aria-labelledby="plan-name">
      <div className="p8-head">
       <div><a href={optionsHref} className="pv-back">← Options</a>
@@ -97,6 +99,7 @@ export function DecisionRoutesPage({comparisonId,alternativeId}:{comparisonId:st
      <ol className="p8-seasons" aria-label="Planting schedule">
       {camps.map((k,i)=><li key={`${k.crop}-${i}`}>
        <button type="button" className={`p8-season ${selectedCrop===i?'is-on':''}`} aria-pressed={selectedCrop===i} onClick={()=>setSelectedCrop(i)}>
+        {selectedCrop===i&&<motion.span aria-hidden="true" className="p8-season-selection" layoutId="season-selection" transition={SELECTION_SPRING}/>}
         <CropIllustration crop={k.cropId??k.crop} size={40} framed/>
         <span className="p8-season__txt"><small>Season {i+1}</small><strong>{cropName(k.crop)}</strong>
          <em>{shortDate(k.sowingDate,k.window)} <b aria-hidden="true">→</b> {shortDate(k.harvestDate,k.endMonth)}</em></span>
@@ -105,7 +108,7 @@ export function DecisionRoutesPage({comparisonId,alternativeId}:{comparisonId:st
      </ol>
 
      <AnimatePresence mode="wait">
-      <motion.div key={selectedCrop} className="p8-why" initial={{opacity:0,y:6}} animate={{opacity:1,y:0}} exit={{opacity:0}} transition={{duration:.18}}>
+      <motion.div key={selectedCrop} className="p8-why" initial={{opacity:0,y:4}} animate={{opacity:1,y:0}} exit={{opacity:0}} transition={{duration:.2}}>
        <div className="p8-why__title"><span>Why {cropName(c.crop)} here?</span><button type="button" onClick={()=>openGuide(`Why is ${cropName(c.crop)} in season ${selectedCrop+1} of this plan? Use only the data available.`)}><LeafIcon size={15}/> Ask the guide</button></div>
        <ul>
         <li>{position}</li>
@@ -121,7 +124,7 @@ export function DecisionRoutesPage({comparisonId,alternativeId}:{comparisonId:st
      </AnimatePresence>
     </section>
     <PlanRisk comparison={comparison} alternative={selected}><PlanEvidence comparison={comparison} alternative={selected}/></PlanRisk>
-    </div>
+    </SoftReveal>
     <ScenarioBreakdown comparison={comparison} alternative={selected}/>
    </div>
   </main>

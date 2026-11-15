@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
+import { SOFT_EASE } from '../motion/policy';
 import type { Alternative, AlternativeType } from '../types/fieldshift';
 import { CoinsIcon, SproutIcon, WaterIcon } from './Icons';
 import { CropIllustration } from './CropIllustration';
@@ -17,9 +18,10 @@ const meta: Record<AlternativeType, { subtitle:string; explanation:string; Icon:
 export function AlternativeCard({alternative,priority,onOpenPlan,index=0}:{
  alternative:Alternative;priority:boolean;onOpenPlan:(id:string)=>void;index?:number;
 }){
+ const reduced=useReducedMotion();
  const m=meta[alternative.type],Icon=m.Icon,s=alternative.outcomes?summarize(alternative.outcomes):null;
  return <motion.article className={`oc oc--${alternative.type} ${priority?'oc--priority':''}`} style={{'--accent':`var(--${alternative.type})`} as CSSProperties}
-  initial={{opacity:0,y:14}} animate={{opacity:1,y:0}} transition={{delay:index*.08,duration:.35}}>
+  initial={{opacity:reduced?1:0,y:reduced?0:10}} whileInView={{opacity:1,y:0}} viewport={{once:true,amount:0.08}} transition={{delay:reduced?0:index*.055,duration:reduced?0:.48,ease:SOFT_EASE}}>
    <header className="oc-head"><span className="oc-icon"><Icon size={24}/></span><div><h2>{optionName[alternative.type]}</h2><p>{m.subtitle}</p></div>{priority&&<span className="oc-badge">Your priority</span>}</header>
    <p className="oc-summary">{m.explanation}</p>
    <div className="oc-sequence-label">Planting order</div>

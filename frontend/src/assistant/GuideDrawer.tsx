@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import type { AppliedChange, Comparison } from '../types/fieldshift';
 import { ChatIcon, CloseIcon, LeafIcon, SparkIcon, SproutIcon, WaterIcon } from '../components/Icons';
@@ -191,7 +192,11 @@ export function GuideDrawer(){
 
  return <>
   {!open && <button ref={launcher} className="guide-launcher" onClick={()=>setOpen(true)} aria-label="Open Plotterra guide"><span className="guide-launcher-mark"><SproutIcon size={23}/></span><span>Questions? Ask me</span></button>}
-  {open&&<><div className="guide-backdrop" onClick={close}/><aside className="guide-drawer" role="dialog" aria-modal="true" aria-label="Plotterra guide">
+  <AnimatePresence initial={false}>
+  {/* pointerEvents en exit: si la salida no se anima (pestana oculta) el fondo no debe seguir tapando la pagina */}
+  {open&&<motion.div key="guide-shade" className="guide-backdrop" onClick={close} initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0,pointerEvents:'none'}} transition={{duration:.2}}/>}
+  {open&&<motion.aside key="guide-panel" className="guide-drawer" role="dialog" aria-modal="true" aria-label="Plotterra guide"
+   initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:6,pointerEvents:'none'}} transition={{duration:.26}}>
    <span className="guide-grabber" aria-hidden="true"/>
    <header className="guide-header"><div className="guide-identity"><span className="guide-leaf"><SproutIcon size={22}/><i className={aiOffline?'off':''}/></span><span><strong>Plotterra guide</strong><small>AI assistant · {isDemo?'demo mode':aiOffline?'AI not connected':'uses your current results'}</small></span></div><div className="guide-header-actions">{turns.length>0&&<button onClick={reset} title="New conversation" aria-label="New conversation">↺</button>}<button onClick={close} title="Close" aria-label="Close assistant"><CloseIcon size={21}/></button></div></header>
    <div className="guide-context" title="The guide uses results from this screen"><span className="guide-context-tag">{context.page==='parcel'?'PLOT':context.page==='comparison'?'OPTIONS':'PLAN'}</span><span>Viewing: {contextLabel}</span></div>
@@ -240,6 +245,7 @@ export function GuideDrawer(){
     {SpeechCtor&&<button type="button" className={`guide-mic ${listening?'on':''}`} onClick={dictate} disabled={busy||simulating} aria-label={listening?'Stop listening':'Dictate question'} aria-pressed={listening}>🎙</button>}
     <button type="submit" disabled={busy||simulating||!draft.trim()} aria-label="Send question"><ChatIcon size={19}/></button>
    </form>
-  </aside></>}
+  </motion.aside>}
+  </AnimatePresence>
  </>;
 }

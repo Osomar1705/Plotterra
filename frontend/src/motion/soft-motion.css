@@ -1,0 +1,62 @@
+:root{--motion-ease:cubic-bezier(.22,1,.36,1);--motion-fast:180ms;--motion-settle:360ms}
+.motion-page{min-height:100svh}
+.photo--depth{perspective:1100px;isolation:isolate}
+.photo--depth .photo-plane{position:absolute;inset:-14px;transform-origin:50% 55%;backface-visibility:hidden}
+.photo--depth .photo-img{transition:none;animation:none}
+.photo--depth .photo-fallback{transition:opacity 600ms var(--motion-ease)}
+/* Static content sits above the camera plane and never follows the cursor. */
+.photo--depth .photo-credit{transition:background-color var(--motion-fast) ease}
+.motion-page :is(.primary-btn,.ghost-btn,.tool,.map-chip,.map-search-btn,.seg,.priority-card,.chip,.oc-plan-btn,.p8-season,.sb-info,.p8-why__title button),
+.guide-launcher,.guide-drawer button{
+ transition:background-color var(--motion-fast) ease,border-color var(--motion-fast) ease,color var(--motion-fast) ease,translate var(--motion-settle) var(--motion-ease),scale 220ms var(--motion-ease),box-shadow var(--motion-settle) var(--motion-ease)
+}
+.motion-page :is(.primary-btn,.oc-plan-btn,.ghost-btn,.tool,.map-chip,.seg,.priority-card,.chip,.p8-season):active:not(:disabled),
+.guide-launcher:active,.guide-drawer button:active:not(:disabled){scale:.985;translate:0 0}
+.motion-page :is(.field input,.field select,.map-search){transition:border-color 180ms ease,box-shadow 240ms var(--motion-ease)}
+.motion-page :is(button,input,select,a,summary):focus-visible{outline-offset:3px}
+.motion-page .oc{transition:translate 420ms var(--motion-ease),box-shadow 420ms var(--motion-ease)}
+.motion-page .oc-icon{transition:rotate 400ms var(--motion-ease),translate 400ms var(--motion-ease)}
+.motion-page .p8-season{position:relative;isolation:isolate;transform:none}
+.motion-page .p8-season.is-on{border-color:transparent;box-shadow:none}
+.motion-page .p8-season>.p8-season-selection{position:absolute;inset:-1px;z-index:0;pointer-events:none;border:1.5px solid #087b65;border-radius:inherit;background:#edf7f1;box-shadow:0 4px 12px #087b6510}
+.motion-page .p8-season>:is(svg,.p8-season__txt){position:relative;z-index:1}
+.motion-page .p8-season:hover{transform:none}
+.motion-page .p8-seasons li+li::before{transform-origin:left;animation:soft-connector 480ms var(--motion-ease) both}
+.motion-page .p8-seasons li:nth-child(3)::before{animation-delay:70ms}
+@keyframes soft-connector{from{opacity:0;transform:scaleX(.6)}to{opacity:1;transform:scaleX(1)}}
+.sr-grid{perspective:1000px}
+.sr-grid-plane{transform-origin:50% 55%}
+.sr-grid.is-waiting .fg-cell{animation:none}
+.sr-grid.is-waiting{animation:soft-wait 2400ms ease-in-out infinite}
+@keyframes soft-wait{0%,100%{opacity:.6}50%{opacity:.9}}
+.fg-cell{transition:transform 220ms var(--motion-ease)}
+.fg-cell rect:first-child{transition:fill 280ms ease,stroke-width 180ms ease;transition-delay:var(--cell-delay,0ms)}
+.fg-cell.is-active rect:first-child{transition-delay:0ms}
+.guide-backdrop,.guide-drawer{animation:none}
+.guide-drawer{overscroll-behavior:contain}
+.guide-turn,.guide-result,.guide-confirm{animation-duration:320ms;animation-timing-function:var(--motion-ease)}
+.guide-launcher:hover{transform:none}
+/* No fixed heights or JS interception: browsers without support keep native details. */
+@supports (interpolate-size:allow-keywords) and selector(::details-content){
+ .motion-page .p8-data{interpolate-size:allow-keywords}
+ .motion-page .p8-data::details-content{height:0;overflow:clip;opacity:0;transition:height 320ms var(--motion-ease),opacity 220ms ease,content-visibility 320ms allow-discrete}
+ .motion-page .p8-data[open]::details-content{height:auto;opacity:1}
+}
+@media(hover:hover) and (pointer:fine){
+ .motion-page :is(.primary-btn,.oc-plan-btn,.ghost-btn,.map-chip,.tool):hover:not(:disabled){translate:0 -1px}
+ .motion-page .oc:hover{translate:0 -2px;box-shadow:0 14px 34px #0b364410}
+ .motion-page .oc:hover .oc-icon{rotate:-3deg;translate:0 -1px}
+ .motion-page .p8-season:hover{translate:0 -1px}
+ .guide-launcher:hover{translate:0 -2px}
+}
+@media(hover:none),(pointer:coarse){
+ .motion-page .oc:hover,.motion-page .p8-season:hover,.motion-page .oc-plan-btn:hover,.guide-launcher:hover{transform:none;translate:0 0}
+ .motion-page .photo-plane{backface-visibility:visible}
+}
+@media(prefers-reduced-motion:reduce){
+ .motion-page *,.motion-page *::before,.motion-page *::after,
+ .guide-launcher,.guide-drawer,.guide-backdrop,.guide-drawer *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+ .photo--depth .photo-plane,.sr-grid-plane{transform:none!important}
+ .motion-page .oc,.motion-page button,.guide-launcher{translate:0 0!important;scale:1!important}
+ .fg-cell{transform:none!important}
+}
