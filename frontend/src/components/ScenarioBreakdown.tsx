@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { motion } from 'motion/react';
+import { SoftReveal } from '../motion/SoftReveal';
+import { SOFT_EASE } from '../motion/policy';
 import type { Alternative, Comparison, ScenarioFamily } from '../types/fieldshift';
 import { FuturesGrid } from './futures/FuturesGrid';
 import { FAMILY_ORDER, signedMoney, scenarioLabel, FAMILY_LABEL } from './futures/futuresModel';
@@ -28,7 +31,7 @@ export function ScenarioBreakdown({ comparison, alternative }: { comparison: Com
   const ranks = alternative.outcomes?.rankByScenario;
   const byRank = ranks?.length === values.length;
   const best = alternative.outcomes?.best;
-  return <aside className="pv-card sb" aria-labelledby="sb-title">
+  return <motion.aside initial={{opacity:0}} animate={{opacity:1}} transition={{duration:.38,ease:SOFT_EASE}} className="pv-card sb" aria-labelledby="sb-title">
     <header className="sb-head">
       <div><h2 id="sb-title">How it holds up</h2><p>{byRank
         ? 'Each square is one model test, compared with the other two plans in that same test. Not real-world probabilities.'
@@ -47,17 +50,17 @@ export function ScenarioBreakdown({ comparison, alternative }: { comparison: Com
         const sub = idx.map(i=>values[i]); const pos = sub.filter(v=>v>0).length;
         const subRanks = byRank ? idx.map(i=>ranks![i]) : undefined;
         const top = subRanks ? subRanks.filter(r=>r===0).length : pos;
-        return <div className="sb-row" key={f}>
+        return <SoftReveal className="sb-row" key={f}>
           <div className="sb-row__top"><strong>{FAMILY_LABEL[f]}</strong><span title={byRank?'Tests where this plan is the best of the three':'Tests with gain'}>{top}/{idx.length}</span>
             <button type="button" className="sb-info" aria-label={`Explain: ${FAMILY_LABEL[f]}`} aria-expanded={help===f} onClick={()=>setHelp(h=>h===f?null:f)}><InfoIcon size={14}/></button></div>
           {help===f && <p className="sb-help">{HELP[f]}</p>}
           <FuturesGrid values={sub} ranks={subRanks} scaleValues={values} scenarios={idx.map(i=>meta![i])} size="full" order="value" cellPx={17}
             onHoverIndex={i=>setSel(i===null?null:idx[i])} ariaLabel={`${FAMILY_LABEL[f]}: ${pos} of ${idx.length} tests with gain`}/>
-        </div>;
+        </SoftReveal>;
       })}
     </div> : <FuturesGrid values={values} ranks={byRank?ranks:undefined} size="full" order="value" cellPx={17} onHoverIndex={setSel} ariaLabel={`${wins} of ${values.length} tests show a gain`}/>}
     <p className="sb-read" role="status" aria-live="polite">{sel!==null&&values[sel]!==undefined
       ? <><strong>{signedMoney(values[sel])}</strong> per ha · {scenarioLabel(sel, meta)}{byRank && <> · {values[sel]<0?'loses money':ranks![sel]===0?'best of the three':ranks![sel]===1?'second of three':'earns the least'}</>}</>
       : <span>Hover or tap a square to see that exact case.</span>}</p>
-  </aside>;
+  </motion.aside>;
 }

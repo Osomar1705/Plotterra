@@ -1,3 +1,5 @@
+import { motion, useReducedMotion } from 'motion/react';
+import { SOFT_EASE } from '../motion/policy';
 import type { ReactNode } from 'react';
 import type { Alternative, Comparison, ScenarioFamily } from '../types/fieldshift';
 import { FAMILY_LABEL, FAMILY_ORDER, signedMoney } from './futures/futuresModel';
@@ -6,6 +8,7 @@ const avg=(xs:number[])=>xs.length?xs.reduce((a,b)=>a+b,0)/xs.length:0;
 
 /** "What hurts this plan most?" + money range. Everything is computed from the same 100 outcomes shown as squares. */
 export function PlanRisk({comparison,alternative,children}:{comparison:Comparison;alternative:Alternative;children?:ReactNode}){
+  const reduced=useReducedMotion();
   const v=alternative.outcomes?.marginByScenario;const meta=comparison.scenarios;
   if(!v?.length||!meta||meta.length!==v.length)return null;
   const mean=(f:ScenarioFamily)=>avg(v.filter((_,i)=>meta[i].family===f));
@@ -21,9 +24,11 @@ export function PlanRisk({comparison,alternative,children}:{comparison:Compariso
     <h2 id="pr-title">What hurts this plan most?</h2>
     <p className="pr-sub">Change in average margin versus typical conditions ({signedMoney(typical)} per ha), for the same plan.</p>
     <ul className="pr-bars">
-      {[...rows].sort((a,b)=>a.delta-b.delta).map(({f,delta})=><li key={f}>
+      {[...rows].sort((a,b)=>a.delta-b.delta).map(({f,delta},index)=><li key={f}>
         <span className="pr-name">{FAMILY_LABEL[f]}</span>
-        <span className="pr-track" aria-hidden="true"><i className={delta<0?'neg':'pos'} style={{width:`${Math.abs(delta)/maxAbs*100}%`}}/></span>
+        <span className="pr-track" aria-hidden="true"><motion.i className={delta<0?'neg':'pos'} style={{width:`${Math.abs(delta)/maxAbs*100}%`,originX:0}}
+         initial={{scaleX:reduced?1:0.55,opacity:reduced?1:0.55}} whileInView={{scaleX:1,opacity:1}} viewport={{once:true,amount:0.2}}
+         transition={{duration:reduced?0:.55,delay:reduced?0:index*.04,ease:SOFT_EASE}}/></span>
         <strong>{delta>0?'+':''}{signedMoney(delta)}</strong>
       </li>)}
     </ul>

@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react';
+import { useId, useMemo, useState, type CSSProperties } from 'react';
 import { motion } from 'motion/react';
 import type { ScenarioMeta } from '../../types/fieldshift';
 import { FAMILY_LABEL, FAMILY_ORDER, scenarioLabel, signedMoney, toneScale } from './futuresModel';
@@ -84,7 +84,7 @@ export function FuturesGrid({
               const delay = revealed ? (seq++) * staggerMs : 0;
               const isActive = active === i;
               return <g key={i} className={`fg-cell fg-${t} ${isActive ? 'is-active' : ''}`}
-                        style={{ transitionDelay: `${delay}ms`, transformOrigin: `${x + cell / 2}px ${y + cell / 2}px` }}
+                        style={{ '--cell-delay': `${delay}ms`, transformOrigin: `${x + cell / 2}px ${y + cell / 2}px` } as CSSProperties}
                         onMouseEnter={() => setH(i)} onFocus={() => setH(i)} onBlur={() => setH(null)}
                         onTouchStart={() => setH(i)} tabIndex={size === 'full' ? 0 : -1}>
                 <rect x={x} y={y} width={cell} height={cell} rx={cell <= 12 ? 2.5 : 3.5} />

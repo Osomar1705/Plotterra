@@ -8,6 +8,7 @@ import { createPlot, isUsingMocks } from '../api/fieldshiftApi';
 import { saveEntryConditions } from '../integration/entryContext';
 import { PlotMap, type MapMode } from './PlotMap';
 import { CropIllustration } from './CropIllustration';
+import { SoftReveal } from '../motion/SoftReveal';
 import { Photo } from './Photo';
 import { cropName } from '../lib/uiCopy';
 import { checkPolygon, formatHa } from '../lib/plotGeometry';
@@ -268,7 +269,7 @@ export function EntryPage() {
             )}
           </div>
 
-          <div className="entry-fields">
+          <SoftReveal className="entry-fields" delay={0.08}>
             <div className="field">
               <label>Previous crop</label>
               <div className="field-row2 field-row2--demo">
@@ -372,7 +373,7 @@ export function EntryPage() {
               {blocker && <p className="cta-why">{blocker}</p>}
               <p className="foot-note">Environmental inputs depend on the connected data service.{isUsingMocks() ? ' In demo mode, results are examples.' : ''}</p>
             </div>
-          </div>
+          </SoftReveal>
         </div>
       </main>
 
