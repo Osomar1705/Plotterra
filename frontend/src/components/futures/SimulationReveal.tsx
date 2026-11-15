@@ -52,6 +52,7 @@ export function SimulationReveal({ values, previousValues, scenarios, changeLabe
   const [block, setBlock] = useState(-1);
   const [shownN, setShownN] = useState(0);
   const [curCase, setCurCase] = useState(-1);
+  const [waiting, setWaiting] = useState(false);
   const [summary, setSummary] = useState(false);
   const done = useRef(false);
   const titleId = useId();
@@ -68,7 +69,13 @@ export function SimulationReveal({ values, previousValues, scenarios, changeLabe
   // Orden de reproducción: se prueban los futuros agrupados por tipo, uno tras otro.
   const plan = useMemo(() => {
     const idx = Array.from({ length: n }, (_, i) => i);
-    const fam = (i: number): ScenarioFamily => (hasScn ? scenarios![i].family : 'tipica');
+    // Mientras el motor calcula no se conocen los escenarios: se usa la composicion habitual
+    // (40 tipicos y 15 de cada tipo de estres) para poder animar desde el primer segundo.
+    const DEF: Record<ScenarioFamily, number> = { tipica: 0.4, menos_lluvia: 0.15, menos_riego: 0.15, caida_precio: 0.15, combinado: 0.15 };
+    const bounds: Record<string, number> = {};
+    let acc = 0; FAMILY_ORDER.forEach((f) => { acc += Math.round(DEF[f] * n); bounds[f] = acc; });
+    const fam = (i: number): ScenarioFamily => hasScn ? scenarios![i].family
+      : (FAMILY_ORDER.find((f) => i < bounds[f]) ?? 'combinado');
     const blocks = FAMILY_ORDER.map((f) => ({ family: f, items: idx.filter((i) => fam(i) === f) })).filter((b) => b.items.length);
     const order = blocks.flatMap((b) => b.items);
     const rank = new Array<number>(n);
@@ -77,8 +84,15 @@ export function SimulationReveal({ values, previousValues, scenarios, changeLabe
   }, [n, hasScn, scenarios]);
 
   // Una simulacion nueva puede reutilizar esta instancia mientras sale la anterior.
+  const planRef = useRef(plan);
+  planRef.current = plan;
+  const [cycle, setCycle] = useState(0);
+  const hadValues = useRef(false);
+  const valuesRef = useRef(values);
+  valuesRef.current = values;
   useEffect(() => {
-    if (!values) { done.current = false; setClosing(false); setSummary(false); setBlock(-1); setShownN(0); }
+    if (values) { hadValues.current = true; return; }
+    if (hadValues.current) { hadValues.current = false; done.current = false; setClosing(false); setSummary(false); setBlock(-1); setShownN(0); setCycle((c) => c + 1); }
   }, [values]);
 
   useEffect(() => {
@@ -88,30 +102,36 @@ export function SimulationReveal({ values, previousValues, scenarios, changeLabe
   }, []);
   useEffect(() => { if (values) card.current?.querySelector('button')?.focus({ preventScroll: true }); }, [values]);
 
+  // La animacion arranca al abrir la pantalla y NO espera al calculo: corre en paralelo.
+  // Si el motor termina antes, se muestra completa; si tarda, se queda en la ultima prueba
+  // ("All at once") hasta que lleguen los resultados y entonces cierra enseguida.
   useEffect(() => {
-    if (!values) return;
-    if (prefersReducedMotion()) { finish(); return; }
+    if (prefersReducedMotion() && valuesRef.current) { finish(); return; }
     const D = fast ? 300 : 800;                        // ms por tipo de futuro
-    const T = D * plan.blocks.length;
+    const T = D * planRef.current.blocks.length;
     const t0 = performance.now();
-    let raf = 0, end = 0;
+    let raf = 0, end = 0, closed = false;
     const tick = (now: number) => {
+      const has = !!valuesRef.current;
       const el = Math.max(0, now - t0);
-      if (el >= T) {
-        setBlock(plan.blocks.length - 1); setShownN(n); setCurCase(plan.order[n - 1]); setSummary(true);
+      if (has && el >= T) {
+        closed = true;
+        setBlock(planRef.current.blocks.length - 1); setShownN(n); setCurCase(planRef.current.order[n - 1]); setSummary(true);
         end = window.setTimeout(finish, fast ? 700 : HOLD_SUMMARY);
         return;
       }
-      const b = Math.min(plan.blocks.length - 1, Math.floor(el / D));
-      const p = Math.min(1, (el - b * D) / (D * .82));
-      const before = plan.blocks.slice(0, b).reduce((s, x) => s + x.items.length, 0);
-      const count = before + Math.max(1, Math.ceil(p * plan.blocks[b].items.length));
-      setBlock(b); setShownN(count); setCurCase(plan.order[count - 1]);
+      // Sin resultados todavia: se detiene al 92 % de la ultima prueba.
+      const eff = has ? el : Math.min(el, T * 0.92);
+      const b = Math.min(planRef.current.blocks.length - 1, Math.floor(eff / D));
+      const p = Math.min(1, (eff - b * D) / (D * .82));
+      const before = planRef.current.blocks.slice(0, b).reduce((s, x) => s + x.items.length, 0);
+      const count = before + Math.max(1, Math.ceil(p * planRef.current.blocks[b].items.length));
+      setBlock(b); setShownN(count); setCurCase(planRef.current.order[count - 1]); setWaiting(!has && el >= T * 0.92);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => { cancelAnimationFrame(raf); window.clearTimeout(end); };
-  }, [values]);
+    return () => { cancelAnimationFrame(raf); window.clearTimeout(end); if (!closed) setWaiting(false); };
+  }, [cycle]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -122,7 +142,7 @@ export function SimulationReveal({ values, previousValues, scenarios, changeLabe
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  const running = !!values && block >= 0;
+  const running = block >= 0;
   const family: ScenarioFamily | null = running && !summary ? plan.blocks[block]?.family ?? null : null;
   const s = curCase >= 0 ? scenarios?.[curCase] : undefined;
   const def = family ? FAMILY_DEFAULTS[family] : { rain: 1, water: 1, price: 1 };
@@ -150,7 +170,7 @@ export function SimulationReveal({ values, previousValues, scenarios, changeLabe
         {values && <button className="sx-skip" onClick={finish}>See results →</button>}
       </header>
 
-      {hasScn && <ol className="sx-steps" aria-label="Types of future being tested">
+      {<ol className="sx-steps" aria-label="Types of future being tested">
         {plan.blocks.map((b, i) => {
           const St = STEP[b.family];
           const state = summary || i < activeIdx ? 'done' : i === activeIdx ? 'on' : '';
@@ -162,7 +182,7 @@ export function SimulationReveal({ values, previousValues, scenarios, changeLabe
 
       <div className="sx-body">
         <div className="sx-left">
-          <StressScene family={family} summary={summary} rain={summary ? 1 : rain} water={summary ? 1 : water} price={summary ? 1 : price} wait={!values} />
+          <StressScene family={family} summary={summary} rain={summary ? 1 : rain} water={summary ? 1 : water} price={summary ? 1 : price} />
           <div className="sx-caption">
             <AnimatePresence mode="wait">
               <motion.div key={key} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6, transition: { duration: .12 } }} transition={{ duration: .28 }}>
@@ -172,6 +192,7 @@ export function SimulationReveal({ values, previousValues, scenarios, changeLabe
                   : step
                     ? <><strong>{step.title}</strong><span>{step.text}</span></>
                     : <><strong>Getting your 100 futures ready…</strong><span>Real weather, water and price data for your area.</span></>}
+                {!summary && waiting && <span className="sx-wait">Finishing the real calculation for your plot… this can take a few seconds.</span>}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -189,6 +210,7 @@ export function SimulationReveal({ values, previousValues, scenarios, changeLabe
           {note && summary && <span className="sx-note">{note}</span>}
         </div>
       </div>
+      <p className="sx-foot">The past weather years replayed here include real El Niño and La Niña events, so the tests are not only “normal” years.</p>
     </motion.div>
   </motion.div>;
 }

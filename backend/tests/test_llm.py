@@ -224,7 +224,7 @@ def test_sin_saldo_se_explica(monkeypatch):
 def test_respuesta_valida_del_modelo_real_se_usa(monkeypatch):
     salida = {"intent": "ajustar_precio", "factor": 0.75, "cultivo": None, "campania": None,
               "prioridad": None, "descripcion": "Bajar los precios 25 % y comparar", "confianza": 0.9}
-    _cliente_simulado(monkeypatch, 200, {"status": "completed", "model": "gpt-5.4-mini",
+    _cliente_simulado(monkeypatch, 200, {"status": "completed", "model": "gpt-4.1-mini",
         "output": [{"type": "message", "content": [{"type": "output_text", "text": json.dumps(salida)}]}]})
     interpretacion, quien = intent_mod.interpretar("y si el precio cae 25%?", CATALOGO)
     assert quien == "llm"
@@ -237,3 +237,24 @@ def test_limpiar_clave_quita_lo_que_se_pega_de_mas():
     assert limpiar_clave("OPENAI_API_KEY=sk-abc") == "sk-abc"
     assert limpiar_clave("Bearer sk-abc") == "sk-abc"
     assert limpiar_clave("   ") is None and limpiar_clave(None) is None
+
+
+def test_si_el_modelo_configurado_falla_se_usa_el_de_respaldo(monkeypatch):
+    from types import SimpleNamespace
+    from app.llm import cliente
+    from app.llm.cliente import OpenAIResponseError
+
+    monkeypatch.setattr(cliente, "CONFIG", SimpleNamespace(openai_api_key="sk-test", modelo_llm="modelo-que-no-existe", presupuesto_ms=5000))
+    monkeypatch.setattr(cliente, "_modelo_activo", None)
+    usados = []
+
+    def falso(modelo, **_):
+        usados.append(modelo)
+        if modelo == "modelo-que-no-existe":
+            raise OpenAIResponseError(404, "model_not_found")
+        return {"status": "completed", "model": modelo,
+                "output": [{"type": "message", "content": [{"type": "output_text", "text": "ok"}]}]}
+
+    monkeypatch.setattr(cliente, "_solicitar_modelo", falso)
+    raw = cliente._solicitar(instrucciones="x", entrada="y", max_tokens=10)
+    assert raw["model"] == "gpt-4.1-mini" and usados[0] == "modelo-que-no-existe"

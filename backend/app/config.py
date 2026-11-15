@@ -49,7 +49,7 @@ def cargar_config() -> Config:
         datasets_dir=datasets,
         motor=os.getenv("FIELDSHIFT_MOTOR", "mock").strip().lower(),
         openai_api_key=limpiar_clave(os.getenv("OPENAI_API_KEY")),
-        modelo_llm=(os.getenv("FIELDSHIFT_MODELO_LLM") or "gpt-5.4-mini").strip(),
+        modelo_llm=(os.getenv("FIELDSHIFT_MODELO_LLM") or "gpt-4.1-mini").strip(),
         presupuesto_ms=int(os.getenv("FIELDSHIFT_PRESUPUESTO_MS", "20000")),
     )
 

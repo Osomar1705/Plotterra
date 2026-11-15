@@ -25,7 +25,7 @@ services:
       - key: FIELDSHIFT_PRESUPUESTO_MS
         value: "20000"
       - key: FIELDSHIFT_MODELO_LLM
-        value: gpt-5.4-mini
+        value: gpt-4.1-mini
 
   - type: web
     name: plotterra-frontend

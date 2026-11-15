@@ -404,3 +404,6 @@
 .oc:hover .oc-ring,.oc:focus-within .oc-ring{opacity:1}
 @keyframes ocSpin{to{--oc-ang:360deg}}
 @media (prefers-reduced-motion:reduce){.oc-ring{animation:none}.cards-grid--glow::before{transition:none}}
+
+.sx-foot{margin:14px 2px 0;font-size:12.5px;color:var(--muted);text-align:center}
+.sx-wait{color:var(--green);font-weight:700}

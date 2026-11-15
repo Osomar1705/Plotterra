@@ -145,7 +145,7 @@ def test_guide_health_responde_sin_clave(cliente):
     r = cliente.get(f"{BASE}/guide-health")
     assert r.status_code == 200
     cuerpo = r.json()
-    assert cuerpo["ready"] is True and cuerpo["model"]
+    assert cuerpo["ready"] is False and cuerpo["provider"] == "reglas" and cuerpo["model"]  # sin clave: solo reglas
 
 
 def test_la_respuesta_trae_la_simulacion(cliente, condiciones):

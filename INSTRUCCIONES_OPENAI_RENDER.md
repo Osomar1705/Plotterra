@@ -10,14 +10,14 @@ Usa el contenido de `Plotterra-main/` para actualizar **la raíz del repositorio
 
 ```
 OPENAI_API_KEY=<clave privada OpenAI copiada de la consola>
-FIELDSHIFT_MODELO_LLM=gpt-5.4-mini
+FIELDSHIFT_MODELO_LLM=gpt-4.1-mini
 FIELDSHIFT_PRESUPUESTO_MS=20000
 FIELDSHIFT_MOTOR=real
 ```
 
 `OPENAI_API_KEY` es el **nombre de la variable**. En su campo Value pega únicamente la clave COMPLETA, que no figura en ninguna captura truncada. Nunca la envíes al frontend, GitHub, capturas, ni la escribas en `VITE_*`.
 
-Si en Render existen `ANTHROPIC_API_KEY` o valores de `FIELDSHIFT_MODELO_LLM` con `claude-*`, elimínalos o reemplázalos; no son usados por este código. Comprueba que el proyecto OpenAI tenga facturación/cuota y acceso al modelo indicado. Si `gpt-5.4-mini` no está habilitado, ajusta la variable a un modelo permitido por tu proyecto (por ejemplo `gpt-4.1-mini` si está disponible).
+Si en Render existen `ANTHROPIC_API_KEY` o valores de `FIELDSHIFT_MODELO_LLM` con `claude-*`, elimínalos o reemplázalos; no son usados por este código. Comprueba que el proyecto OpenAI tenga facturación/cuota y acceso al modelo indicado. Si el modelo falla, el backend prueba solo `gpt-4.1-mini` y luego `gpt-4o-mini`.
 
 ## 3. Configurar frontend Render > Environment
 

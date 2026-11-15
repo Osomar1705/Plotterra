@@ -51,16 +51,53 @@ def ultimo_error() -> dict | None:
     return _ultimo_error
 
 
+# Si el modelo configurado no existe, no esta permitido para la clave o gasta todo el
+# presupuesto "pensando" (modelos de razonamiento), se prueban estos en orden.
+_RESPALDO = ("gpt-4.1-mini", "gpt-4o-mini")
+_modelo_activo: str | None = None
+
+
+def _modelos() -> list[str]:
+    orden = [_modelo_activo, CONFIG.modelo_llm, *_RESPALDO]
+    return list(dict.fromkeys(m for m in orden if m))
+
+
 def _solicitar(*, instrucciones: str, entrada: str, max_tokens: int) -> dict:
+    """Llama a Responses API con el primer modelo que funcione; recuerda cual fue."""
+    global _modelo_activo
+    ultimo: Exception | None = None
+    for modelo in _modelos():
+        try:
+            raw = _solicitar_modelo(modelo, instrucciones=instrucciones, entrada=entrada, max_tokens=max_tokens)
+        except OpenAIResponseError as exc:
+            if exc.status_code in (400, 403, 404):
+                log.warning("Modelo %s no usable (HTTP %s); probando el siguiente", modelo, exc.status_code)
+                ultimo = exc
+                continue
+            raise
+        if raw.get("status") != "completed" or not _texto(raw):
+            log.warning("Modelo %s respondio incompleto/vacio; probando el siguiente", modelo)
+            ultimo = ValueError("Respuesta incompleta o vacia de " + modelo)
+            continue
+        _modelo_activo = modelo
+        return raw
+    raise ultimo or RuntimeError("Ningun modelo de OpenAI respondio")
+
+
+def _solicitar_modelo(modelo: str, *, instrucciones: str, entrada: str, max_tokens: int) -> dict:
     if not CONFIG.openai_api_key:
         raise RuntimeError("OPENAI_API_KEY no esta configurada en el backend de Render")
+    razona = modelo.startswith(("gpt-5", "o1", "o3", "o4"))
     payload = {
-        "model": CONFIG.modelo_llm,
+        "model": modelo,
         "instructions": instrucciones,
         "input": entrada,
-        "max_output_tokens": max_tokens,
+        # Los modelos de razonamiento cuentan su "pensamiento" dentro de este limite.
+        "max_output_tokens": max_tokens * 4 if razona else max_tokens,
         "store": False,
     }
+    if razona:
+        payload["reasoning"] = {"effort": "low"}
     with httpx.Client(timeout=max(2.0, CONFIG.presupuesto_ms / 1000.0)) as cliente:
         response = cliente.post(
             _URL,
@@ -147,7 +184,7 @@ def probar() -> dict:
             if raw.get("status") != "completed" or not contenido:
                 raise ValueError("OpenAI devolvio una respuesta vacia o incompleta")
             _ultimo_error = None
-            resultado = {"ok": True, "modelo_respondio": raw.get("model"),
+            resultado = {"ok": True, "modelo_respondio": raw.get("model") or _modelo_activo,
                          "latencia_ms": round((time.monotonic() - inicio) * 1000)}
         except Exception as exc:  # noqa: BLE001
             resultado = {"ok": False, "error": _describir(exc),

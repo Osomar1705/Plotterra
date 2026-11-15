@@ -80,7 +80,7 @@ export async function createPlot(draft: PlotDraft): Promise<Plot> {
 }
 
 export async function createComparison(conditions: EntryConditions): Promise<Comparison> {
-  if (USE_MOCKS) { await sleep(450); return rememberComparison({...baseComparison, plotId: conditions.plotId ?? baseComparison.plotId, areaHa: conditions.areaHa ?? baseComparison.areaHa, priority: conditions.priority ?? baseComparison.priority}); }
+  if (USE_MOCKS) { await sleep(8000); return rememberComparison({...baseComparison, plotId: conditions.plotId ?? baseComparison.plotId, areaHa: conditions.areaHa ?? baseComparison.areaHa, priority: conditions.priority ?? baseComparison.priority}); }
   return normalizeComparison(await request('/comparaciones', { method:'POST', body: JSON.stringify(conditions) }));
 }
 
