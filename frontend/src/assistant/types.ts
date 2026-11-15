@@ -28,6 +28,8 @@ export interface GuideReply {
   change?: AppliedChange;
   requiresConfirmation?: boolean;
   runId?: string;
+  /** true si respondio el interprete del motor (/consultas), que no redacta resumenes. */
+  fromEngine?: boolean;
 }
 
 export interface GuideClarification {

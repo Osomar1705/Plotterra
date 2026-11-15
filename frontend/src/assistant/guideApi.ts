@@ -3,6 +3,7 @@ import type { AppliedChange } from '../types/fieldshift';
 import type { GuideReply, GuideRequest } from './types';
 import { demoGuideReply } from './demoAdvisor';
 import { isUsingMocks } from '../api/fieldshiftApi';
+import { changeLabelEn } from '../lib/uiCopy';
 
 // AI-first: incluso con VITE_USE_LOCAL_MOCKS=true, las consultas usan OpenAI.
 // El modo determinista SOLO se activa de manera explícita para pruebas sin clave.
@@ -38,7 +39,7 @@ function normalizeGuide(raw:unknown,conversationId:string):GuideReply{
  ['needs_clarification','aclaracion','clarification'].includes(inputStatus)?'needs_clarification':
  ['unsupported','no_soportado'].includes(inputStatus)?'unsupported':'answered';
  const message=str(r.message??r.mensaje_agricultor??r.respuesta??r.reply??r.mensaje??r.clarification??r.aclaracion)??
- (status==='proposed_change'&&change?`Understood: ${change.label??'requested change'}. Shall I recalculate?`:status==='needs_clarification'?'Could you add a little more detail?':'');
+ (status==='proposed_change'&&change?`Understood: ${changeLabelEn(change.label)}. Shall I recalculate?`:status==='needs_clarification'?'Could you add a little more detail?':'');
  if(status==='proposed_change'&&!change)throw {farmerMessage:'The AI could not identify a valid change.'};
  if(!message)throw {farmerMessage:'The AI did not return a clear explanation.'};
  return {
@@ -48,6 +49,7 @@ function normalizeGuide(raw:unknown,conversationId:string):GuideReply{
   suggestions:Array.isArray(r.suggestions)?r.suggestions.filter((v):v is string=>typeof v==='string').slice(0,3):undefined,
   sources:Array.isArray(r.sources)?r.sources.filter((v):v is string=>typeof v==='string').slice(0,4):undefined,
   change,requiresConfirmation:status==='proposed_change',runId:str(r.run_id),
+  fromEngine:'interpretado_por' in r,
  };
 }
 

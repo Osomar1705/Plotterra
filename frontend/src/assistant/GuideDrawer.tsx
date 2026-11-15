@@ -8,6 +8,7 @@ import { askGuide, guideHealth, guideIsDemo } from './guideApi';
 import { GUIDE_ALTERNATIVE_NAMES } from './types';
 import type { GuideClarification, GuideMessage, GuideReply } from './types';
 import { GuideFormattedText } from './GuideFormattedText';
+import { changeLabelEn } from '../lib/uiCopy';
 
 /**
  * Guía FieldShift · panel conversacional.
@@ -31,6 +32,19 @@ function resultRows(before:Comparison|null|undefined,after:Comparison):ResultRow
     const prev=before?.alternatives.find(b=>b.type===a.type);
     return [{type:a.type,title:GUIDE_ALTERNATIVE_NAMES[a.type],before:winsOf(prev),after:w,total:a.outcomes!.marginByScenario.length}];
   });
+}
+
+// El interprete del motor solo traduce preguntas a cambios: si la guia corre
+// sobre /consultas del backend, el resumen tras recalcular se arma aqui con las
+// cifras del motor (antes se reinterpretaba como otra pregunta y repetia el cambio).
+function engineSummary(label:string,rows:ResultRow[]):string{
+  if(!rows.length)return `Done: the three options were recalculated with **${label}**. Check the new figures on screen.`;
+  const sorted=[...rows].sort((a,b)=>b.after-a.after);
+  const best=sorted[0],worst=sorted[sorted.length-1];
+  const moved=rows.filter(r=>r.before!==null&&r.before!==r.after).map(r=>`${r.title} ${r.before}→${r.after}`);
+  return `With **${label}**, the option that gains money in the most cases is **${best.title}**: **${best.after} of ${best.total}**.`+
+    (worst!==best?` The most affected is **${worst.title}** (${worst.after} of ${worst.total}).`:'')+
+    (moved.length?`\nChange against before: ${moved.join(' · ')}.`:'\nThe number of winning cases did not change; check the margins on each card.');
 }
 
 const CAPABILITIES=[
@@ -115,14 +129,15 @@ export function GuideDrawer(){
   if(!pending||simulating)return;
   const change=pending;const before=context.comparison;
   setFailed(null);setSimulating(true);setPending(null);setPendingClarification(null);setSuggestions([]);
-  push('user',`Yes, recalculate with ${change.label??'this change'}`);
+  const shown=changeLabelEn(change.label);
+  push('user',`Yes, recalculate with ${shown}`);
   setOpen(false); // deja ver la animación de los 100 casos
   let comparison:Comparison|null=null;
   try{
     const updated=await runScenario(change);
     comparison=updated;
     // 1) Tarjeta con cifras del motor (no de la IA).
-    push('assistant','',{result:{label:change.label??'New scenario',rows:resultRows(before,updated)}});
+    push('assistant','',{result:{label:shown,rows:resultRows(before,updated)}});
     setOpen(true);setBusy(true);
     // 2) La IA explica la comparación nueva, sin recalcular nada.
     const reply=await askGuide({
@@ -134,7 +149,7 @@ export function GuideDrawer(){
       ].slice(-16),
     });
     if(reply.conversationId)conversationId.current=reply.conversationId;
-    push('assistant',reply.message,{sources:reply.sources,status:'answered'});
+    push('assistant',reply.fromEngine?engineSummary(shown,resultRows(before,updated)):reply.message,{sources:reply.sources,status:'answered'});
     setSuggestions(['Which is safest now?','Why did it change?','What data does it use?']);
     setPendingClarification(null);
   }catch(e:unknown){
@@ -211,7 +226,7 @@ export function GuideDrawer(){
     {busy&&<div className="guide-turn guide-turn--assistant"><span className="guide-turn-icon guide-thinking"><SparkIcon size={17}/></span><div className="guide-bubble guide-bubble--typing">Checking your results <span/><span/><span/></div></div>}
     {pending&&!busy&&<div className="guide-confirm" role="group" aria-label="Confirm a change">
       <div className="guide-confirm-label"><WaterIcon size={18}/> PROPOSED CHANGE</div>
-      <strong>{pending.label??'Scenario change'}</strong>
+      <strong>{changeLabelEn(pending.label)}</strong>
       <p>I will recalculate all three plans with this change. The other conditions stay the same. <b>You can undo it later.</b></p>
       <div><button className="guide-outline" onClick={()=>{push('assistant','Understood. I will not apply that change. What else would you like to know?');setPending(null)}}>No, thanks</button><button className="guide-accept" onClick={()=>void confirm()}>Yes, recalculate</button></div>
     </div>}

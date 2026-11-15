@@ -28,7 +28,7 @@ async function request(path: string, init?: RequestInit) {
     // Offline or backend down: fetch throws a TypeError with no farmer-facing message.
     throw normalizeApiError({
       codigo: 'SIN_CONEXION',
-      mensaje_agricultor: "We couldn't reach FieldShift. Check your connection and try again.",
+      mensaje_agricultor: "We couldn't reach Plotterra. Check your connection and try again.",
     });
   }
   const text = await res.text();
@@ -142,9 +142,9 @@ export async function getAlternativePassport(comparisonId: string, alternativeId
     return {
       alternativeId: alt.id, sourceResult: 'mock', engineVersion: 'demo-1.0', datasetVersion: 'hackathon-2026',
       metrics: [
-        {id:'margin',label:'Margen estimado',value:`S/ ${alt.margin.min?.toLocaleString('es-PE')} – ${alt.margin.max?.toLocaleString('es-PE')}`,definition:'Rango estimado para el horizonte de la ruta.',source:'Motor FieldShift',status:'Demostración'},
-        {id:'water',label:'Demanda de agua',value:alt.water.value,unit:alt.water.unit,definition:'Indicador hídrico agregado de la ruta.',source:'Datos climáticos + motor FieldShift',status:'Demostración'},
-        {id:'soil',label:'Compatibilidad de rotación',value:alt.soil.compatibility,definition:'Compatibilidad agronómica de la secuencia.',source:'Reglas agronómicas FieldShift',status:'Demostración'},
+        {id:'margin',label:'Margen estimado',value:`S/ ${alt.margin.min?.toLocaleString('es-PE')} – ${alt.margin.max?.toLocaleString('es-PE')}`,definition:'Rango estimado para el horizonte de la ruta.',source:'Motor Plotterra',status:'Demostración'},
+        {id:'water',label:'Demanda de agua',value:alt.water.value,unit:alt.water.unit,definition:'Indicador hídrico agregado de la ruta.',source:'Datos climáticos + motor Plotterra',status:'Demostración'},
+        {id:'soil',label:'Compatibilidad de rotación',value:alt.soil.compatibility,definition:'Compatibilidad agronómica de la secuencia.',source:'Reglas agronómicas Plotterra',status:'Demostración'},
       ],
       sources:['NASA GPM / datos climáticos usados por el proyecto','Datos agrícolas y condiciones ingresadas para la parcela'],
       assumptions:['Los valores mock sirven para demostrar la interfaz y deben sustituirse por resultados del backend.','La herramienta orienta la comparación; no reemplaza el criterio del agricultor.'],
