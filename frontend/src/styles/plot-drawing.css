@@ -1,0 +1,22 @@
+/* Herramientas del contorno: independientes de los estilos de la demo. */
+.plot-map .map-drawing-tools { gap: 8px; align-items: center; }
+.plot-map .map-drawing-switch { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--line, #DCE7E2); border-radius: 9px; background: #F6F7F2; }
+.plot-map .map-drawing-tools .tool { min-height: 44px; height: auto; font-size: 13px; padding: 9px 12px; }
+.plot-map .map-drawing-switch .tool { border: 0; background: transparent; }
+.plot-map .map-drawing-switch .tool--on { background: #006B57; color: #fff; box-shadow: 0 1px 4px #0A3E451A; }
+.plot-map .map-drawing-switch .tool--on:focus-visible,
+.plot-map .map-drawing-tools .tool:focus-visible { outline: 3px solid #155D8B; outline-offset: 3px; }
+.plot-map .map-drawing-switch span { font-size: 20px; line-height: 1; }
+.plot-map .map-area-fallback { margin-left: auto; }
+.plot-map .map-drawing-help { margin: 0; padding: 12px 14px; color: #365452; background: #F6F7F2; border-top: 1px solid #DCE7E2; font-size: 14px; line-height: 1.5; }
+.plot-map .map-draw-tip { pointer-events: none; right: 14px; width: fit-content; max-width: calc(100% - 28px); bottom: 22px; font-size: 13px; line-height: 1.4; background: #0A3E45F2; box-shadow: 0 2px 10px #0A3E4526; }
+.plot-map .map-draw-tip--close { background: #005C49; border: 1px solid #51DEC2; font-weight: 700; }
+.plot-map .map-notice { left: 54px; pointer-events: none; font-size: 14px; line-height: 1.4; }
+.plot-map .map-leaflet--drawing { touch-action: none; }
+@media (max-width: 680px) {
+  .plot-map .map-drawing-tools { padding: 10px; }
+  .plot-map .map-drawing-switch { flex: 1 1 100%; }
+  .plot-map .map-drawing-switch .tool { flex: 1; justify-content: center; }
+  .plot-map .map-area-fallback { margin-left: 0; }
+  .plot-map .map-draw-tip { font-size: 12px; }
+}

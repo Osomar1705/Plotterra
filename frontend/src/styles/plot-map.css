@@ -1,0 +1,327 @@
+/* Mapa satelital (Leaflet) para dibujar la parcela. Venia en global.css de main;
+   la v9 volvio a un lienzo SVG de demo y lo perdio. */
+.plot-map {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(11, 54, 68, .03)
+}
+
+.plot-canvas {
+  position: relative;
+  height: 630px
+}
+
+.plot-canvas {
+  overflow: hidden
+}
+
+.map-leaflet {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: #1f2a24
+}
+
+.map-leaflet.leaflet-container {
+  overflow: hidden
+}
+
+.plot-map .map-tools {
+  position: relative;
+  z-index: 1
+}
+
+.plot-canvas>.map-hint {
+  /*place-items: end center;
+  padding-bottom: 58px;*/
+  background: none
+}
+
+.plot-canvas .leaflet-control-attribution {
+  font-size: 10px
+}
+
+.map-leaflet--drawing,
+.map-leaflet--drawing .leaflet-interactive {
+  cursor: crosshair
+}
+
+.plot-canvas .leaflet-control-zoom {
+  margin-top: 150px
+}
+
+.plot-canvas>.map-search,
+.plot-canvas>.map-quick,
+.plot-canvas>.map-notice,
+.plot-canvas>.map-badge,
+.plot-canvas>.map-hint,
+.plot-canvas>.map-tip {
+  z-index: 500
+}
+
+.map-search-btn {
+  border: 0;
+  border-radius: 7px;
+  background: var(--green);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  height: 32px;
+  padding: 0 12px;
+  cursor: pointer
+}
+
+.map-search-btn:disabled {
+  opacity: .6;
+  cursor: wait
+}
+
+.map-quick {
+  position: absolute;
+  top: 66px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  pointer-events: none
+}
+
+.map-chip {
+  pointer-events: auto;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--navy);
+  border-radius: 999px;
+  height: 32px;
+  padding: 0 13px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(11, 54, 68, .14)
+}
+
+.map-chip--accent {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff
+}
+
+.map-chip:disabled {
+  opacity: .6;
+  cursor: wait
+}
+
+.map-notice {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 106px;
+  margin: 0;
+  background: rgba(255, 255, 255, .95);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 8px 11px;
+  font-size: 13px;
+  color: var(--text)
+}
+
+.map-search {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 13px;
+  box-shadow: 0 2px 10px rgba(11, 54, 68, .12)
+}
+
+.map-search svg {
+  color: var(--muted);
+  flex: none
+}
+
+.map-search input {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: none
+}
+
+.map-badge {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 13px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  box-shadow: 0 2px 10px rgba(11, 54, 68, .12)
+}
+
+.map-badge strong {
+  font-size: 16px;
+  color: var(--navy)
+}
+
+.map-badge span {
+  font-size: 12px;
+  color: var(--muted)
+}
+
+.map-hint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(244, 247, 243, .35);
+  pointer-events: none
+}
+
+.map-hint>div {
+  pointer-events: auto
+}
+
+.map-hint>div {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 310px;
+  box-shadow: var(--shadow);
+  text-align: left
+}
+
+.map-hint p {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: var(--text)
+}
+
+.map-hint-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 9px
+}
+
+.map-tip {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  margin: 0;
+  background: rgba(11, 54, 68, .82);
+  color: #fff;
+  font-size: 12px;
+  padding: 7px 11px;
+  border-radius: 8px
+}
+
+.map-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 11px 13px;
+  border-top: 1px solid var(--line);
+  background: #fff
+}
+
+.tools-spacer {
+  flex: 1
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--navy);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer
+}
+
+.tool--on {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff
+}
+
+.tool--ghost {
+  border-color: transparent;
+  color: var(--water)
+}
+
+.tool:disabled {
+  opacity: .42;
+  cursor: not-allowed
+}
+
+.typed-area {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px
+}
+
+.typed-area>label {
+  display: block;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--navy);
+  margin-bottom: 9px
+}
+
+.typed-area-row {
+  display: flex;
+  align-items: center;
+  gap: 10px
+}
+
+.typed-area-row input {
+  width: 120px;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 0 12px;
+  font: inherit
+}
+
+.typed-area-row span {
+  color: var(--muted);
+  font-size: 14px
+}
+
+/* En celular se acerca con dos dedos: los botones +/- quedaban tapados. */
+@media(max-width:680px){.plot-canvas .leaflet-control-zoom{display:none}.plot-map .plot-canvas{height:440px}}
+
+/* Botones bajo el mapa (Usar mi ubicacion, Parcela de ejemplo) y barra de
+   herramientas. Venian en parcel-experience.css, que la v9 elimino: sin esto
+   los botones rapidos quedaban flotando sobre el encabezado. global.css se
+   carga despues, por eso el prefijo .plot-map. */
+.plot-map .map-tools{display:flex;flex-wrap:wrap;padding:8px;gap:6px}
+.plot-map .map-area-fallback{margin-left:0}
+.plot-map>.map-quick{position:static;display:flex;padding:8px 10px;gap:8px;pointer-events:auto;border-top:1px solid var(--line)}
+.plot-map .map-chip{height:auto;min-height:44px;white-space:normal;padding:8px 10px;font-size:13px;box-shadow:none;flex:1}
+.plot-map .map-drawing-help{font-size:13px;padding:9px 12px;line-height:1.4;margin:0;color:var(--muted)}

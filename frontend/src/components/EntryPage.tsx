@@ -11,12 +11,19 @@ import { CropIllustration } from './CropIllustration';
 import { Photo } from './Photo';
 import { cropName } from '../lib/uiCopy';
 import { checkPolygon, formatHa } from '../lib/plotGeometry';
+import { DEMO_PLOT_LOCALITY, DEMO_PLOT_POINTS } from '../lib/demoPlot';
 import {
   AlertIcon, CalendarIcon, CheckIcon, ClockIcon, CoinsIcon, InfoIcon,
   LeafIcon, RainIcon, SproutIcon, WaterIcon,
 } from './Icons';
 
 const CROPS = ['Papa', 'Quinua', 'Cebada', 'Avena', 'Haba', 'Tarwi'];
+
+/** Fecha de hoy como YYYY-MM-DD en la zona del navegador (no en UTC). */
+function todayIso(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 const WATER_MODES: { id: WaterMode; label: string; hint: string }[] = [
   { id: 'rainfed', label: 'Only rain', hint: 'No irrigation available' },
@@ -55,7 +62,8 @@ export function EntryPage() {
   // --- condiciones ---
   const [previousCrop, setPreviousCrop] = useState('Papa');
   const [unknownPrevious, setUnknownPrevious] = useState(false);
-  const [startDate, setStartDate] = useState('2026-11-15');
+  // Hoy: una fecha fija deja el formulario roto en cuanto pasa ese dia.
+  const [startDate, setStartDate] = useState(todayIso);
   const [waterMode, setWaterMode] = useState<WaterMode>('scheduled');
   const [irrigationMm, setIrrigationMm] = useState('180');
   const [excluded, setExcluded] = useState<ExcludedCrop[]>([]);
@@ -79,35 +87,48 @@ export function EntryPage() {
     return 'empty';
   })();
 
-  const hasPlot = useTypedArea ? areaHa > 0 : (mode === 'ready' && check.valid);
+  const hasPlot = useTypedArea ? Number.isFinite(areaHa) && areaHa >= 0.05 && areaHa <= 50 : (mode === 'ready' && check.valid);
 
   /** Lo que falta para poder comparar. El boton lo dice en vez de fallar al pulsarlo. */
   const blocker = (() => {
     if (mode === 'invalid') return 'Fix the plot outline';
     if (mode === 'drawing' && points.length < 3) return 'Add more corners to close the plot';
     if (mode === 'drawing') return 'Close the plot outline';
+    if (useTypedArea && !hasPlot) return 'Enter a plot size between 0.05 and 50 hectares';
     if (!hasPlot) return denied ? 'Enter the location of your plot' : 'Draw your plot or enter its size';
+    if (!startDate || startDate < todayIso()) return 'Choose today or a later planting date';
     if (allowedCrops.length < 2) return 'Select at least two crops';
-    if (waterMode !== 'rainfed' && !(Number(irrigationMm) > 0)) return 'Enter your irrigation amount';
+    if (waterMode !== 'rainfed' && !(Number(irrigationMm) > 0 && Number(irrigationMm) <= 1200)) return 'Enter irrigation above 0 and up to 1200 mm per season';
     return null;
   })();
 
-  function addPoint(p: PlotPoint) {
+  /**
+   * Los puntos son longitud/latitud reales. El mapa decide si el toque cayo sobre
+   * el primer punto (en pixeles de pantalla) y lo avisa con closesShape: comparar
+   * aqui distancias en grados cerraba el contorno con cualquier toque.
+   */
+  function addPoint(p: PlotPoint, closesShape = false) {
     if (closed) setClosed(false);
     if (!drawing) setDrawing(true);
     if (denied) setDenied(false);
     if (useTypedArea) setUseTypedArea(false);
     const prev = pointsRef.current;
-    // Tocar cerca del primer punto cierra el contorno, como en cualquier editor de mapas.
-    if (prev.length >= 3) {
-      const first = prev[0];
-      if (Math.hypot(first.x - p.x, first.y - p.y) < 14) {
-        setClosed(true);
-        setDrawing(false);
-        return;
-      }
+    if (closesShape && prev.length >= 3) {
+      setClosed(true);
+      setDrawing(false);
+      return;
     }
     setPoints([...prev, p]);
+  }
+
+  /** Parcela real de Ambo para probar sin dibujar (la demo y el jurado la usan). */
+  function loadDemoPlot() {
+    setPoints([...DEMO_PLOT_POINTS]);
+    setClosed(true);
+    setDrawing(false);
+    setDenied(false);
+    setUseTypedArea(false);
+    setLocality(DEMO_PLOT_LOCALITY);
   }
 
   function closePolygon() {
@@ -207,6 +228,12 @@ export function EntryPage() {
               locality={locality}
               onLocality={setLocality}
               onAddPoint={addPoint}
+              onReplacePoints={(next, isClosed) => {
+                setPoints(next); setClosed(isClosed); setDrawing(!isClosed);
+                setDenied(false); setUseTypedArea(false);
+              }}
+              onUseDemo={loadDemoPlot}
+              onLocationDenied={() => setDenied(true)}
               onStartDraw={() => { setDrawing(true); setClosed(false); setDenied(false); setUseTypedArea(false); }}
               onUndoPoint={() => { setPoints(points.slice(0, -1)); setClosed(false); setDrawing(true); }}
               onClear={() => { setPoints([]); setClosed(false); setDrawing(false); setUseTypedArea(false); }}
@@ -250,7 +277,7 @@ export function EntryPage() {
                 </select>
                 <div className="input-with-icon demo-secondary">
                   <CalendarIcon size={16} />
-                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                  <input type="date" min={todayIso()} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                 </div>
               </div>
               <label className="checkline demo-secondary">

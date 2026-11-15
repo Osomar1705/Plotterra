@@ -4,10 +4,21 @@ import {readFileSync,mkdtempSync,writeFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {resolve,join} from 'node:path';
 import {createRequire} from 'node:module';
+import {transformWithOxc} from 'vite';
 
 const require=createRequire(import.meta.url);
-const ts=require('typescript');
-const cjs=(file)=>ts.transpileModule(readFileSync(resolve(file),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+// TypeScript 7 (el del proyecto) ya no expone ts.transpileModule: los tipos se
+// quitan con el transformador Oxc que trae Vite 8, una vez al cargar el archivo,
+// y se pasa a CommonJS lo poco que usan estos modulos (import con nombre y export).
+const FUENTES=['src/api/normalizers.ts','src/mocks/futures.ts','src/mocks/data.ts'];
+const SIN_TIPOS=Object.fromEntries(await Promise.all(FUENTES.map(async f=>[f,(await transformWithOxc(readFileSync(resolve(f),'utf8'),f,{lang:'ts'})).code])));
+function cjs(file){
+ let code=SIN_TIPOS[file];
+ const names=[];
+ code=code.replace(/^import\s*\{([^}]*)\}\s*from\s*['"]([^'"]+)['"];?/gm,(_,ids,from)=>`const {${ids}}=require(${JSON.stringify(from)});`);
+ code=code.replace(/^export\s+(async\s+function|function|const|let|class)\s+([A-Za-z0-9_$]+)/gm,(_,kind,name)=>{names.push(name);return `${kind} ${name}`;});
+ return code+'\n'+names.map(n=>`exports.${n}=${n};`).join('\n');
+}
 
 function normalizer(){
  const module={exports:{}};
