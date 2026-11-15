@@ -1,0 +1,46 @@
+.evidence{padding:26px 28px!important}
+.evidence-head{display:flex;gap:16px;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+.evidence-head p{display:flex;align-items:center;flex-wrap:wrap;gap:4px;color:var(--muted);font-size:14px;margin:5px 0 0}
+.evidence-kicker{display:block;font-size:11px;text-transform:uppercase;color:var(--earth);font-weight:900;letter-spacing:.1em;margin-bottom:4px}
+.evidence-engine{background:#f0f5f2;border:1px solid #dce8e2;color:#53706c;font-size:12px;font-weight:700;padding:8px 12px;border-radius:10px;white-space:nowrap}
+.evidence-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+.evidence-stat{display:flex;flex-direction:column;min-width:0;gap:6px;padding:16px;background:#f8fbf9;border:1px solid #dfece6;border-radius:16px}
+.evidence-stat__top{display:flex;align-items:center;gap:9px;min-height:30px}
+.evidence-icon{width:32px;height:32px;flex:none;border-radius:10px;display:grid;place-items:center;background:#e6f4ed;color:#087b63}
+.evidence-stat__label{font-size:12px;line-height:1.28;font-weight:800;color:#4d6d70;flex:1}
+.evidence-help-button{width:30px;height:30px;border-radius:50%;border:1px solid #b9d5cb;background:#fff;cursor:pointer;color:#075e58;display:grid;place-items:center;flex:none}
+.evidence-help-button:focus-visible{outline:3px solid #94ccba;outline-offset:2px}
+.evidence-stat>strong{font:800 clamp(17px,1.5vw,22px)/1.24 Manrope,sans-serif;color:var(--navy);overflow-wrap:anywhere}
+.evidence-stat>small{font-size:11.5px;color:var(--muted);line-height:1.4}
+.evidence-explain{font-size:12.5px;color:#385d5c;line-height:1.5;background:#fff;border:1px solid #e0ebe5;border-radius:10px;padding:10px;margin:4px 0 0}
+.evidence-demo{background:#fbf5e9;border-radius:10px;padding:9px 12px;margin:12px 0 0;color:#84643a;font-size:12px}
+.evidence-accordions{margin-top:18px;border-top:1px solid var(--line)}
+.evidence-details{border-bottom:1px solid var(--line)}
+.evidence-details>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;padding:17px 4px;font-weight:800;color:#185c6d}
+.evidence-details>summary::-webkit-details-marker{display:none}
+.evidence-details>summary:after{content:'+';font-size:24px;line-height:1;color:#2d7c69}
+.evidence-details[open]>summary:after{content:'−'}
+.evidence-details>p,.evidence-details>ul{color:var(--muted);margin:0 0 16px;font-size:14px;line-height:1.5}
+.evidence-details li{margin-bottom:8px}
+.evidence-extra-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 18px}
+.evidence-disclaimer{font-size:12px!important}
+@media(max-width:1000px){.evidence-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.evidence-extra-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.evidence{padding:18px 14px!important}.evidence-head{flex-direction:column}.evidence-summary-grid,.evidence-extra-grid{grid-template-columns:1fr}.evidence-stat{padding:14px}}
+
+.evidence-futures{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,.8fr);gap:24px;align-items:center;padding:10px 4px 22px}
+.evidence-futures>.evidence-bad-case{padding:14px;border:1px solid #dfebe5;border-radius:14px;background:#f7faf8}
+.evidence-futures>.evidence-bad-case span{font-size:12px;color:#53756d;display:block}
+.evidence-futures>.evidence-bad-case strong{display:block;font:800 21px Manrope,sans-serif;color:#154e50;margin:7px 0}
+.evidence-futures>.evidence-bad-case p{font-size:13px;color:#67817a}
+.evidence-futures .fg{max-width:400px}.evidence-futures p{font-size:13px;color:#52746c;line-height:1.5}
+.evidence-case-result{color:#134d51!important;font-weight:800}
+@media(max-width:680px){.evidence-futures{grid-template-columns:1fr}}
+
+/* v7: methodology only, avoid repeating all numeric cards and scenario charts */
+.evidence--v7{padding:17px 20px!important;gap:4px}
+.evidence--v7 .evidence-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:6px}
+.evidence--v7 .evidence-head h2{font:800 20px Manrope,sans-serif;margin:0 0 5px;color:#124950}
+.evidence--v7 .evidence-head p{font-size:12px;margin:0;color:#68817a}
+.evidence--v7 .evidence-details>summary{padding:12px 4px}
+.evidence--v7 .evidence-details:last-child{border-bottom:0}
+@media(max-width:600px){.evidence--v7{padding:15px!important}}

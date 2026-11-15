@@ -1,0 +1,12 @@
+.plan-ai{display:grid;gap:15px}
+.plan-ai__heading{display:flex;align-items:center;gap:13px}
+.plan-ai__mark{display:grid;place-items:center;width:48px;height:48px;background:#e4f5e9;border-radius:14px;color:#0e8164;flex:none}
+.plan-ai h2{font:800 clamp(20px,2vw,24px)/1.25 Manrope,sans-serif;color:#134951;margin:0 0 5px}
+.plan-ai__heading p{margin:0;color:#617d75;font-size:13px}
+.plan-ai__answer{background:#f3faf5;border:1px solid #daebe0;padding:18px;border-radius:15px;color:#214e4d;font-size:15px;line-height:1.6;overflow-wrap:anywhere}
+.plan-ai__answer p{margin:0 0 10px}.plan-ai__answer p:last-child{margin-bottom:0}.plan-ai__answer ul{margin:4px 0;padding-left:20px}
+.plan-ai__notice{padding:18px;border:1px dashed #cadbd3;border-radius:15px;color:#52776c;display:flex;align-items:center;gap:10px;background:#f8fbf9;font-size:14px}
+.plan-ai__spinner{width:17px;height:17px;border:2px solid #c5dcd1;border-top-color:#14866b;border-radius:50%;animation:spin .75s linear infinite}
+.plan-ai__actions{display:flex;gap:10px;flex-wrap:wrap}
+.plan-ai__actions button{border:1px solid #b7d8cd;border-radius:10px;background:#fff;padding:10px 14px;color:#086951;display:inline-flex;gap:8px;align-items:center;font-weight:800;cursor:pointer}
+.plan-ai small{color:#728881;font-size:11px}

@@ -1,0 +1,23 @@
+.scenario-review{display:grid;gap:16px}
+.scenario-review__header{display:flex;gap:18px;align-items:center;justify-content:space-between}
+.scenario-review__header h2{font:800 clamp(20px,2vw,25px)/1.25 Manrope,sans-serif;color:#134850;margin:0 0 7px}
+.scenario-review__header p{font-size:13px;color:#5b7771;max-width:680px;margin:0;line-height:1.5}
+.scenario-review__total{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:140px;padding:14px;background:#eaf6ef;border-radius:15px;color:#086e53}
+.scenario-review__total strong{font:800 24px Manrope,sans-serif}.scenario-review__total small{font-size:11px;font-weight:700;text-align:center}
+.scenario-review__groups{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.scenario-group{border:1px solid #dce9e3;border-radius:15px;background:#fbfdfb;padding:14px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.scenario-group__title{display:flex;justify-content:space-between;align-items:start;gap:10px}
+.scenario-group h3{font:800 14px Manrope,sans-serif;color:#174b51;margin:0 0 3px}
+.scenario-group__title small{font-size:11px;color:#607d78}
+.scenario-group__help{border:1px solid #cde0d7;background:#fff;display:grid;place-items:center;border-radius:50%;width:30px;height:30px;flex:none;color:#17715e;cursor:pointer}
+.scenario-group__help:focus-visible{outline:3px solid #a5d9c6}
+.scenario-group__description{background:#ecf6f2;padding:10px;border-radius:10px;font-size:12px;line-height:1.4;margin:0;color:#365f56}
+.scenario-group .fg{width:100%;min-width:0}.scenario-group .fg-group{margin:0}.scenario-group .fg svg{width:auto;max-width:100%}
+.scenario-review__chosen{margin:0;background:#eaf5f1;border-radius:10px;padding:10px 13px;color:#174f4a;font-size:13px}
+.scenario-review__footer{display:flex;align-items:center;flex-wrap:wrap;gap:7px;color:#69807a;font-size:12px}
+.scenario-swatch{width:13px;height:13px;border-radius:3px;display:inline-block}
+.scenario-swatch--gain{background:#16846d}.scenario-swatch--loss{background:#e38c67;margin-left:14px}
+.scenario-review__footnote{margin-left:auto;font-size:11px}
+.scenario-review__ungrouped p{color:#607c75;font-size:13px}
+@media(max-width:1000px){.scenario-review__groups{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.scenario-review__groups{grid-template-columns:1fr}.scenario-review__header{align-items:stretch;flex-direction:column}.scenario-review__total{align-items:start;min-width:0}.scenario-review__footnote{width:100%;margin-left:0}}

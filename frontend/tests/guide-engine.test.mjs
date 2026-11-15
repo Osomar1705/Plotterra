@@ -74,5 +74,57 @@ test('no muestra milímetros inventados antes de ejecutar la simulación',()=>{
  const full=cleanRequest({...raw,message:'30% menos riego'});
  const output=verifyReply({status:'proposed_change',intent:'PROPOSE_SCENARIO',message:'El riego pasará a 126 mm, confirmar',change:{type:'irrigation',operation:'reduce',value:30,unit:'percent'}},full);
  assert.doesNotMatch(output.message,/126 mm/);
- assert.match(output.message,/Recalculamos/);
+ assert.match(output.message,/recalculate/i);
+});
+
+test('saludo después del recálculo no recupera la aclaración antigua',()=>{
+ const greeting=cleanRequest({...raw,message:'hola',history:[
+  {role:'user',text:'¿Qué pasa si tengo 30% menos riego?'},
+  {role:'assistant',text:'Entendí Riego −30%. ¿Recalculamos?'},
+  {role:'user',text:'Sí, confirmo recalcular con Riego −30%'},
+  {role:'assistant',text:'RESULTADO YA CALCULADO: Economía 59/100, Agua 57/100 y Suelo 80/100.'},
+  {role:'user',text:'¿Cuál es la más segura ahora?'},
+  {role:'assistant',text:'Suelo, con 80 de 100 casos con margen positivo.'},
+ ]});
+ const answer=verifyReply({status:'needs_clarification',intent:'PROPOSE_SCENARIO',message:'¿10%, 30% o 50%?',change:null},greeting);
+ assert.equal(answer.status,'answered');
+ assert.match(answer.message,/Hi!/);
+ assert.doesNotMatch(answer.message,/10%|30%|50%/);
+ assert.equal(greeting.history.length,6);
+});
+
+test('resumen posterior a simulación nunca propone recalcular dos veces',()=>{
+ const post=cleanRequest({...raw,message:'RESUMEN_POST_SIMULACION: Se aplicó Riego −30%. Explica los resultados.'});
+ const answer=verifyReply({status:'proposed_change',intent:'PROPOSE_SCENARIO',message:'Suelo ganó en 80 de 100 casos.',change:{type:'irrigation',operation:'reduce',unit:'percent',value:30}},post);
+ assert.equal(answer.status,'answered');
+ assert.equal(answer.change,null);
+ assert.match(answer.message,/Suelo/);
+});
+
+test('envía historial reciente completo en orden cronológico',()=>{
+ const messages=Array.from({length:19},(_,i)=>({role:i%2?'assistant':'user',text:`turno ${i}`}));
+ const input=cleanRequest({...raw,history:messages});
+ assert.equal(input.history.length,16);
+ assert.equal(input.history[0].text,'turno 3');
+ assert.equal(input.history.at(-1).text,'turno 18');
+});
+
+
+test('English request for less irrigation is confirmed without an extra clarification',()=>{
+ const req=cleanRequest({message:'What if I have 30% less irrigation?',context:{page:'comparison',engine:'local_mock',comparison:{id:'cmp_a',alternatives:[],sourceResult:'mock'}}});
+ const r=verifyReply({status:'needs_clarification',message:'Which percentage?',intent:'SCENARIO',suggestions:[],sources:[],change:null},req);
+ assert.equal(r.status,'proposed_change');
+ assert.equal(r.change.value,30);
+ assert.match(r.message,/30% less irrigation/);
+});
+
+
+test('English crop names are normalized to the backend crop identifiers',()=>{
+ const real={...req,context:{...req.context,engine:'backend'}};
+ const barley=verifyReply({status:'proposed_change',message:'Exclude barley?',change:{type:'exclude_crop',operation:'exclude',value:'barley',unit:'crop'}},real);
+ assert.equal(barley.change.value,'cebada');
+ assert.equal(barley.change.label,'No barley');
+ const potato=verifyReply({status:'proposed_change',message:'Potato first?',change:{type:'first_crop',operation:'set',value:'potato',unit:'crop'}},real);
+ assert.equal(potato.change.value,'papa');
+ assert.equal(potato.change.label,'Start with potato');
 });

@@ -250,3 +250,11 @@ src/
 - Se quitó la foto flotante del encabezado de la Vista 01 (redundante).
 
 **Ojo backend:** el Vite proxy envía `/api/v1/consultas` al servidor IA (8787). El backend de referencia también tenía `/consultas` (por reglas); usen solo uno.
+
+## v8 · Vista Plan compacta
+- Una sola tarjeta de plan (margen, agua, suelo) + 3 siembras con solo fecha de siembra → cosecha. Al tocar una siembra aparece "Why X here?" con datos del run (posición en la rotación, lluvia típica entre siembra y cosecha, métricas si el backend las manda) y botón "Ask the guide".
+- Cuadritos en vertical a la derecha, agrupados por tipo de prueba; al pasar el cursor se lee el caso exacto (años de clima + condición).
+- Fuentes y límites en un solo desplegable bajo el plan. La sección "Why this plan?" con IA se quitó de la vista (el componente PlanWhyAI.tsx queda sin usar, por si se reutiliza en el detalle de siembra).
+- (v8.1) Nueva tarjeta "What hurts this plan most?": barras con cuánto baja el margen en cada prueba vs. condiciones típicas + rango peor 10 / promedio / mejor 10. Se calcula de los mismos 100 resultados. Fuentes/límites ahora son el pie de la tarjeta del plan. La lluvia en el detalle de siembra se rotula "historical average (not a forecast)".
+- (v8.2) Fuentes/límites pasaron al final de la tarjeta de riesgo con la lista de datos que usa el motor.
+- (v8.3) Se restauró la animación "Testing your plot in 100 possible futures" al llegar a Opciones desde el formulario (no se repite al volver desde Plan).

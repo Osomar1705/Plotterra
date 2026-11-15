@@ -1,37 +1,12 @@
-# Dependencias
 node_modules/
-
-# Build
 dist/
-dist-ssr/
 *.tsbuildinfo
-*.local
-
-# Variables de entorno — NUNCA commitear.
-# Solo se versiona .env.example con valores de ejemplo.
 .env
-.env.*
-!.env.example
-# Clave de OpenAI del servidor del chat: solo local o en el panel del hosting.
+.env.local
+.env.*.local
 .env.ai
 .env.ai.*
 !.env.ai.example
-
-# Logs
+!.env.example
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Editores y sistema operativo
-.vscode/*
-!.vscode/extensions.json
-.idea/
 .DS_Store
-Thumbs.db
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?

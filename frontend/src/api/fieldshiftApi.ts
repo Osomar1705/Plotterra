@@ -1,11 +1,9 @@
-import type { AlternativePassport, AppliedChange, AssistantInterpretation, Comparison, EntryConditions, Greenness, Plot, PlotDraft } from '../types/fieldshift';
-import { normalizeAlternativePassport, normalizeApiError, normalizeComparison } from './normalizers';
-import { baseComparison, changedComparison, demoPassports, demoPlot } from '../mocks/data';
+import type { AppliedChange, AssistantInterpretation, Comparison, EntryConditions, Plot, PlotDraft, AlternativePassport } from '../types/fieldshift';
+import { normalizeApiError, normalizeComparison } from './normalizers';
+import { baseComparison, changedComparison, demoPlot } from '../mocks/data';
 import { polygonAreaHa } from '../lib/plotGeometry';
 
 const API = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1').replace(/\/$/, '');
-// Por defecto, backend real: si en el deploy falta la variable no queremos
-// mostrar cifras inventadas sin que nadie lo note.
 const USE_MOCKS = String(import.meta.env.VITE_USE_LOCAL_MOCKS ?? 'false') === 'true';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -19,14 +17,6 @@ function storedComparison(id: string): Comparison | null {
   try { const json=sessionStorage.getItem(DEMO_KEY+id); return json?JSON.parse(json) as Comparison:null; } catch { return null; }
 }
 
-/**
- * Indica si la app corre contra datos locales. Las vistas lo usan para decidir
- * si pueden abrirse sin un comparisonId real en la URL.
- */
-export function isUsingMocks(): boolean {
-  return USE_MOCKS;
-}
-
 async function request(path: string, init?: RequestInit) {
   let res: Response;
   try {
@@ -35,21 +25,15 @@ async function request(path: string, init?: RequestInit) {
       headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
     });
   } catch {
-    // Sin conexion o backend apagado: fetch lanza un TypeError sin mensaje
-    // para el agricultor y la franja de error quedaba vacia.
+    // Offline or backend down: fetch throws a TypeError with no farmer-facing message.
     throw normalizeApiError({
       codigo: 'SIN_CONEXION',
-      mensaje_agricultor: 'No pudimos conectar con FieldShift. Revisa tu conexión e inténtalo de nuevo.',
+      mensaje_agricultor: "We couldn't reach FieldShift. Check your connection and try again.",
     });
   }
   const text = await res.text();
   let data: any = null;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    // Un proxy o un 502 pueden devolver HTML en lugar de JSON.
-    data = null;
-  }
+  try { data = text ? JSON.parse(text) : null; } catch { data = null; } // a proxy 502 may return HTML
   if (!res.ok) throw normalizeApiError(data, res.status);
   return data;
 }
@@ -149,88 +133,26 @@ export async function interpretAssistant(comparisonId: string, message: string):
   };
 }
 
-/**
- * Vista 03 -> GET /comparaciones/{id}/alternativas/{id}/pasaporte.
- * Trazabilidad de una alternativa: de donde sale cada indicador, con sus
- * fuentes y supuestos, para que el agricultor pueda auditar la recomendacion.
- */
+
 export async function getAlternativePassport(comparisonId: string, alternativeId: string): Promise<AlternativePassport> {
   if (USE_MOCKS) {
-    await sleep(400);
-    const demo = demoPassports[alternativeId];
-    if (demo) return demo;
-    // Sin pasaporte de demo devolvemos la envoltura vacia: la vista ya sabe
-    // mostrar "el backend no devolvio el desglose" en lugar de romperse.
-    return { alternativeId, comparisonId, sourceResult: 'mock', metrics: [], sources: [], assumptions: [] };
-  }
-  const id = encodeURIComponent(comparisonId);
-  // Fuentes, supuestos y versiones viven en /datos-y-supuestos (son de toda la
-  // comparacion); si esa llamada falla, el pasaporte se muestra igual.
-  const [raw, data] = await Promise.all([
-    request(`/comparaciones/${id}/alternativas/${encodeURIComponent(alternativeId)}/pasaporte`),
-    request(`/comparaciones/${id}/datos-y-supuestos`).catch(() => null),
-  ]);
-  const passport = normalizeAlternativePassport(raw, alternativeId);
-  if (data) {
-    const sources = (data.fuentes ?? []).map((f: any) => (typeof f === 'string' ? f : `${f.dato ? `${f.dato[0].toUpperCase()}${f.dato.slice(1)}: ` : ''}${f.fuente ?? ''}${f.provisional ? ' (provisional)' : ''}`)).filter(Boolean);
-    if (!passport.sources.length) passport.sources = sources;
-    if (!passport.assumptions.length) passport.assumptions = [...(data.supuestos ?? []), ...(data.limitaciones ?? [])];
-    passport.engineVersion ??= data.versiones?.motor;
-    passport.datasetVersion ??= data.versiones?.datasets;
-    passport.sourceResult ??= data.versiones?.fuente_resultado;
-  }
-  return passport;
-}
-
-
-/**
- * Verdor de la parcela visto desde satelite (NDVI de NASA HLS). Confirma que el
- * terreno es una chacra. Devuelve null en modo mock o si falla: es un dato que
- * acompana la comparacion, nunca la bloquea.
- */
-export async function getGreenness(plotId: string): Promise<Greenness | null> {
-  if (USE_MOCKS || !plotId) return null;
-  try {
-    const raw = await request(`/parcelas/${encodeURIComponent(plotId)}/verdor`);
+    await sleep(350);
+    const comparison = storedComparison(comparisonId) ?? (comparisonId.includes('riego') ? changedComparison : baseComparison);
+    const alt = comparison.alternatives.find((item) => item.id === alternativeId) ?? comparison.alternatives[0];
     return {
-      available: Boolean(raw?.disponible),
-      reason: raw?.motivo,
-      farmerMessage: String(raw?.mensaje_agricultor ?? ''),
-      pattern: raw?.patron,
-      series: (raw?.serie ?? []).map((p: any) => ({ date: String(p.fecha), ndvi: Number(p.ndvi) })),
-      monthly: (raw?.ciclo_tipico ?? []).map((m: any) => ({ month: Number(m.mes), ndvi: Number(m.ndvi_medio) })),
-      clearImages: raw?.imagenes_despejadas,
-      scenes: raw?.escenas_revisadas,
-      lastYear: raw?.ultimos_12_meses
-        ? { min: raw.ultimos_12_meses.ndvi_min, max: raw.ultimos_12_meses.ndvi_max, images: raw.ultimos_12_meses.imagenes }
-        : undefined,
-      source: raw?.fuente,
-      district: raw?.verdor_distrito
-        ? {
-            name: String(raw.verdor_distrito.distrito ?? ''),
-            farmerMessage: String(raw.verdor_distrito.mensaje_agricultor ?? ''),
-            distinguishable: raw.verdor_distrito.ciclo_distinguible !== false,
-            monthly: (raw.verdor_distrito.ciclo_tipico ?? []).map((m: any) => ({ month: Number(m.mes), ndvi: Number(m.ndvi_mediana ?? m.ndvi_medio) })),
-            clearImages: raw.verdor_distrito.imagenes_despejadas,
-            source: raw.verdor_distrito.fuente,
-            scope: raw.verdor_distrito.alcance,
-          }
-        : undefined,
-      stress: raw?.estres_vegetacion
-        ? {
-            farmerMessage: String(raw.estres_vegetacion.mensaje_agricultor ?? ''),
-            reading: raw.estres_vegetacion.lectura,
-            monthly: (raw.estres_vegetacion.por_mes ?? []).map((m: any) => ({
-              month: Number(m.mes),
-              esi: m.esi_mediana == null ? null : Number(m.esi_mediana),
-              fewObservations: Boolean(m.pocas_observaciones),
-            })),
-            source: raw.estres_vegetacion.fuente,
-            scope: raw.estres_vegetacion.alcance,
-          }
-        : undefined,
+      alternativeId: alt.id, sourceResult: 'mock', engineVersion: 'demo-1.0', datasetVersion: 'hackathon-2026',
+      metrics: [
+        {id:'margin',label:'Margen estimado',value:`S/ ${alt.margin.min?.toLocaleString('es-PE')} – ${alt.margin.max?.toLocaleString('es-PE')}`,definition:'Rango estimado para el horizonte de la ruta.',source:'Motor FieldShift',status:'Demostración'},
+        {id:'water',label:'Demanda de agua',value:alt.water.value,unit:alt.water.unit,definition:'Indicador hídrico agregado de la ruta.',source:'Datos climáticos + motor FieldShift',status:'Demostración'},
+        {id:'soil',label:'Compatibilidad de rotación',value:alt.soil.compatibility,definition:'Compatibilidad agronómica de la secuencia.',source:'Reglas agronómicas FieldShift',status:'Demostración'},
+      ],
+      sources:['NASA GPM / datos climáticos usados por el proyecto','Datos agrícolas y condiciones ingresadas para la parcela'],
+      assumptions:['Los valores mock sirven para demostrar la interfaz y deben sustituirse por resultados del backend.','La herramienta orienta la comparación; no reemplaza el criterio del agricultor.'],
     };
-  } catch {
-    return null;
   }
+  const raw = await request(`/comparaciones/${encodeURIComponent(comparisonId)}/alternativas/${encodeURIComponent(alternativeId)}/pasaporte`);
+  const metrics = raw?.metrics ?? raw?.metricas ?? [];
+  return { alternativeId, sourceResult:raw?.source_result ?? raw?.fuente_resultado, engineVersion:raw?.engine_version ?? raw?.version_motor, datasetVersion:raw?.dataset_version ?? raw?.version_datos, metrics:metrics.map((m:any,i:number)=>({id:String(m.id??i),label:m.label??m.nombre??'Indicador',value:m.value??m.valor??null,unit:m.unit??m.unidad,definition:m.definition??m.definicion,source:m.source??m.fuente,status:m.status??m.estado??'Disponible'})), sources:raw?.sources??raw?.fuentes??[], assumptions:raw?.assumptions??raw?.supuestos??[] };
 }
+
+export function isUsingMocks() { return USE_MOCKS; }

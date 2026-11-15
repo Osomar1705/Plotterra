@@ -42,11 +42,14 @@ export const mockScenarios: ScenarioMeta[] = (() => {
 /** Márgenes coherentes por escenario: los perturbados derivan de su futuro base. */
 export function mockOutcomes(seed: number, mean: number, spread: number, irrigationPenalty = 0): Outcomes {
   const r = mulberry32(seed);
-  const base = Array.from({ length: 40 }, () => mean + spread * gauss(r));
+  // Shared weather/economic shock for the same indexed scenario across all plans.
+  const shared = mulberry32(20261114);
+  const baseShock = Array.from({length:40},()=>gauss(shared));
+  const base = baseShock.map(v=>mean+spread*v+spread*0.12*gauss(r));
   const values = mockScenarios.map((s, i) => {
     const plan = FAMILY_PLAN.find((f) => f.family === s.family)!;
     const b = Number(s.baseId!.slice(4));
-    const v = s.family === 'tipica' ? base[i] : base[b] + plan.shift * Math.abs(mean) + 0.25 * spread * gauss(r);
+    const v = s.family === 'tipica' ? base[i] : base[b] + plan.shift * Math.abs(mean) + 0.12 * spread * gauss(r);
     return Math.round((v - irrigationPenalty * (0.6 + 0.4 * r())) / 10) * 10;
   });
   const sorted = [...values].sort((a, b) => a - b);

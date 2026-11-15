@@ -10,10 +10,11 @@ import { FAMILY_LABEL, FAMILY_ORDER, scenarioLabel, signedMoney, toneScale } fro
  * Las pérdidas llevan rayado diagonal además del color (no depende solo del color).
  */
 export function FuturesGrid({
-  values, scenarios, size = 'mini', order = 'value', highlightIndex = null, onHoverIndex,
-  revealed = true, staggerMs = 10, previousValues, layoutId, ariaLabel, cellPx, ranks,
+  values, scaleValues, scenarios, size = 'mini', order = 'value', highlightIndex = null, onHoverIndex,
+  revealed = true, staggerMs = 10, previousValues, layoutId, ariaLabel, cellPx,
 }: {
   values: number[];
+  scaleValues?: number[]; // use a consistent color scale across scenario groups
   scenarios?: ScenarioMeta[];
   size?: 'mini' | 'full';
   order?: 'value' | 'scenario';
@@ -25,23 +26,9 @@ export function FuturesGrid({
   layoutId?: string;
   ariaLabel?: string;
   cellPx?: number;   // tamaño de celda personalizado (overlay de simulación)
-  /**
-   * Puesto de esta opcion en cada futuro (0 la mejor de las tres). Si viene, el
-   * color dice como le fue frente a las otras en ese mismo futuro: verde la
-   * mejor, amarillo segunda, naranja la peor. Con margen positivo en casi todos
-   * los futuros, colorear solo por ganancia dejaba la cuadricula toda verde.
-   * Las perdidas siguen en rojo fuerte y rayadas.
-   */
-  ranks?: number[];
 }) {
   const uid = useId().replace(/:/g, '');
-  const scale = useMemo(() => toneScale(previousValues ? [...values, ...previousValues] : values), [values, previousValues]);
-  const byRank = ranks?.length === values.length;
-  const tone = (v: number, i: number) => {
-    if (!byRank) return scale(v);
-    if (v < 0) return 'loss-3';
-    return ranks![i] === 0 ? 'gain-3' : ranks![i] === 1 ? 'mid' : 'low';
-  };
+  const tone = useMemo(() => toneScale(scaleValues ?? (previousValues ? [...values, ...previousValues] : values)), [values, previousValues, scaleValues]);
   const [hover, setHover] = useState<number | null>(null);
   const cell = cellPx ?? (size === 'mini' ? 10 : 15);
   const gap = cellPx ? Math.max(2, Math.round(cellPx / 8)) : 2;
@@ -80,7 +67,7 @@ export function FuturesGrid({
               const x = (k % cols) * (cell + gap);
               const y = Math.floor(k / cols) * (cell + gap);
               const v = values[i];
-              const t = revealed ? tone(v, i) : 'empty';
+              const t = revealed ? tone(v) : 'empty';
               const delay = revealed ? (seq++) * staggerMs : 0;
               const isActive = active === i;
               return <g key={i} className={`fg-cell fg-${t} ${isActive ? 'is-active' : ''}`}
@@ -95,14 +82,9 @@ export function FuturesGrid({
           </svg>
         </div>;
       })}
-      {hover !== null && revealed && <div className="fg-tip" role="status">
-        <strong>{signedMoney(values[hover])} <small>por ha · 3 campañas</small></strong>
+      {hover !== null && revealed && !onHoverIndex && <div className="fg-tip" role="status">
+        <strong>{signedMoney(values[hover])} <small>per ha · 3 seasons</small></strong>
         <span>{scenarioLabel(hover, scenarios)}</span>
-        {byRank && <span>{values[hover] < 0 ? 'Pierde plata' : ranks![hover] === 0 ? 'La mejor de las tres' : ranks![hover] === 1 ? 'Segunda de las tres' : 'La que menos deja'} en este futuro</span>}
-      </div>}
-      {byRank && size === 'full' && <div className="fg-legend fg-legend--rank">
-        <span><i className="fg-sw fg-gain-3" />La mejor</span><span><i className="fg-sw fg-mid" />Segunda</span>
-        <span><i className="fg-sw fg-low" />La que menos deja</span><span><i className="fg-sw fg-loss-3" />Pierde plata</span>
       </div>}
     </div>
   );

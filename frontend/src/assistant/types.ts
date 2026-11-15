@@ -1,4 +1,4 @@
-import type { AppliedChange, AlternativeType, Comparison, EntryConditions, AlternativeKind } from '../types/fieldshift';
+import type { AppliedChange, AlternativeType, Comparison, EntryConditions } from '../types/fieldshift';
 
 export type GuidePage = 'parcel' | 'comparison' | 'plan';
 export type GuideStatus = 'answered' | 'needs_clarification' | 'proposed_change' | 'unsupported';
@@ -10,6 +10,7 @@ export interface GuideContext {
   selectedAlternativeId?: string;
   campaignIndex?: number;
   engine?: 'local_mock' | 'backend';
+  displayFx?: { penPerUsd: number; asOf: string };
 }
 
 export interface GuideMessage {
@@ -42,6 +43,8 @@ export interface GuideRequest {
   pendingClarification?: GuideClarification | null;
 }
 
-export const GUIDE_ALTERNATIVE_NAMES: Record<AlternativeKind, string> = {
-  economy: 'Economía', water: 'Agua', soil: 'Suelo', unknown: 'Alternativa',
+export const GUIDE_ALTERNATIVE_NAMES: Record<AlternativeType, string> = {
+  economy: 'Earn more money',
+  water: 'Save water',
+  soil: 'Care for my soil',
 };

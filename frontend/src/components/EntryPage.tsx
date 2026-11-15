@@ -4,43 +4,36 @@ import type {
   AlternativeType, EntryConditions, ExcludedCrop, ExclusionReason,
   FieldShiftApiError, PlotPoint, WaterMode,
 } from '../types/fieldshift';
-import { createPlot } from '../api/fieldshiftApi';
+import { createPlot, isUsingMocks } from '../api/fieldshiftApi';
 import { saveEntryConditions } from '../integration/entryContext';
 import { PlotMap, type MapMode } from './PlotMap';
-import { AndeanLandscape, CropIllustration } from './CropIllustration';
+import { CropIllustration } from './CropIllustration';
 import { Photo } from './Photo';
+import { cropName } from '../lib/uiCopy';
 import { checkPolygon, formatHa } from '../lib/plotGeometry';
-import '../styles/parcel-experience.css';
-import { DEMO_PLOT_LOCALITY, DEMO_PLOT_POINTS } from '../lib/demoPlot';
 import {
   AlertIcon, CalendarIcon, CheckIcon, ClockIcon, CoinsIcon, InfoIcon,
-  LeafIcon, PlusIcon, RainIcon, SproutIcon, WaterIcon,
+  LeafIcon, RainIcon, SproutIcon, WaterIcon,
 } from './Icons';
 
 const CROPS = ['Papa', 'Quinua', 'Cebada', 'Avena', 'Haba', 'Tarwi'];
 
-/** Fecha de hoy como YYYY-MM-DD en la zona del navegador (no en UTC). */
-function todayIso(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
 const WATER_MODES: { id: WaterMode; label: string; hint: string }[] = [
-  { id: 'rainfed', label: 'Solo lluvia', hint: 'Sin riego, dependo de la lluvia' },
-  { id: 'scheduled', label: 'Riego por turnos', hint: 'Me toca riego algunos días' },
-  { id: 'irrigated', label: 'Riego disponible', hint: 'Puedo regar cuando lo necesito' },
+  { id: 'rainfed', label: 'Only rain', hint: 'No irrigation available' },
+  { id: 'scheduled', label: 'Scheduled irrigation', hint: 'I have water on some days' },
+  { id: 'irrigated', label: 'Irrigation available', hint: 'I can irrigate when needed' },
 ];
 
 const PRIORITIES: { id: AlternativeType; label: string; hint: string }[] = [
-  { id: 'economy', label: 'Economía', hint: 'El mayor margen posible' },
-  { id: 'water', label: 'Agua', hint: 'Resistir una campaña seca' },
-  { id: 'soil', label: 'Suelo', hint: 'Cuidar el terreno a futuro' },
+  { id: 'economy', label: 'Earn more money', hint: 'Focus on expected income' },
+  { id: 'water', label: 'Save water', hint: 'Reduce water pressure' },
+  { id: 'soil', label: 'Care for soil', hint: 'Choose a better soil fit' },
 ];
 
 const REASONS: { id: ExclusionReason; label: string }[] = [
-  { id: 'sin_comprador', label: 'No tengo comprador' },
-  { id: 'no_en_mi_zona', label: 'No se da en mi zona' },
-  { id: 'no_quiero', label: 'No quiero sembrarlo' },
+  { id: 'sin_comprador', label: 'I have no buyer' },
+  { id: 'no_en_mi_zona', label: 'It does not grow locally' },
+  { id: 'no_quiero', label: 'I prefer not to plant it' },
 ];
 
 export function EntryPage() {
@@ -62,24 +55,12 @@ export function EntryPage() {
   // --- condiciones ---
   const [previousCrop, setPreviousCrop] = useState('Papa');
   const [unknownPrevious, setUnknownPrevious] = useState(false);
-  // Hoy en hora local: una fecha fija dejaba el formulario roto en cuanto pasaba
-  // ese dia (el backend rechaza fechas anteriores a hoy).
-  const [startDate, setStartDate] = useState(todayIso);
+  const [startDate, setStartDate] = useState('2026-11-15');
   const [waterMode, setWaterMode] = useState<WaterMode>('scheduled');
   const [irrigationMm, setIrrigationMm] = useState('180');
   const [excluded, setExcluded] = useState<ExcludedCrop[]>([]);
   const [askingFor, setAskingFor] = useState<string | null>(null);
   const [priority, setPriority] = useState<AlternativeType>('water');
-  const [extraOpen, setExtraOpen] = useState(false);
-  const [usualPlan, setUsualPlan] = useState('');
-
-  const [mobilePanel, setMobilePanel] = useState<'map' | 'conditions'>('map');
-  const panelHeading = useRef<HTMLHeadingElement>(null);
-
-  function showPanel(panel: 'map' | 'conditions') {
-    setMobilePanel(panel);
-    requestAnimationFrame(() => panelHeading.current?.focus());
-  }
 
   // --- envio ---
   const [submitting, setSubmitting] = useState(false);
@@ -98,44 +79,35 @@ export function EntryPage() {
     return 'empty';
   })();
 
-  const hasPlot = useTypedArea ? Number.isFinite(areaHa) && areaHa >= 0.05 && areaHa <= 50 : (mode === 'ready' && check.valid);
+  const hasPlot = useTypedArea ? areaHa > 0 : (mode === 'ready' && check.valid);
 
   /** Lo que falta para poder comparar. El boton lo dice en vez de fallar al pulsarlo. */
   const blocker = (() => {
-    if (mode === 'invalid') return 'Corrige el contorno de tu parcela';
-    if (mode === 'drawing' && points.length < 3) return 'Faltan puntos para cerrar el contorno';
-    if (mode === 'drawing') return 'Cierra el contorno de tu parcela';
-    if (useTypedArea && !hasPlot) return 'Escribe una superficie entre 0,05 y 50 hectáreas';
-    if (!hasPlot) return denied ? 'Falta ubicar tu parcela' : 'Falta dibujar tu parcela';
-    if (!startDate || startDate < todayIso()) return 'Elige hoy o una fecha posterior para sembrar';
-    if (allowedCrops.length < 2) return 'Habilita al menos dos cultivos';
-    if (waterMode !== 'rainfed' && !(Number(irrigationMm) > 0 && Number(irrigationMm) <= 1200)) return 'Indica un riego mayor que 0 y hasta 1200 mm por campaña';
+    if (mode === 'invalid') return 'Fix the plot outline';
+    if (mode === 'drawing' && points.length < 3) return 'Add more corners to close the plot';
+    if (mode === 'drawing') return 'Close the plot outline';
+    if (!hasPlot) return denied ? 'Enter the location of your plot' : 'Draw your plot or enter its size';
+    if (allowedCrops.length < 2) return 'Select at least two crops';
+    if (waterMode !== 'rainfed' && !(Number(irrigationMm) > 0)) return 'Enter your irrigation amount';
     return null;
   })();
 
-  function addPoint(p: PlotPoint, closesShape = false) {
+  function addPoint(p: PlotPoint) {
     if (closed) setClosed(false);
     if (!drawing) setDrawing(true);
     if (denied) setDenied(false);
     if (useTypedArea) setUseTypedArea(false);
     const prev = pointsRef.current;
-    // Tocar el primer punto cierra el contorno, como en cualquier editor de mapas.
-    // El mapa decide la cercania en pixeles, porque en grados depende del zoom.
-    if (closesShape && prev.length >= 3) {
-      setClosed(true);
-      setDrawing(false);
-      return;
+    // Tocar cerca del primer punto cierra el contorno, como en cualquier editor de mapas.
+    if (prev.length >= 3) {
+      const first = prev[0];
+      if (Math.hypot(first.x - p.x, first.y - p.y) < 14) {
+        setClosed(true);
+        setDrawing(false);
+        return;
+      }
     }
     setPoints([...prev, p]);
-  }
-
-  function loadDemoPlot() {
-    setPoints([...DEMO_PLOT_POINTS]);
-    setClosed(true);
-    setDrawing(false);
-    setDenied(false);
-    setUseTypedArea(false);
-    setLocality(DEMO_PLOT_LOCALITY);
   }
 
   function closePolygon() {
@@ -176,10 +148,9 @@ export function EntryPage() {
         waterMode,
         irrigationMm: waterMode === 'rainfed' ? 0 : Number(irrigationMm),
         allowedCrops: allowedCrops.map((c) => c.toLowerCase()),
-        excludedCrops: excluded.map((e) => ({ ...e, crop: e.crop.toLowerCase() })),
+        excludedCrops: excluded,
         priority,
         horizon: 3,
-        usualPlan: usualPlan ? usualPlan.split(/[,>→-]+/).map((s) => s.trim().toLowerCase()).filter(Boolean) : undefined,
         dataQualityHint: unknownPrevious ? 'limited' : 'sufficient',
       };
       saveEntryConditions(conditions);
@@ -192,32 +163,24 @@ export function EntryPage() {
   }
 
   return (
-    <div className="app-shell parcel-experience" data-mobile-panel={mobilePanel}>
+    <div className="app-shell">
       <header className="topbar">
         <a className="brand" href="/"><LeafIcon />FieldShift</a>
-        <nav className="steps"><strong>1&nbsp; Parcela</strong><span>2&nbsp; Opciones</span><span>3&nbsp; Plan</span></nav>
+        <nav className="steps"><strong>1&nbsp; Plot</strong><span>2&nbsp; Options</span><span>3&nbsp; Plan</span></nav>
       </header>
 
       <main className="entry-page">
-        <h2 className="parcel-sr-only" ref={panelHeading} tabIndex={-1}>{mobilePanel === 'map' ? 'Ubica tu parcela' : 'Prepara tu campaña'}</h2>
-        <section className="hero-row entry-hero">
-          <AndeanLandscape className="entry-hero-art" tone="day" />
+        <section className="hero-row entry-hero entry-hero--photo">
+          <Photo k="andenes" eager kenBurns={false} />
           <div>
-            <span className="entry-kicker">Prueba tu siembra en 100 futuros antes de comprometer tu parcela</span>
-            <h1>Prepara tu próxima siembra</h1>
-            <p>Dibuja tu parcela, confirma tres datos de tu campaña y compara alternativas para economía, agua y suelo.</p>
+            <span className="entry-kicker">Plan a better crop rotation for your plot</span>
+            <h1>Plan your next planting</h1>
+            <p>Enter your plot and farming conditions to compare income, water and soil options.</p>
           </div>
-          {/* Tarjeta con foto real del diseno original; al dibujar la parcela cede el lugar a su resumen. */}
-          {!hasPlot && (
-            <figure className="entry-hero-card">
-              <Photo k="andenes" eager credit={false} kenBurns={false} />
-              <figcaption>Andenes, valle del Colca · Foto: Jospastor · Wikimedia Commons</figcaption>
-            </figure>
-          )}
           {hasPlot && (
             <div className="parcel-meta">
-              <div><CheckIcon />Parcela de {formatHa(areaHa)}</div>
-              <small><InfoIcon size={14} />Puedes corregirla antes de continuar</small>
+              <div><CheckIcon />Plot area: {formatHa(areaHa)}</div>
+              <small><InfoIcon size={14} />You can edit it before continuing</small>
             </div>
           )}
         </section>
@@ -234,36 +197,25 @@ export function EntryPage() {
           </div>
         )}
 
-        <nav className="parcel-mobile-nav" aria-label="Preparar la parcela">
-          <button type="button" aria-current={mobilePanel === 'map' ? 'step' : undefined} onClick={() => showPanel('map')}>1. Tu parcela{hasPlot ? ' ✓' : ''}</button>
-          <button type="button" aria-current={mobilePanel === 'conditions' ? 'step' : undefined} onClick={() => showPanel('conditions')}>2. Tu campaña</button>
-        </nav>
         <div className="entry-grid">
-          <section className="entry-map-col" aria-label="Tu parcela">
-            <div className="parcel-section-title"><span>01</span><h2>Ubica y dibuja tu parcela</h2></div>
+          <div className="entry-map-col">
             <PlotMap
               mode={mode}
-              points={useTypedArea ? [] : points}
+              points={points}
               areaHa={areaHa}
-              crossing={useTypedArea ? null : check.crossing}
+              crossing={check.crossing}
               locality={locality}
               onLocality={setLocality}
               onAddPoint={addPoint}
-              onReplacePoints={(next, isClosed) => {
-                setPoints(next); setClosed(isClosed); setDrawing(!isClosed);
-                setDenied(false); setUseTypedArea(false);
-              }}
               onStartDraw={() => { setDrawing(true); setClosed(false); setDenied(false); setUseTypedArea(false); }}
               onUndoPoint={() => { setPoints(points.slice(0, -1)); setClosed(false); setDrawing(true); }}
               onClear={() => { setPoints([]); setClosed(false); setDrawing(false); setUseTypedArea(false); }}
               onTypeArea={() => { setUseTypedArea(true); setDrawing(false); setClosed(false); }}
-              onUseDemo={loadDemoPlot}
-              onLocationDenied={() => setDenied(true)}
             />
 
             {useTypedArea && (
               <div className="typed-area">
-                <label htmlFor="typedArea">¿Cuántas hectáreas tiene tu parcela?</label>
+                <label htmlFor="typedArea">How many hectares is your plot?</label>
                 <div className="typed-area-row">
                   <input
                     id="typedArea" type="number" min="0.05" max="50" step="0.1"
@@ -271,57 +223,55 @@ export function EntryPage() {
                   />
                   <span>ha</span>
                   <button type="button" className="link-btn" onClick={() => { setUseTypedArea(false); setDrawing(true); }}>
-                    Prefiero dibujarla
+                    I prefer to draw it
                   </button>
                 </div>
-                <p className="field-help">Con la superficie y tu localidad podemos trabajar, aunque el resultado será menos preciso que con el contorno dibujado.</p>
+                <p className="field-help">You can continue with the area and location, although a drawn plot outline provides more detail.</p>
               </div>
             )}
 
             {mode === 'drawing' && points.length >= 3 && (
-              <button type="button" className="primary-btn wide" onClick={closePolygon}>Cerrar parcela</button>
+              <button type="button" className="primary-btn wide" onClick={closePolygon}>Close the plot</button>
             )}
 
             {!denied && mode === 'empty' && (
               <button type="button" className="link-btn" onClick={() => setDenied(true)}>
-                No puedo usar mi ubicación
+                I cannot use my location
               </button>
             )}
-            <button type="button" className="primary-btn parcel-next" disabled={!hasPlot} onClick={() => showPanel('conditions')}>Continuar con mi campaña →</button>
-          </section>
+          </div>
 
-          <section className="entry-fields" aria-label="Condiciones de la campaña">
-            <div className="parcel-section-title"><span>02</span><h2>Prepara tu campaña</h2></div>
-            <details className="parcel-question" name="campaign-questions" open><summary><span>1</span>¿Qué sembraste antes?</summary><div className="parcel-question-body"><div className="field">
-              <label htmlFor="previous-crop">Cultivo anterior</label>
+          <div className="entry-fields">
+            <div className="field">
+              <label>Previous crop</label>
               <div className="field-row2 field-row2--demo">
-                <select id="previous-crop" value={previousCrop} disabled={unknownPrevious} onChange={(e) => setPreviousCrop(e.target.value)}>
-                  {CROPS.map((c) => <option key={c}>{c}</option>)}
+                <select value={previousCrop} disabled={unknownPrevious} onChange={(e) => setPreviousCrop(e.target.value)}>
+                  {CROPS.map((c) => <option key={c} value={c}>{cropName(c)}</option>)}
                 </select>
                 <div className="input-with-icon demo-secondary">
                   <CalendarIcon size={16} />
-                  <input aria-label="Fecha de inicio de la siembra" type="date" min={todayIso()} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                 </div>
               </div>
               <label className="checkline demo-secondary">
                 <input type="checkbox" checked={unknownPrevious} onChange={(e) => setUnknownPrevious(e.target.checked)} />
-                No lo sé
+                I don't know
               </label>
               {unknownPrevious && (
                 <p className="field-help field-help--warn">
-                  <InfoIcon size={14} />Sin este dato, la calidad de la información bajará a limitada.
+                  <InfoIcon size={14} />Without this information, the results may rely on less complete data.
                 </p>
               )}
-            </div></div></details>
+            </div>
 
-            <details className="parcel-question" name="campaign-questions"><summary><span>2</span>¿Cómo recibe agua tu parcela?</summary><div className="parcel-question-body"><div className="field">
-              <label>Agua disponible</label>
+            <div className="field">
+              <label>How do you get water for your plot?</label>
               <div className="segmented">
                 {WATER_MODES.map((m) => (
                   <button
                     key={m.id} type="button"
                     className={waterMode === m.id ? 'seg seg--on' : 'seg'}
-                    aria-pressed={waterMode === m.id} onClick={() => setWaterMode(m.id)}
+                    onClick={() => setWaterMode(m.id)}
                   >
                     {m.id === 'rainfed' ? <RainIcon size={16} /> : m.id === 'scheduled' ? <ClockIcon size={16} /> : <WaterIcon size={16} />}
                     <strong>{m.label}</strong>
@@ -333,53 +283,52 @@ export function EntryPage() {
                 <div className="input-with-suffix demo-secondary">
                   <input
                     type="number" min="0" max="1200" value={irrigationMm}
-                    onChange={(e) => setIrrigationMm(e.target.value)} aria-label="Agua de riego por campaña"
+                    onChange={(e) => setIrrigationMm(e.target.value)} aria-label="Irrigation depth per season"
                   />
-                  <span>mm por campaña</span>
+                  <span>mm per season</span>
                 </div>
               )}
-              {waterMode !== 'rainfed' && <p className="field-help">1 mm equivale a 1 litro de agua por metro cuadrado. Indica el total de riego para una campaña.</p>}
-            </div></div></details>
+            </div>
 
-            <details className="parcel-question" name="campaign-questions"><summary><span>3</span>¿Qué cultivos puedes sembrar?</summary><div className="parcel-question-body"><div className="field">
-              <label>Cultivos que puedes sembrar</label>
+            <div className="field demo-secondary">
+              <label>Which crops could you plant?</label>
               <div className="chips">
                 {CROPS.map((c) => {
                   const ex = excluded.find((e) => e.crop === c);
                   return (
-                    <button key={c} type="button" className={ex ? 'chip chip--off chip--crop' : 'chip chip--crop'} aria-pressed={!ex} onClick={() => toggleCrop(c)}>
-                      <CropIllustration crop={c} size={26} />{c}{ex && <small>{REASONS.find((r) => r.id === ex.reason)?.label}</small>}
+                    <button key={c} type="button" className={ex ? 'chip chip--off chip--crop' : 'chip chip--crop'} onClick={() => toggleCrop(c)}>
+                      <CropIllustration crop={c} size={26} />{cropName(c)}{ex && <small>{REASONS.find((r) => r.id === ex.reason)?.label}</small>}
                     </button>
                   );
                 })}
               </div>
               {askingFor && (
                 <div className="reason-box">
-                  <p>¿Por qué no puedes sembrar {askingFor}?</p>
+                  <p>Why can't you plant {cropName(askingFor)}?</p>
                   <div className="reason-options">
                     {REASONS.map((r) => (
                       <button key={r.id} type="button" className="ghost-btn" onClick={() => confirmExclusion(r.id)}>{r.label}</button>
                     ))}
-                    <button type="button" className="link-btn" onClick={() => setAskingFor(null)}>Cancelar</button>
+                    <button type="button" className="link-btn" onClick={() => setAskingFor(null)}>Cancel</button>
                   </div>
                 </div>
               )}
-              <p className="field-help">Toca uno para excluirlo. Te preguntaremos por qué: eso también entra en el cálculo.</p>
+              <p className="field-help">Tap a crop to exclude it. You can explain why, and the system will use that condition.</p>
               {allowedCrops.length < 2 && (
                 <p className="field-help field-help--warn">
-                  <AlertIcon size={14} />Con un solo cultivo no se puede armar una rotación. Habilita al menos uno más.
+                  <AlertIcon size={14} />A rotation requires at least two crops. Please select another.
                 </p>
               )}
-            </div></div></details>
+            </div>
 
-            <details className="parcel-question" name="campaign-questions"><summary><span>4</span>¿Qué quieres cuidar más?</summary><div className="parcel-question-body"><div className="field">
-              <label>¿Qué te importa más esta campaña?</label>
+            <div className="field">
+              <label>What matters most to you?</label>
               <div className="priority-grid">
                 {PRIORITIES.map((p) => (
                   <button
                     key={p.id} type="button"
                     className={priority === p.id ? 'priority-card priority-card--on' : 'priority-card'}
-                    aria-pressed={priority === p.id} onClick={() => setPriority(p.id)}
+                    onClick={() => setPriority(p.id)}
                   >
                     {p.id === 'economy' ? <CoinsIcon /> : p.id === 'water' ? <WaterIcon /> : <SproutIcon />}
                     <strong>{p.label}</strong>
@@ -387,35 +336,16 @@ export function EntryPage() {
                   </button>
                 ))}
               </div>
-            </div></div></details>
-
-            <div className="disclosure">
-              <button type="button" className="disclosure-head" aria-expanded={extraOpen} onClick={() => setExtraOpen(!extraOpen)}>
-                <span><PlusIcon size={16} />Mi plan habitual y datos adicionales</span>
-                <small>Opcional · mejora la precisión</small>
-              </button>
-              {extraOpen && (
-                <div className="disclosure-body">
-                  <label htmlFor="usual">¿Qué sueles sembrar en estas tres campañas?</label>
-                  <input
-                    id="usual" value={usualPlan} onChange={(e) => setUsualPlan(e.target.value)}
-                    placeholder="Papa, Papa, Cebada"
-                  />
-                  <p className="field-help">Con esto comparamos tu plan actual contra las alternativas, bajo los mismos escenarios.</p>
-                </div>
-              )}
             </div>
 
             <div className="submit-block">
-              <button type="button" className="link-btn parcel-back" onClick={() => showPanel('map')}>← Volver a mi parcela</button>
               <button type="button" className="primary-btn wide" disabled={!!blocker || submitting} onClick={submit}>
-                {submitting ? 'Comparando…' : 'Comparar mis opciones'}
+                {submitting ? 'Comparing…' : 'Compare my options'}
               </button>
               {blocker && <p className="cta-why">{blocker}</p>}
+              <p className="foot-note">Environmental inputs depend on the connected data service.{isUsingMocks() ? ' In demo mode, results are examples.' : ''}</p>
             </div>
-            {/* Fuera de la barra fija: dentro, la barra media 177 px y tapaba las preguntas. */}
-            <p className="foot-note">NASA + MIDAGRI · Los datos ambientales se incorporan automáticamente al análisis.</p>
-          </section>
+          </div>
         </div>
       </main>
 

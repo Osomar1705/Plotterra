@@ -222,27 +222,73 @@
 @keyframes float{0%,100%{transform:rotate(1.5deg) translateY(0)}50%{transform:rotate(1.5deg) translateY(-6px)}}
 .sr-bg{opacity:.16}
 
-/* Ganancia como dato secundario bajo "la mejor opcion en X de 100". */
-.oc-profit,.fp-profit,.pv-profit{font-size:12px;color:var(--muted)}
-.oc-profit.neg,.fp-profit.neg,.pv-profit.neg{color:var(--danger,#A33A2E);font-weight:700}
-.fp-profit,.pv-profit{margin:-4px 0 8px}
+/* ===== v5 simplification ===== */
+.oc-summary{margin:0;color:var(--muted);font-size:14px;line-height:1.45}
+.oc-seq{margin-top:2px}
+.oc-seq li{padding:10px 6px 8px;min-height:108px;justify-content:flex-start}
+.oc-seq strong{font-size:13px;line-height:1.2;white-space:normal}
+.oc-seq small{font-size:11px}
+.oc-links{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.same-future{font-size:14px}
+.cmp-hero{min-height:168px}
+.cmp-hero:after{background:linear-gradient(270deg,rgba(248,246,240,.15) 0%,rgba(248,246,240,.86) 55%,rgba(248,246,240,.98) 100%)}
+@media (max-width:760px){
+  .oc-seq{grid-template-columns:1fr}
+  .oc-seq li+li:before{content:none}
+  .oc-foot{flex-direction:column;align-items:stretch}
+  .oc-foot .quality{width:100%;justify-content:center}
+  .oc-plan-btn{width:100%}
+}
 
-/* Cuadricula por puesto frente a las otras opciones (ver FuturesGrid.ranks). */
-.fg-mid rect:first-child{fill:#E6B84A}
-.fg-low rect:first-child{fill:#E08A55}
-.fg-sw.fg-mid{background:#E6B84A}.fg-sw.fg-low{background:#E08A55}.fg-sw.fg-loss-3{background:var(--loss-strong)}
-.fg-legend--rank{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:8px;font-size:11px;color:var(--muted)}
-.fg-legend--rank span{display:inline-flex;align-items:center;gap:5px}
-.fg-legend--rank .fg-sw{display:inline-block;width:10px;height:10px;border-radius:2px}
+/* v6 farmer-first option cards */
+.comparison-page--simple{max-width:1250px;padding:26px 24px 40px}
+.comparison-page--simple .cmp-hero{margin-bottom:16px}
+.comparison-page--simple .cards-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:14px;max-width:none}
+.comparison-page--simple .oc{gap:13px;padding:20px 18px 18px;min-width:0}
+.comparison-page--simple .oc-head{grid-template-columns:44px minmax(0,1fr);gap:10px}
+.comparison-page--simple .oc-head h2{font-size:19px}
+.comparison-page--simple .oc-badge{grid-column:1/-1;justify-self:start}
+.comparison-page--simple .oc-summary{font-size:13.5px;line-height:1.45;min-height:57px}
+.comparison-page--simple .oc-sequence-label{text-transform:uppercase;letter-spacing:.08em;font-size:10px;color:#698782;font-weight:900}
+.comparison-page--simple .oc-seq{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.comparison-page--simple .oc-seq li{min-width:0;min-height:117px;padding:10px 5px}
+.comparison-page--simple .oc-seq strong{font-size:12px;overflow-wrap:anywhere;min-height:27px}
+.comparison-page--simple .oc-seq small{font-size:10.5px;line-height:1.2;overflow-wrap:anywhere}
+.oc-main-metrics{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.oc-main-metrics>div{background:#f5f9f7;border:1px solid #e1ebe6;border-radius:13px;padding:12px;min-width:0;display:flex;flex-direction:column;gap:7px}
+.oc-main-metrics>div>span{font-size:11px;color:#53766e;font-weight:800;display:flex;align-items:center;gap:5px;line-height:1.3}
+.oc-main-metrics>div>strong{font:800 clamp(17px,1.45vw,21px)/1.2 Manrope,sans-serif;color:#164b51;overflow-wrap:anywhere}
+.oc-main-metrics>div>strong small{font-size:12px}
+.oc-main-metrics>div>small{font-size:10.5px;color:#7b8f88;line-height:1.3}
+.oc-simple-foot{display:flex;flex-wrap:wrap;gap:6px;align-items:center;color:#52736d;font-size:11.5px}
+.oc-simple-foot>span{display:flex;align-items:center;gap:4px;padding:4px 8px;border:1px solid #e3ece7;border-radius:9px}
+.oc-simple-foot b{color:#194d51}
+.oc-actions{margin-top:auto;display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.oc-actions .oc-quiet-link{background:none;border:0;padding:9px 3px;color:#176a70;cursor:pointer;text-decoration:underline;text-underline-offset:3px;font-weight:800;font-size:12px}
+.oc-actions .oc-plan-btn{flex:1;min-width:125px;text-align:center}
+.comparison-bottom-note{display:flex;justify-content:space-between;gap:8px 20px;flex-wrap:wrap;margin:20px 0 0;background:#f1f8f4;border-radius:12px;padding:12px 16px;color:#396960;font-size:13px}
+.comparison-bottom-note small{font-size:12px;color:#7e8575}
+.comparison-page--simple .edit-link{display:inline-block;margin-top:12px}
+.fp-grid--three{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+@media(max-width:1070px){.comparison-page--simple .cards-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){.comparison-page--simple{padding:16px 12px 32px}.comparison-page--simple .cards-grid{grid-template-columns:1fr}.comparison-page--simple .oc-summary{min-height:0}.comparison-page--simple .oc-seq{grid-template-columns:repeat(3,minmax(0,1fr))}.comparison-page--simple .oc-seq li+li:before{content:'→'}.oc-main-metrics{grid-template-columns:1fr 1fr}.fp-grid--three{grid-template-columns:1fr!important}}
+@media(max-width:390px){.oc-main-metrics{grid-template-columns:1fr}.comparison-page--simple .oc-seq li{min-height:130px}}
 
-/* Vista 02 con la foto de andenes del diseno original (despues de las cabeceras claras v3). */
+/* v9: fotos reales (andenes) en la cabecera de Opciones y en la de Entrada. */
 .cmp-hero.cmp-hero--photo{background:#0b3644;min-height:170px}
 .cmp-hero--photo:after{background:linear-gradient(90deg,rgba(9,40,46,.86) 0%,rgba(9,40,46,.55) 55%,rgba(9,40,46,.15) 100%)}
 .cmp-hero--photo .cmp-hero-inner{color:#fff}
 .cmp-hero.cmp-hero--photo h1{color:#fff!important}
 .cmp-hero.cmp-hero--photo p{color:rgba(255,255,255,.88)!important}
 .cmp-hero--photo .cmp-hero-meta span{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);color:#fff;backdrop-filter:blur(6px)}
-/* Arriba a la derecha: abajo tapaba las etiquetas Parcela / 100 futuros. */
 .cmp-hero--photo .photo-credit{z-index:3;top:8px;bottom:auto}
-/* En celular el titulo ocupa todo el ancho: se deja la franja de arriba para el credito. */
 @media(max-width:680px){.cmp-hero--photo .cmp-hero-inner{padding-top:40px}.cmp-hero--photo .photo-credit{max-width:calc(100% - 20px)}}
+.entry-hero.entry-hero--photo{background:#0b3644;border-color:transparent}
+.entry-hero--photo .photo{position:absolute;inset:0;z-index:-2}
+.entry-hero--photo:before{background:linear-gradient(95deg,rgba(9,40,46,.88) 0%,rgba(9,40,46,.6) 55%,rgba(9,40,46,.15) 100%)}
+.entry-hero.entry-hero--photo h1{color:#fff!important}
+.entry-hero.entry-hero--photo p{color:rgba(255,255,255,.88)!important}
+.entry-hero.entry-hero--photo .entry-kicker{color:#f1cf94}
+.entry-hero--photo .parcel-meta>div,.entry-hero--photo .parcel-meta small{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);color:#fff;backdrop-filter:blur(6px)}
+.entry-hero--photo .photo-credit{z-index:3;top:8px;bottom:auto}
+@media(max-width:680px){.hero-row.entry-hero.entry-hero--photo{padding-top:42px!important}.entry-hero--photo .photo-credit{max-width:calc(100% - 20px)}}

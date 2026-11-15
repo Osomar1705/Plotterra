@@ -14,5 +14,4 @@ function finish(code=0){if(ending)return;ending=true;for(const child of tasks)if
 process.on('SIGINT',()=>finish(0));
 process.on('SIGTERM',()=>finish(0));
 start('Guía FieldShift IA',['server/ai-server.mjs']);
-// Los argumentos extra (p. ej. --port 5180 --strictPort) se pasan a Vite.
-start('Vite',[resolve('node_modules/vite/bin/vite.js'),'--host','0.0.0.0',...process.argv.slice(2)]);
+start('Vite',[resolve('node_modules/vite/bin/vite.js'),'--host','0.0.0.0']);

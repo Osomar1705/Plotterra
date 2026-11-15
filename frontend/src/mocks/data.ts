@@ -1,9 +1,18 @@
-import type { Alternative, AlternativePassport, Comparison, Plot } from '../types/fieldshift';
+import type { Alternative, Comparison, Plot } from '../types/fieldshift';
 import { mockOutcomes, mockScenarios } from './futures';
 
 /** Datos de demostración. Cultivos del catálogo del motor; cifras ilustrativas, no resultados reales. */
-const camp = (crop: string, cropId: string, window: string, startMonth: string, endMonth: string) =>
-  ({ crop, cropId, window, startMonth, endMonth });
+// Demo uses the crop durations documented by the team's Python backend.
+// Dates are illustrative: the real backend sends explicit siembra and cosecha.
+const cropDays: Record<string,number> = {papa:165,quinua:200,tarwi:190,haba:190,cebada:165,avena:140};
+const datePlusDays=(iso:string,days:number)=>{
+  const [year,month,day]=iso.split('-').map(Number);
+  const d=new Date(Date.UTC(year,month-1,day));d.setUTCDate(d.getUTCDate()+days);
+  return d.toISOString().slice(0,10);
+};
+const camp = (crop: string, cropId: string, window: string, startMonth: string, _endMonth: string, sowingDate: string) =>
+  ({ crop, cropId, window, startMonth, endMonth:datePlusDays(sowingDate,cropDays[cropId]).slice(0,7),
+    sowingDate, harvestDate:datePlusDays(sowingDate,cropDays[cropId]), durationDays:cropDays[cropId], calendarSource:'demo' as const });
 
 function alt(id: string, type: Alternative['type'], campaigns: Alternative['campaigns'], seed: number, mean: number,
              spread: number, water: number, soil: string, risk: Alternative['risk']['level'], penalty = 0): Alternative {
@@ -15,30 +24,30 @@ function alt(id: string, type: Alternative['type'], campaigns: Alternative['camp
     water: { metric: 'exposicion_hidrica', value: water, unit: 'mm', period: 'campaña' },
     soil: { compatibility: soil }, risk: { level: risk, mainCause: 'Peor grupo de escenarios: caída de precio.' },
     dataQuality: { level: 'limited', mainGap: 'Datos de demostración.' },
-    stressTest: [
-      { family: 'tipica', label: 'Campaña típica (histórico)', meanMargin: mean * 1.4, changeVsTypical: 0 },
-      { family: 'menos_lluvia', label: 'Menos lluvia (−30 %)', meanMargin: mean * 0.9, changeVsTypical: -mean * 0.4 },
-      { family: 'menos_riego', label: 'Menos riego (−30 %)', meanMargin: mean * 1.2, changeVsTypical: -mean * 0.17 },
-      { family: 'caida_precio', label: 'Caída de precio (−30 %)', meanMargin: mean * 0.3, changeVsTypical: -mean * 1.3 },
-      { family: 'combinado', label: 'Combinado adverso', meanMargin: mean * 0.08, changeVsTypical: -mean * 1.15 },
-    ],
+    // Stress summaries are derived from the exact same 100 outcomes, not a second formula.
+    stressTest: (['tipica','menos_lluvia','menos_riego','caida_precio','combinado'] as const).map(family=>{
+      const values=outcomes.marginByScenario.filter((_,i)=>mockScenarios[i].family===family);
+      const typical=outcomes.marginByScenario.filter((_,i)=>mockScenarios[i].family==='tipica');
+      const avg=(xs:number[])=>xs.reduce((a,b)=>a+b,0)/Math.max(xs.length,1);
+      return {family,label:family,meanMargin:Math.round(avg(values)),changeVsTypical:Math.round(avg(values)-avg(typical))};
+    }),
     explanation: { why: 'Ejemplo de demostración.', dataThatWouldChange: 'Precio y costo local de papa.' },
   };
 }
 
-const seqEconomy = [camp('Quinua', 'quinua', 'Sep–nov 2026', '2026-09', '2027-03'), camp('Tarwi seco', 'tarwi', 'Sep–oct 2027', '2027-09', '2028-04'), camp('Papa', 'papa', 'Oct–nov 2028', '2028-10', '2029-04')];
-const seqWater = [camp('Cebada grano', 'cebada', 'Dic 2026–ene 2027', '2026-12', '2027-04'), camp('Quinua', 'quinua', 'Sep–nov 2027', '2027-09', '2028-03'), camp('Avena grano', 'avena', 'Dic 2028–ene 2029', '2028-12', '2029-05')];
-const seqSoil = [camp('Avena grano', 'avena', 'Dic 2026–ene 2027', '2026-12', '2027-05'), camp('Haba seca', 'haba', 'Oct–nov 2027', '2027-10', '2028-04'), camp('Papa', 'papa', 'Oct–nov 2028', '2028-10', '2029-04')];
-const seqUsual = [camp('Papa', 'papa', 'Oct–nov 2026', '2026-10', '2027-04'), camp('Cebada grano', 'cebada', 'Dic 2027–ene 2028', '2027-12', '2028-04'), camp('Papa', 'papa', 'Oct–nov 2028', '2028-10', '2029-04')];
+const seqEconomy = [camp('Quinua','quinua','Sep–nov 2026','2026-09','2027-03','2026-10-15'), camp('Tarwi seco','tarwi','Sep–oct 2027','2027-09','2028-04','2027-10-15'), camp('Papa','papa','Oct–nov 2028','2028-10','2029-04','2028-11-01')];
+const seqWater = [camp('Cebada grano','cebada','Dic 2026–ene 2027','2026-12','2027-04','2026-12-15'), camp('Quinua','quinua','Sep–nov 2027','2027-09','2028-03','2027-10-15'), camp('Avena grano','avena','Dic 2028–ene 2029','2028-12','2029-05','2028-12-15')];
+const seqSoil = [camp('Avena grano','avena','Dic 2026–ene 2027','2026-12','2027-05','2026-12-15'), camp('Haba seca','haba','Oct–nov 2027','2027-10','2028-04','2027-10-15'), camp('Papa','papa','Oct–nov 2028','2028-10','2029-04','2028-11-01')];
+const seqUsual = [camp('Papa','papa','Oct–nov 2026','2026-10','2027-04','2026-11-01'), camp('Cebada grano','cebada','Dic 2027–ene 2028','2027-12','2028-04','2027-12-15'), camp('Papa','papa','Oct–nov 2028','2028-10','2029-04','2028-11-01')];
 const rain = [12, 27, 50, 68, 78, 101, 110, 105, 51, 17, 3, 5];
 
 export const baseComparison: Comparison = {
   id: 'cmp_demo_base', plotId: 'parcela_1', areaHa: 1.84, priority: 'economy', status: 'ready', activeChanges: [], sourceResult: 'mock',
   scenarios: mockScenarios, rainfallMonthlyMm: rain,
   alternatives: [
-    alt('alt_economy', 'economy', seqEconomy, 11, 7000, 6500, 155, 'high', 'medium'),
-    alt('alt_water', 'water', seqWater, 22, 2600, 3200, 96, 'medium', 'medium'),
-    alt('alt_soil', 'soil', seqSoil, 33, 6200, 6000, 139, 'high', 'medium'),
+    alt('alt_economy', 'economy', seqEconomy, 11, 10600, 3600, 155, 'high', 'medium'),
+    alt('alt_water', 'water', seqWater, 22, 4400, 2700, 96, 'medium', 'medium'),
+    alt('alt_soil', 'soil', seqSoil, 33, 7900, 3500, 139, 'high', 'medium'),
   ],
   usualPlan: alt('plan_habitual', 'economy', seqUsual, 44, 6800, 9500, 156, 'low', 'high'),
 };
@@ -48,9 +57,9 @@ export const changedComparison: Comparison = {
   id: 'cmp_demo_riego30', parentComparisonId: 'cmp_demo_base',
   activeChanges: [{ id: 'chg_riego30', type: 'irrigation', operation: 'reduce', value: 30, unit: 'percent', label: 'Riego −30%' }],
   alternatives: [
-    alt('alt_economy', 'economy', seqEconomy, 11, 7000, 6500, 140, 'high', 'medium', 1500),
-    alt('alt_water', 'water', seqWater, 22, 2600, 3200, 88, 'medium', 'medium', 400),
-    alt('alt_soil', 'soil', seqSoil, 33, 6200, 6000, 128, 'high', 'medium', 1300),
+    alt('alt_economy', 'economy', seqEconomy, 11, 10600, 3600, 140, 'high', 'medium', 1500),
+    alt('alt_water', 'water', seqWater, 22, 4400, 2700, 88, 'medium', 'medium', 400),
+    alt('alt_soil', 'soil', seqSoil, 33, 7900, 3500, 128, 'high', 'medium', 1300),
   ],
   usualPlan: alt('plan_habitual', 'economy', seqUsual, 44, 6800, 9500, 146, 'low', 'high', 2300),
 };
@@ -67,36 +76,5 @@ export const demoPlot: Plot = {
     fieldCapacityMm: 142,
     soilSource: 'SoilGrids v2.0',
     soilUncertainty: 'media',
-  },
-};
-
-/**
- * Pasaporte de demostracion. Los valores son sinteticos: sirven para probar la
- * interfaz de trazabilidad, no son recomendaciones agronomicas validadas.
- * Incluye a proposito un indicador sin dato para ejercitar ese estado en la vista.
- */
-export const demoPassports: Record<string, AlternativePassport> = {
-  alt_economy: {
-    alternativeId: 'alt_economy',
-    comparisonId: 'cmp_demo_base',
-    sourceResult: 'mock',
-    engineVersion: 'motor-demo-0.4',
-    datasetVersion: 'datos-demo-2026.10',
-    metrics: [
-      { id: 'margin', label: 'Margen estimado', value: 3350, unit: 'PEN/ha', status: 'mock',
-        definition: 'Ingreso bruto menos costos directos de la campaña.', source: 'Precios de referencia MIDAGRI 2025' },
-      { id: 'water_demand', label: 'Demanda de agua', value: 340, unit: 'mm', status: 'mock',
-        definition: 'Evapotranspiración del cultivo acumulada en la campaña.', source: 'NASA GPM IMERG 2015–2025' },
-      { id: 'rotation', label: 'Compatibilidad de rotación', value: 'Compatible', status: 'mock',
-        definition: 'Grado de compatibilidad agronómica con el cultivo previo.', source: 'SoilGrids v2.0' },
-      { id: 'yield_gap', label: 'Brecha de rendimiento', value: null, status: 'unavailable',
-        definition: 'Diferencia entre el rendimiento potencial y el esperado.' },
-    ],
-    sources: ['NASA GPM IMERG 2015–2025', 'SoilGrids v2.0', 'Precios de referencia MIDAGRI 2025'],
-    assumptions: [
-      'Los valores son sintéticos y sirven para probar la interfaz.',
-      'No se consideran eventos climáticos extremos dentro del horizonte.',
-      'Los precios se asumen constantes durante toda la campaña.',
-    ],
   },
 };

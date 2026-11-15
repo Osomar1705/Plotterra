@@ -91,9 +91,6 @@
 .dr-route-choice-copy small { color: var(--dr-muted); font-size: 11px; line-height: 1.2; }
 .dr-route-check { margin-left: auto; color: var(--route-color); font-weight: 800; }
 .dr-map-help { margin: 12px 24px 0; color: var(--dr-muted); font-size: 12px; }
-/* Texto solo para lectores de pantalla: describe el abanico, que es una imagen. */
-.dr-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
-.dr-feather { transition: fill-opacity .18s, stroke-opacity .18s; }
 .dr-fan-board { position: relative; width: 100%; aspect-ratio: 1100 / 660; min-height: 390px; isolation: isolate; }
 .dr-fan-art { position: absolute; inset: 0; width: 100%; height: 100%; }
 .dr-route-node { --route-color: var(--dr-green); position: absolute; z-index: 2; transform: translate(-50%, -50%); width: 108px; min-height: 42px; padding: 6px 8px; display: flex; align-items: center; gap: 7px; border: 1px solid #C8D8D0; border-radius: 9px; background: rgba(255,255,255,.96); color: var(--dr-muted); box-shadow: 0 3px 9px rgba(11,52,68,.08); text-align: left; transition: border-color .18s, box-shadow .18s, color .18s, opacity .18s; }

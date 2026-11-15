@@ -1,14 +1,12 @@
+import { displayMoney } from '../../lib/money';
 import type { Outcomes, ScenarioFamily, ScenarioMeta } from '../../types/fieldshift';
 
-// El motor sortea el tamano del golpe en cada futuro (p. ej. lluvia entre −15 % y
-// −45 %): el rotulo de la familia no promete una cifra fija; la etiqueta de cada
-// futuro muestra la suya.
 export const FAMILY_LABEL: Record<ScenarioFamily, string> = {
-  tipica: 'Clima típico',
-  menos_lluvia: 'Menos lluvia',
-  menos_riego: 'Menos riego',
-  caida_precio: 'Precio más bajo',
-  combinado: 'Todo junto',
+  tipica: 'Typical conditions',
+  menos_lluvia: '30% less rain',
+  menos_riego: '30% less irrigation',
+  caida_precio: '30% lower prices',
+  combinado: 'Combined changes',
 };
 export const FAMILY_ORDER: ScenarioFamily[] = ['tipica', 'menos_lluvia', 'menos_riego', 'caida_precio', 'combinado'];
 
@@ -26,33 +24,22 @@ export function toneScale(values: number[]) {
 }
 
 export const money = (n: number) => new Intl.NumberFormat('es-PE', { maximumFractionDigits: 0 }).format(Math.round(n));
-export const signedMoney = (n: number) => `${n < 0 ? '−' : ''}S/ ${money(Math.abs(n))}`;
+export const signedMoney = (n: number) => displayMoney(n);
 
 export function summarize(o: Outcomes) {
   const v = o.marginByScenario;
   const wins = o.wins ?? v.filter((x) => x > 0).length;
-  return { total: v.length, wins, best: o.best, losses: o.losses ?? v.filter((x) => x < 0).length, mean: o.mean, adverse: o.adverse };
-}
-
-/** "Pierde plata en 4 futuros" o "Con ganancia en los 100": la ganancia como dato secundario. */
-export function profitLine(s: { total: number; losses: number }) {
-  return s.losses > 0 ? `Pierde plata en ${s.losses} de ${s.total}` : `Con ganancia en los ${s.total}`;
-}
-
-/** "−22 % lluvia · −40 % riego" con los factores reales del escenario; si no vienen, el rotulo de la familia. */
-function familyDetail(s: ScenarioMeta) {
-  const cut = (f: number | undefined, what: string) => (f !== undefined && f < 0.995 ? `−${Math.round((1 - f) * 100)} % ${what}` : '');
-  const parts = [cut(s.rainFactor, 'lluvia'), cut(s.irrigationFactor, 'riego'), cut(s.priceFactor, 'precio')].filter(Boolean);
-  if (parts.length) return parts.join(' · ');
-  return FAMILY_LABEL[s.family];
+  const avg = v.length ? v.reduce((sum,x)=>sum+x,0)/v.length : undefined;
+  const worst = [...v].sort((a,b)=>a-b).slice(0,Math.min(10,v.length));
+  const adverse = worst.length ? worst.reduce((sum,x)=>sum+x,0)/worst.length : undefined;
+  return { total: v.length, wins, losses: o.losses ?? v.filter((x) => x < 0).length, mean: avg, adverse };
 }
 
 export function scenarioLabel(i: number, scenarios?: ScenarioMeta[], withFamily = true) {
   const s = scenarios?.[i];
-  if (!s) return `Futuro ${i + 1}`;
-  const first = s.climateYears[0]?.slice(0, 4), last = s.climateYears.at(-1)?.slice(-4);
-  const years = first ? `clima ${first === last ? first : `${first}–${last}`}` : '';
-  return [`Futuro ${i + 1}`, years, withFamily ? familyDetail(s) : ''].filter(Boolean).join(' · ');
+  if (!s) return `Case ${i + 1}`;
+  const years = s.climateYears.length ? `weather years ${s.climateYears[0].slice(0, 4)}–${s.climateYears.at(-1)!.slice(-4)}` : '';
+  return [`Case ${i + 1}`, years, withFamily ? FAMILY_LABEL[s.family] : ''].filter(Boolean).join(' · ');
 }
 
 export const prefersReducedMotion = () =>

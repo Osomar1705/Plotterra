@@ -1,3 +1,4 @@
+import { PEN_PER_USD, FX_DATE } from '../lib/money';
 import type { AppliedChange } from '../types/fieldshift';
 import type { GuideReply, GuideRequest } from './types';
 import { demoGuideReply } from './demoAdvisor';
@@ -11,7 +12,7 @@ const str=(v:unknown)=>typeof v==='string'?v:undefined;
 export const guideIsDemo=()=>mode==='demo';
 
 export async function guideHealth():Promise<{ready:boolean;model:string;message?:string}>{
- if(guideIsDemo())return {ready:true,model:'respuestas de demostración'};
+ if(guideIsDemo())return {ready:true,model:'demo replies'};
  const url=endpoint.replace(/\/consultas(?:\?.*)?$/,'/guide-health');
  try{
   const response=await fetch(url,{cache:'no-store'});
@@ -28,7 +29,7 @@ function normalizeChange(v:unknown):AppliedChange|undefined{
  return {id:str(r.id),type,operation:str(r.operation??r.operacion),value:(r.value??r.valor) as number|string|undefined,unit:str(r.unit??r.unidad),label:str(r.label??r.etiqueta)};
 }
 function normalizeGuide(raw:unknown,conversationId:string):GuideReply{
- if(!raw||typeof raw!=='object')throw {farmerMessage:'La IA recibió una respuesta incompleta.'};
+ if(!raw||typeof raw!=='object')throw {farmerMessage:'The AI returned an incomplete reply.'};
  const r=raw as Record<string,unknown>;
  const change=normalizeChange(r.change??r.cambio);
  const inputStatus=str(r.status??r.estado)??(change?'proposed_change':'answered');
@@ -37,9 +38,9 @@ function normalizeGuide(raw:unknown,conversationId:string):GuideReply{
  ['needs_clarification','aclaracion','clarification'].includes(inputStatus)?'needs_clarification':
  ['unsupported','no_soportado'].includes(inputStatus)?'unsupported':'answered';
  const message=str(r.message??r.mensaje_agricultor??r.respuesta??r.reply??r.mensaje??r.clarification??r.aclaracion)??
- (status==='proposed_change'&&change?`Entendí: ${change.label??'cambio solicitado'}. ¿Recalculamos?`:status==='needs_clarification'?'¿Puedes darme un poco más de detalle?':'');
- if(status==='proposed_change'&&!change)throw {farmerMessage:'La IA no pudo identificar un cambio válido.'};
- if(!message)throw {farmerMessage:'La IA no devolvió una explicación comprensible.'};
+ (status==='proposed_change'&&change?`Understood: ${change.label??'requested change'}. Shall I recalculate?`:status==='needs_clarification'?'Could you add a little more detail?':'');
+ if(status==='proposed_change'&&!change)throw {farmerMessage:'The AI could not identify a valid change.'};
+ if(!message)throw {farmerMessage:'The AI did not return a clear explanation.'};
  return {
   status,message,
   intent:str(r.intent??r.intencion),
@@ -53,7 +54,7 @@ function normalizeGuide(raw:unknown,conversationId:string):GuideReply{
 /** La clave privada se guarda en el servidor Node. El navegador solo ve /api/v1/consultas. */
 export async function askGuide(input:GuideRequest):Promise<GuideReply>{
  // El servidor necesita saber si hay motor real (cualquier cambio) o solo la demo local (30 % menos riego).
- const req:GuideRequest={...input,context:{...input.context,engine:isUsingMocks()?'local_mock':'backend'}};
+ const req:GuideRequest={...input,context:{...input.context,engine:isUsingMocks()?'local_mock':'backend',displayFx:{penPerUsd:PEN_PER_USD,asOf:FX_DATE}}};
  if(guideIsDemo()){
   await new Promise(r=>setTimeout(r,550));
   return {...demoGuideReply(req),conversationId:req.conversationId};
@@ -65,15 +66,15 @@ export async function askGuide(input:GuideRequest):Promise<GuideReply>{
   campaign_index:req.context.campaignIndex,
   page:req.context.page,
   message:req.message,
-  history:req.history.slice(-12),
+  history:req.history.slice(-16),
   pending_clarification:req.pendingClarification??null,
   context:req.context,
  };
  let response:Response;
  try{response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})}
- catch{throw {farmerMessage:'No puedo conectar con la IA. Asegúrate de iniciar npm run dev y que el servidor esté activo.'}}
+ catch{throw {farmerMessage:'Cannot connect to the AI. Start the app using npm run dev and check that the AI server is running.'}}
  let raw:unknown;
- try{raw=await response.json()}catch{throw {farmerMessage:'La IA no devolvió una respuesta válida.'}}
- if(!response.ok){const obj=raw as Record<string,unknown>|null;throw {farmerMessage:str(obj?.mensaje_agricultor??obj?.message)??'No pude comunicarme con la IA.',runId:str(obj?.run_id)}}
+ try{raw=await response.json()}catch{throw {farmerMessage:'The AI returned an invalid reply.'}}
+ if(!response.ok){const obj=raw as Record<string,unknown>|null;throw {farmerMessage:str(obj?.mensaje_agricultor??obj?.message)??'Could not contact the AI.',runId:str(obj?.run_id)}}
  return normalizeGuide(raw,req.conversationId);
 }

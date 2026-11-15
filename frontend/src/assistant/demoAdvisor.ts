@@ -6,14 +6,14 @@ const norm=(s:string)=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]
 const num=(x:number)=>new Intl.NumberFormat('es-PE',{maximumFractionDigits:0}).format(x);
 const soil=(s:string)=>({high:'alta',compatible:'compatible',medium:'media',low:'baja',unknown:'no determinada'}[s] ?? s);
 const risk=(s:string)=>({low:'bajo',medium:'medio',high:'alto',unknown:'no determinado'}[s] ?? s);
-const fmtMargin=(a:Alternative)=>a.margin.min===null||a.margin.max===null?'sin dato de margen':`S/ ${num(a.margin.min)}–${num(a.margin.max)} por ${a.margin.basis==='ha'?'hectárea':a.margin.basis}`;
+const fmtMargin=(a:Alternative)=>`S/ ${num(a.margin.min)}–${num(a.margin.max)} por ${a.margin.basis==='ha'?'hectárea':a.margin.basis}`;
 const has=(s:string,...words:string[])=>words.some(w=>s.includes(w));
 const make=(status:GuideReply['status'],message:string,options:Partial<GuideReply>={}):GuideReply=>({status,message,...options});
-const common=['¿Cómo funciona FieldShift?','¿Qué datos utiliza?','¿Qué significa prioridad?'];
+const common=['How does FieldShift work?','What data does it use?','What does the priority mean?'];
 const suggestions={
-  parcel:['¿Qué datos necesito?','¿Por qué importa el agua?','¿Qué datos obtiene FieldShift?'],
-  comparison:['¿Cuál es la más segura?','¿Qué pasa si tengo 30% menos riego?','¿Cuál usa menos agua?'],
-  plan:['¿Por qué va aquí este cultivo?','¿Qué tan seguro es este plan?','¿De dónde salen los resultados?'],
+  parcel:['What details do I need?','Why does irrigation matter?','What data does FieldShift use?'],
+  comparison:['Which plan is safer?','What if I have 30% less irrigation?','Which needs less water?'],
+  plan:['Why is this crop here?','How safe is this plan?','Where do the numbers come from?'],
 };
 
 function relevantAlt(ctx:GuideContext,s:string):Alternative|undefined {
@@ -102,10 +102,10 @@ export function demoGuideReply(req:GuideRequest):GuideReply {
    return make('needs_clarification','Aún no tengo una comparación calculada que pueda consultar. Genera primero tus opciones y luego podré explicarlas con sus cifras.',{suggestions:common});
  }
  if(has(s,'cuanto menos','y cuanto menos','cual usa menos agua','cual necesita menos agua','menor demanda','mas agua','menos agua') && !scenarioIntent){
-   const sorted=[...alts].sort((a,b)=>(a.water.value??0)-(b.water.value??0));const lo=sorted[0],hi=sorted[sorted.length-1];
+   const sorted=[...alts].sort((a,b)=>a.water.value-b.water.value);const lo=sorted[0],hi=sorted[sorted.length-1];
    const economy=alts.find(a=>a.type==='economy');
    const other=s.includes('economia')&&economy?economy:hi;
-   const diff=(other.water.value??0)-(lo.water.value??0);
+   const diff=other.water.value-lo.water.value;
    return make('answered',`${name[lo.type]} requiere ${lo.water.value} ${lo.water.unit}, la menor demanda entre las tres opciones. ${diff>0?`Son ${diff} ${lo.water.unit} menos que ${name[other.type]} (${other.water.value} ${other.water.unit}).`:''} Recuerda comparar también el margen y el riesgo.`,{intent:'COMPARE_ALTERNATIVES',suggestions:['¿Cuál deja mayor margen?','¿Cuál tiene menor riesgo?','¿Qué pasa si tengo 30% menos riego?'],...info});
  }
  if(has(s,'segur','seguridad','confiable es','casos','100 futuros','futuros','pierdo','perder','mal año')){
@@ -116,11 +116,11 @@ export function demoGuideReply(req:GuideRequest):GuideReply {
   return make('answered',`Probamos cada opción en los **mismos ${best.n} casos** (años reales de clima y golpes de −30 % de lluvia, riego o precio).\n${rows.map(r=>`- **${name[r.a.type]}**: ganó en **${r.w} de ${r.n}** (≈ ${r.share} de cada 10)`).join('\n')}\nNo es una garantía: muestra qué tan seguido aguanta cada plan en condiciones distintas.`,{intent:'EXPLAIN_SAFETY',suggestions:['¿Qué pasa si tengo 30% menos riego?','¿Por qué esta rotación?','¿Qué datos utiliza?'],sources:['Prueba en 100 casos FieldShift',...(ctx.comparison?.sourceResult==='mock'?['Datos de demostración']:[])]});
  }
  if(has(s,'cual conviene','que conviene ahora','cual es mejor','cual me recomiendas','cual elegir','mejor opcion')){
-   const wet=[...alts].sort((a,b)=>(a.water.value??0)-(b.water.value??0))[0];const earn=[...alts].sort((a,b)=>(b.margin.max??0)-(a.margin.max??0))[0];
+   const wet=[...alts].sort((a,b)=>a.water.value-b.water.value)[0];const earn=[...alts].sort((a,b)=>b.margin.max-a.margin.max)[0];
    return make('answered',`Depende de lo que quieras cuidar: ${name[wet.type]} usa menos agua (${wet.water.value} ${wet.water.unit}), mientras ${name[earn.type]} ofrece el margen máximo más alto (${fmtMargin(earn)}). Tu prioridad inicial es ${name[ctx.comparison!.priority]}; compara también suelo y riesgo antes de decidir.`,{intent:'COMPARE_ALTERNATIVES',suggestions:['¿Por qué esta rotación?','¿Cuál tiene menos riesgo?','¿Qué pasa si tengo 30% menos riego?'],...info});
  }
  if(has(s,'mayor margen','mas rentable','mas dinero','gana mas','mejor economia','cual deja')){
-   const best=[...alts].sort((a,b)=>(b.margin.max??0)-(a.margin.max??0))[0];
+   const best=[...alts].sort((a,b)=>b.margin.max-a.margin.max)[0];
    return make('answered',`${name[best.type]} muestra el margen máximo más alto: ${fmtMargin(best)}. No significa que sea la alternativa con menor agua o riesgo; mira esos indicadores antes de elegir.`,{intent:'COMPARE_ALTERNATIVES',suggestions:['¿Cuál usa menos agua?','¿Cuál tiene menor riesgo?'],...info});
  }
  if(has(s,'menor riesgo','mas riesgo','riesgo bajo','riesgo medio')){
