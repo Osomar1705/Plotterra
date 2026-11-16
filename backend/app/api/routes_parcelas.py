@@ -104,6 +104,6 @@ def verdor_de_parcela(parcela_id: str) -> dict:
             CodigoError.NO_ENCONTRADO,
             f"parcela {parcela_id} inexistente",
             campo="parcela_id",
-            mensaje_agricultor="No encontramos esa parcela. Vuelve a dibujarla.",
+            mensaje_agricultor="We could not find that plot. Draw it again.",
         )
     return {"parcela_id": parcela_id, **VERDOR.para(parcela["geometria"], parcela.get("celda_id"))}

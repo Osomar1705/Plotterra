@@ -193,7 +193,7 @@ export function normalizeApiError(raw: any, status?: number): FieldShiftApiError
     code: String(first(e, 'codigo', 'code') ?? `HTTP_${status ?? 500}`),
     field: first(e, 'campo', 'field') ?? null,
     technicalMessage: String(first(e, 'mensaje_tecnico', 'technical_message', 'message') ?? ''),
-    farmerMessage: String(first(e, 'mensaje_agricultor', 'farmer_message', 'detail', 'message') ?? 'No pudimos completar la operación.'),
+    farmerMessage: String(first(e, 'mensaje_agricultor', 'farmer_message', 'detail', 'message') ?? 'We could not complete the operation.'),
     suggestedAction: first(e, 'accion_sugerida', 'suggested_action'),
     runId: first(e, 'run_id', 'runId'),
   };

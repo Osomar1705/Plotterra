@@ -241,5 +241,5 @@ def validar(modelo, cuerpo: dict):
             CodigoError.ENTRADA_INVALIDA,
             f"{campo}: {primero.get('msg', 'valor invalido')}",
             campo=campo,
-            mensaje_agricultor="Revisa los datos que enviaste: hay un campo con un valor que no entendemos.",
+            mensaje_agricultor="Check the data you sent: one field has a value we do not understand.",
         ) from exc

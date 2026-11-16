@@ -96,15 +96,15 @@ export function checkPolygon(points: PlotPoint[]): PolygonCheck {
   if (crossing) {
     return {
       valid: false, areaHa, crossing, code: 'POLIGONO_INVALIDO',
-      farmerMessage: 'El contorno se cruza. Pulsa Deshacer o vuelve a dibujar la parcela.',
+      farmerMessage: 'The outline crosses itself. Press Undo or draw the plot again.',
     };
   }
   if (points.length >= 3 && (areaHa < MIN_AREA_HA || areaHa > MAX_AREA_HA)) {
     return {
       valid: false, areaHa, crossing: null, code: 'AREA_FUERA_DE_RANGO',
       farmerMessage: areaHa > MAX_AREA_HA
-        ? 'Esa superficie parece muy grande para una parcela. Revisa el contorno o escribe las hectáreas a mano.'
-        : 'Esa superficie es demasiado pequeña. Revisa el contorno o escribe las hectáreas a mano.',
+        ? 'That area looks too large for a plot. Check the outline or type the hectares by hand.'
+        : 'That area is too small. Check the outline or type the hectares by hand.',
     };
   }
   return { valid: points.length >= 3, areaHa, crossing: null };

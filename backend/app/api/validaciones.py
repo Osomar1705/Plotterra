@@ -115,7 +115,7 @@ def validar_entrada_parcela(entrada: ParcelaCrear) -> None:
             "hace falta la geometria o el area declarada",
             campo="geometria",
             mensaje_agricultor=(
-                "Dibuja la parcela en el mapa, o escribe cuantas hectareas tiene si no logras dibujarla."
+                "Draw your plot on the map, or type how many hectares it has if you cannot draw it."
             ),
         )
     if entrada.geometria is None and not entrada.localidad:
@@ -123,7 +123,7 @@ def validar_entrada_parcela(entrada: ParcelaCrear) -> None:
             CodigoError.ENTRADA_INVALIDA,
             "sin geometria hace falta la localidad para resolver la celda climatica",
             campo="localidad",
-            mensaje_agricultor="Dinos en que localidad esta la parcela para buscar su clima.",
+            mensaje_agricultor="Tell us which locality the plot is in so we can look up its climate.",
         )
 
 
@@ -204,7 +204,7 @@ def validar_condiciones(
             CodigoError.FECHA_SIN_VENTANA,
             f"fecha_inicio {cond.fecha_inicio.isoformat()} es anterior a hoy {hoy.isoformat()}",
             campo="fecha_inicio",
-            mensaje_agricultor="La fecha de inicio ya paso. Elige una fecha de hoy en adelante.",
+            mensaje_agricultor="The start date has already passed. Pick a date from today onwards.",
         )
     if not cultivos_con_ventana(cond.fecha_inicio, permitidos, fichas):
         raise ErrorFieldShift(
@@ -249,14 +249,14 @@ def validar_condiciones(
                 CodigoError.ENTRADA_INVALIDA,
                 f"cultivos_fijados usa la campania {campania}, fuera del horizonte {cond.horizonte_campanias}",
                 campo="cultivos_fijados",
-                mensaje_agricultor="Esa campania no existe en el plan. Elige la primera, la segunda o la tercera.",
+                mensaje_agricultor="That season is not in the plan. Pick the first, second or third.",
             )
         if cultivo not in permitidos:
             raise ErrorFieldShift(
                 CodigoError.CULTIVOS_INSUFICIENTES,
                 f"cultivo fijado {cultivo} no esta entre los permitidos",
                 campo="cultivos_fijados",
-                mensaje_agricultor=f"Pediste {cultivo} en una campania, pero ese cultivo no esta habilitado. Habilitalo para poder fijarlo.",
+                mensaje_agricultor=f"You asked for {cultivo} in a season, but that crop is not enabled. Enable it to pin it.",
             )
 
     if cond.cultivo_anterior is not None and cond.cultivo_anterior not in fichas:
@@ -264,7 +264,7 @@ def validar_condiciones(
             CodigoError.ENTRADA_INVALIDA,
             f"cultivo_anterior {cond.cultivo_anterior} fuera del catalogo",
             campo="cultivo_anterior",
-            mensaje_agricultor="Ese cultivo anterior no esta en nuestro catalogo. Elige uno de la lista.",
+            mensaje_agricultor="That previous crop is not in our catalogue. Pick one from the list.",
         )
 
     return permitidos

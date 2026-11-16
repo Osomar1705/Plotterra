@@ -78,7 +78,7 @@ const guardar = (k: string, v: string) => { try { localStorage.setItem(k, v); } 
 
 export function GuidedTour({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [i, setI] = useState(0);
-  const [lang, setLang] = useState<Lang>(() => ((leer(STORE + '_lang') as Lang) || (navigator.language?.startsWith('es') ? 'es' : 'en')));
+  const [lang, setLang] = useState<Lang>(() => ((leer(STORE + '_lang') as Lang) || 'en'));
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [speaking, setSpeaking] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -230,7 +230,7 @@ export function tourPendiente() { return leer(STORE) !== 'visto'; }
  * quien ya sabe usar la app la descarta con un toque y no vuelve a salir.
  */
 export function TourInvite({ onStart, onDismiss }: { onStart: () => void; onDismiss: () => void }) {
-  const es = (leer(STORE + '_lang') || (navigator.language?.startsWith('es') ? 'es' : 'en')) === 'es';
+  const es = (leer(STORE + '_lang') || 'en') === 'es';
   const no = () => { guardar(STORE, 'visto'); onDismiss(); };
   return createPortal(
     <div className="tour-invite" role="status">

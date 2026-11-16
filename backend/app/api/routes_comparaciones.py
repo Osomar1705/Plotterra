@@ -175,7 +175,7 @@ def deshacer_cambio(comparacion_id: str, cambio_id: str) -> RespuestaComparacion
             CodigoError.NO_ENCONTRADO,
             f"{cambio_id} no es el ultimo cambio de {comparacion_id}",
             campo="cambio_id",
-            mensaje_agricultor="Ese cambio ya no se puede deshacer. Quita la etiqueta mas reciente primero.",
+            mensaje_agricultor="That change can no longer be undone. Remove the most recent tag first.",
         )
     if actual.derivada_de is None:
         raise ErrorFieldShift(

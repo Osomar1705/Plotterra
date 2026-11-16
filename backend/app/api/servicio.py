@@ -83,7 +83,7 @@ def correr_comparacion(
             CodigoError.NO_ENCONTRADO,
             f"parcela {cond.parcela_id} inexistente",
             campo="parcela_id",
-            mensaje_agricultor="No encontramos esa parcela. Vuelve a dibujarla para comparar.",
+            mensaje_agricultor="We could not find that plot. Draw it again to compare.",
         )
 
     permitidos = validar_condiciones(cond, REPO.fichas)

@@ -92,7 +92,7 @@ export async function getComparison(id: string): Promise<Comparison> {
 export async function applyChange(comparisonId: string, change: AppliedChange): Promise<Comparison> {
   if (USE_MOCKS) {
     await sleep(1100);
-    if (change.type !== 'irrigation' || Number(change.value) !== 30) throw {code:'DEMO_UNAVAILABLE',farmerMessage:'El modo demostración solo tiene resultados para 30% menos riego.'};
+    if (change.type !== 'irrigation' || Number(change.value) !== 30) throw {code:'DEMO_UNAVAILABLE',farmerMessage:'Demo mode only has results for 30% less irrigation.'};
     const current=storedComparison(comparisonId) ?? baseComparison;
     const next={...changedComparison, plotId:current.plotId, areaHa:current.areaHa, priority:current.priority, parentComparisonId:current.id};
     return rememberComparison(next);
@@ -118,8 +118,8 @@ export async function undoChange(comparison: Comparison): Promise<Comparison> {
 export async function interpretAssistant(comparisonId: string, message: string): Promise<AssistantInterpretation> {
   if (USE_MOCKS) {
     await sleep(450);
-    if (/riego|agua/i.test(message)) return { status:'understood', intent:'modify_scenario', change:{type:'irrigation',operation:'reduce',value:30,unit:'percent',label:'Riego −30%'}, needsConfirmation:true };
-    return { status:'needs_clarification', clarification:'¿Quieres cambiar el riego, excluir un cultivo o modificar el cultivo inicial?' };
+    if (/riego|agua/i.test(message)) return { status:'understood', intent:'modify_scenario', change:{type:'irrigation',operation:'reduce',value:30,unit:'percent',label:'Irrigation −30%'}, needsConfirmation:true };
+    return { status:'needs_clarification', clarification:'Do you want to change the irrigation, exclude a crop or change the first crop?' };
   }
   const raw = await request('/consultas', { method:'POST', body: JSON.stringify({ comparison_id:comparisonId, consulta:message }) });
   const status = raw?.status ?? raw?.estado ?? (raw?.change || raw?.cambio ? 'understood' : 'needs_clarification');
@@ -142,12 +142,12 @@ export async function getAlternativePassport(comparisonId: string, alternativeId
     return {
       alternativeId: alt.id, sourceResult: 'mock', engineVersion: 'demo-1.0', datasetVersion: 'hackathon-2026',
       metrics: [
-        {id:'margin',label:'Margen estimado',value:`S/ ${alt.margin.min?.toLocaleString('es-PE')} – ${alt.margin.max?.toLocaleString('es-PE')}`,definition:'Rango estimado para el horizonte de la ruta.',source:'Motor Plotterra',status:'Demostración'},
-        {id:'water',label:'Demanda de agua',value:alt.water.value,unit:alt.water.unit,definition:'Indicador hídrico agregado de la ruta.',source:'Datos climáticos + motor Plotterra',status:'Demostración'},
-        {id:'soil',label:'Compatibilidad de rotación',value:alt.soil.compatibility,definition:'Compatibilidad agronómica de la secuencia.',source:'Reglas agronómicas Plotterra',status:'Demostración'},
+        {id:'margin',label:'Estimated margin',value:`S/ ${alt.margin.min?.toLocaleString('en-US')} – ${alt.margin.max?.toLocaleString('en-US')}`,definition:'Estimated range over the evaluated horizon.',source:'Plotterra engine',status:'Demo'},
+        {id:'water',label:'Water demand',value:alt.water.value,unit:alt.water.unit,definition:'Aggregate water indicator for the route.',source:'Climate data + Plotterra engine',status:'Demo'},
+        {id:'soil',label:'Rotation fit',value:alt.soil.compatibility,definition:'Agronomic fit of the crop sequence.',source:'Plotterra agronomic rules',status:'Demo'},
       ],
-      sources:['NASA GPM / datos climáticos usados por el proyecto','Datos agrícolas y condiciones ingresadas para la parcela'],
-      assumptions:['Los valores mock sirven para demostrar la interfaz y deben sustituirse por resultados del backend.','La herramienta orienta la comparación; no reemplaza el criterio del agricultor.'],
+      sources:['NASA GPM / climate data used by the project','Agricultural data and the conditions entered for the plot'],
+      assumptions:['Demo values only show the interface and must be replaced by backend results.','The tool guides the comparison; it does not replace the farmer\'s judgement.'],
     };
   }
   const id = encodeURIComponent(comparisonId);

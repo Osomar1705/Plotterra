@@ -20,10 +20,10 @@ function alt(id: string, type: Alternative['type'], campaigns: Alternative['camp
   const sorted = [...outcomes.marginByScenario].sort((a, b) => a - b);
   return {
     id, type, campaigns, outcomes,
-    margin: { min: sorted[10], max: sorted[89], currency: 'PEN', basis: 'ha', period: '3 campañas' },
-    water: { metric: 'exposicion_hidrica', value: water, unit: 'mm', period: 'campaña' },
-    soil: { compatibility: soil }, risk: { level: risk, mainCause: 'Peor grupo de escenarios: caída de precio.' },
-    dataQuality: { level: 'limited', mainGap: 'Datos de demostración.' },
+    margin: { min: sorted[10], max: sorted[89], currency: 'PEN', basis: 'ha', period: '3 seasons' },
+    water: { metric: 'exposicion_hidrica', value: water, unit: 'mm', period: 'season' },
+    soil: { compatibility: soil }, risk: { level: risk, mainCause: 'Worst group of scenarios: price drop.' },
+    dataQuality: { level: 'limited', mainGap: 'Demo data.' },
     // Stress summaries are derived from the exact same 100 outcomes, not a second formula.
     stressTest: (['tipica','menos_lluvia','menos_riego','caida_precio','combinado'] as const).map(family=>{
       const values=outcomes.marginByScenario.filter((_,i)=>mockScenarios[i].family===family);
@@ -31,7 +31,7 @@ function alt(id: string, type: Alternative['type'], campaigns: Alternative['camp
       const avg=(xs:number[])=>xs.reduce((a,b)=>a+b,0)/Math.max(xs.length,1);
       return {family,label:family,meanMargin:Math.round(avg(values)),changeVsTypical:Math.round(avg(values)-avg(typical))};
     }),
-    explanation: { why: 'Ejemplo de demostración.', dataThatWouldChange: 'Precio y costo local de papa.' },
+    explanation: { why: 'Demo example.', dataThatWouldChange: 'Local potato price and cost.' },
   };
 }
 
@@ -55,7 +55,7 @@ export const baseComparison: Comparison = {
 export const changedComparison: Comparison = {
   ...baseComparison,
   id: 'cmp_demo_riego30', parentComparisonId: 'cmp_demo_base',
-  activeChanges: [{ id: 'chg_riego30', type: 'irrigation', operation: 'reduce', value: 30, unit: 'percent', label: 'Riego −30%' }],
+  activeChanges: [{ id: 'chg_riego30', type: 'irrigation', operation: 'reduce', value: 30, unit: 'percent', label: 'Irrigation −30%' }],
   alternatives: [
     alt('alt_economy', 'economy', seqEconomy, 11, 10600, 3600, 140, 'high', 'medium', 1500),
     alt('alt_water', 'water', seqWater, 22, 4400, 2700, 88, 'medium', 'medium', 400),
@@ -71,10 +71,10 @@ export const demoPlot: Plot = {
   cellId: 'hco_0412',
   suggestions: {
     rainfallMm: 612,
-    rainfallSource: 'Datos de demostración',
-    soilTexture: 'Franco',
+    rainfallSource: 'Demo data',
+    soilTexture: 'Loam',
     fieldCapacityMm: 142,
     soilSource: 'SoilGrids v2.0',
-    soilUncertainty: 'media',
+    soilUncertainty: 'medium',
   },
 };

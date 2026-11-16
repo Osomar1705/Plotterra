@@ -19,7 +19,7 @@ export async function guideHealth():Promise<{ready:boolean;model:string;message?
   const response=await fetch(`${url}?probe=true`,{cache:'no-store'});
   const data=await response.json();
   return {ready:response.ok&&data.probe?.ok===true,model:str(data.model)??'OpenAI assistant',message:data.probe?.error?.pista??data.probe?.error?.detalle??(data.probe?.ok?str(data.message):'OPENAI_API_KEY is missing or the AI API is unavailable. Check Render environment variables.')};
- }catch{return {ready:false,model:'OpenAI assistant',message:'Revisa la URL del backend y el despliegue en Render.'}}
+ }catch{return {ready:false,model:'OpenAI assistant',message:'Check the backend URL and the Render deployment.'}}
 }
 
 function normalizeChange(v:unknown):AppliedChange|undefined{

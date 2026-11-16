@@ -100,7 +100,7 @@ export function installPlotDrawing(map: L.Map, element: HTMLElement, options: Op
 
   function down(ev: PointerEvent) {
     if (!enabled || options.getState().mode === 'ready' || ev.button !== 0) return;
-    if (gesture) { cancel('Trazo cancelado. Usa un solo dedo o el botón izquierdo del mouse.'); return; }
+    if (gesture) { cancel('Drawing cancelled. Use one finger or the left mouse button.'); return; }
     if (!ev.isPrimary || (ev.target instanceof Element && ev.target.closest('.leaflet-control'))) return;
     ev.preventDefault();
     ev.stopPropagation();
@@ -127,7 +127,7 @@ export function installPlotDrawing(map: L.Map, element: HTMLElement, options: Op
     if (!g.moved && distance(g.start, p) >= 6) {
       g.moved = true;
       options.onStatus({ tracing: true, nearStart: false });
-      if (!g.continues) options.onNotice('Continúa desde el último punto o pulsa Borrar para empezar otro contorno.');
+      if (!g.continues) options.onNotice('Continue from the last point or press Clear to start a new outline.');
     }
     if (distance(g.raw[g.raw.length - 1], p) >= TRACE_SAMPLE_PX) {
       if (g.raw.length >= TRACE_MAX_SAMPLES) { g.overflow = true; return; }
@@ -146,14 +146,14 @@ export function installPlotDrawing(map: L.Map, element: HTMLElement, options: Op
     const moved = g.moved || distance(g.start, end) >= 6;
     if (endInside && distance(g.raw[g.raw.length - 1], end) >= 0.1) g.raw.push(end);
     clearGesture();
-    if (!endInside || g.outside) { options.onNotice('El trazo salió del mapa. Vuelve a dibujarlo sin salir del recuadro. Tu contorno anterior se conserva.'); return; }
-    if (g.overflow) { options.onNotice('El trazo es demasiado largo. Inténtalo de nuevo siguiendo solo el borde de tu parcela.'); return; }
+    if (!endInside || g.outside) { options.onNotice('The line left the map. Draw it again without leaving the frame. Your previous outline is kept.'); return; }
+    if (g.overflow) { options.onNotice('The line is too long. Try again, following only the edge of your plot.'); return; }
     if (!moved) {
       const points = options.getState().points;
       const first = points[0], last = points[points.length - 1];
       if (first && points.length >= 3 && distance(project(first), end) <= 18) {
         options.onPoint(first, true);
-        options.onNotice('Contorno cerrado. Revisa la superficie antes de continuar.');
+        options.onNotice('Outline closed. Check the area before continuing.');
       } else if (!last || distance(project(last), end) >= 6) {
         options.onPoint(unproject(end), false);
       }
@@ -165,21 +165,21 @@ export function installPlotDrawing(map: L.Map, element: HTMLElement, options: Op
     const points = result.points.map(unproject);
     options.onTrace(points, result.closed);
     const check = result.closed ? checkPolygon(points) : null;
-    if (!result.closed && findSelfIntersection(points, false)) options.onNotice('El trazo se cruza. Pulsa Deshacer para retirar la última pasada, o Borrar para empezar de nuevo.');
+    if (!result.closed && findSelfIntersection(points, false)) options.onNotice('The line crosses itself. Press Undo to remove the last stroke, or Clear to start again.');
     else if (check?.code) options.onNotice(check.code === 'POLIGONO_INVALIDO'
-      ? 'El contorno se cruza. Pulsa Deshacer para retirar la última pasada, o Borrar para empezar de nuevo.'
-      : check.farmerMessage ?? 'Revisa el contorno antes de continuar.');
+      ? 'The outline crosses itself. Press Undo to remove the last stroke, or Clear to start again.'
+      : check.farmerMessage ?? 'Check the outline before continuing.');
     else options.onNotice(result.closed
-      ? 'Contorno cerrado automáticamente. Revisa la superficie antes de continuar.'
-      : 'Trazo guardado. Continúa desde el último punto o pulsa Cerrar parcela.');
+      ? 'Outline closed automatically. Check the area before continuing.'
+      : 'Stroke saved. Continue from the last point or press Close the plot.');
   }
 
   const escape = (ev: KeyboardEvent) => {
-    if (ev.key === 'Escape' && gesture) { ev.preventDefault(); cancel('Trazo cancelado. Tu contorno anterior se conserva.'); }
+    if (ev.key === 'Escape' && gesture) { ev.preventDefault(); cancel('Drawing cancelled. Your previous outline is kept.'); }
   };
-  const lost = (ev: PointerEvent) => { if (gesture?.id === ev.pointerId) cancel('Se interrumpió el trazo. Tu contorno anterior se conserva.'); };
-  const blur = () => cancel('Se interrumpió el trazo. Tu contorno anterior se conserva.');
-  const moving = () => cancel('El mapa cambió de posición. Vuelve a trazar el contorno.');
+  const lost = (ev: PointerEvent) => { if (gesture?.id === ev.pointerId) cancel('The drawing was interrupted. Your previous outline is kept.'); };
+  const blur = () => cancel('The drawing was interrupted. Your previous outline is kept.');
+  const moving = () => cancel('The map moved. Draw the outline again.');
   const wheel = (ev: WheelEvent) => { if (gesture) { ev.preventDefault(); ev.stopPropagation(); } };
   const click = (ev: MouseEvent) => {
     if (enabled && !(ev.target instanceof Element && ev.target.closest('.leaflet-control'))) { ev.preventDefault(); ev.stopPropagation(); }

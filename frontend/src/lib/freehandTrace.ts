@@ -53,10 +53,10 @@ export interface PreparedTrace { points: ScreenPoint[]; closed: boolean; error?:
 
 export function prepareTrace(raw: ScreenPoint[]): PreparedTrace {
   if (raw.length < 2 || raw.some(p => !Number.isFinite(p.x) || !Number.isFinite(p.y))) {
-    return { points: [], closed: false, error: 'No se pudo leer el trazo. Inténtalo de nuevo.' };
+    return { points: [], closed: false, error: 'Could not read the line. Please try again.' };
   }
   const length = traceLength(raw);
-  if (length < 12) return { points: [], closed: false, error: 'El trazo es muy corto. Acerca el mapa y sigue el borde de tu parcela.' };
+  if (length < 12) return { points: [], closed: false, error: 'The line is too short. Zoom in and follow the edge of your plot.' };
   let end = raw.length - 1;
   let closed = canSnapClosed(raw);
   // Acepta una pequeña pasada de largo después de volver al inicio, sin borrar bucles grandes.
@@ -74,7 +74,7 @@ export function prepareTrace(raw: ScreenPoint[]): PreparedTrace {
   if (closed) input[input.length - 1] = input[0];
   let points = simplifyTrace(input);
   if (closed && distance(points[0], points[points.length - 1]) < 0.01) points = points.slice(0, -1);
-  if (points.length > 256) return { points: [], closed: false, error: 'El contorno tiene demasiados detalles. Traza de nuevo siguiendo solo el borde de la parcela.' };
-  if (closed && points.length < 3) return { points: [], closed: false, error: 'No se distingue una superficie. Acerca el mapa y dibuja alrededor de la parcela.' };
+  if (points.length > 256) return { points: [], closed: false, error: 'The outline has too many details. Draw again, following only the edge of the plot.' };
+  if (closed && points.length < 3) return { points: [], closed: false, error: 'No area can be made out. Zoom in and draw around the plot.' };
   return { points, closed };
 }

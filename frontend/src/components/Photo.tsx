@@ -11,9 +11,9 @@ export type PhotoKey = 'andenes' | 'quinua' | 'papa';
 
 const COMMONS = 'https://commons.wikimedia.org/wiki/';
 export const PHOTOS: Record<PhotoKey, { file: string; author: string; caption: string; position?: string }> = {
-  andenes: { file: 'Andenes_de_cultivo.jpg', author: 'Jospastor', caption: 'Andenes de cultivo, valle del Colca (Perú)', position: 'center 55%' },
-  quinua: { file: 'Quinua.JPG', author: 'Maurice Chédel', caption: 'Quinua cerca de Cachora, Apurímac, 3800 m', position: 'center 45%' },
-  papa: { file: 'Variedades_de_papa_cosechados_de_una_sola_chacra_en_Llullucha.jpg', author: 'Carlo Brescia', caption: 'Variedades de papa de una sola chacra, Llullucha', position: 'center' },
+  andenes: { file: 'Andenes_de_cultivo.jpg', author: 'Jospastor', caption: 'Farming terraces, Colca Valley (Peru)', position: 'center 55%' },
+  quinua: { file: 'Quinua.JPG', author: 'Maurice Chédel', caption: 'Quinoa near Cachora, Apurímac, 3,800 m', position: 'center 45%' },
+  papa: { file: 'Variedades_de_papa_cosechados_de_una_sola_chacra_en_Llullucha.jpg', author: 'Carlo Brescia', caption: 'Potato varieties from a single field, Llullucha', position: 'center' },
 };
 
 export const photoUrl = (k: PhotoKey, width = 1600) => k === 'andenes' ? `${import.meta.env.BASE_URL}media/andenes-colca-1280.jpg` : `${COMMONS}Special:FilePath/${PHOTOS[k].file}?width=${width}`;

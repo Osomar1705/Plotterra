@@ -59,14 +59,14 @@ def validar_parametros(intent: Intent, parametros: dict[str, Any], catalogo: set
                 CodigoError.ENTRADA_INVALIDA,
                 f"{intent.value} necesita un factor numerico",
                 campo="parametros.factor",
-                mensaje_agricultor=f"No entendimos cuanto cambiar la {nombre}. Prueba con otro valor.",
+                mensaje_agricultor=f"We did not understand how much to change the {nombre}. Try another value.",
             ) from None
         if not (0.1 <= factor <= tope):
             raise ErrorFieldShift(
                 CodigoError.ENTRADA_INVALIDA,
                 f"factor {factor} fuera del rango 0.1-{tope}",
                 campo="parametros.factor",
-                mensaje_agricultor=f"Ese cambio de {nombre} es demasiado extremo para simularlo.",
+                mensaje_agricultor=f"That change to {nombre} is too extreme to simulate.",
             )
         return {"factor": round(factor, 2)}
 
@@ -78,14 +78,14 @@ def validar_parametros(intent: Intent, parametros: dict[str, Any], catalogo: set
                 CodigoError.ENTRADA_INVALIDA,
                 "ajustar_riego necesita un factor numerico",
                 campo="parametros.factor",
-                mensaje_agricultor="No entendimos cuanto riego cambiar. Prueba con el control de riego.",
+                mensaje_agricultor="We did not understand how much to change the irrigation. Try the irrigation control.",
             ) from None
         if not (0.1 <= factor <= 1.5):
             raise ErrorFieldShift(
                 CodigoError.AGUA_INVALIDA,
                 f"factor {factor} fuera del rango 0.1-1.5",
                 campo="parametros.factor",
-                mensaje_agricultor="Ese cambio de riego queda fuera de lo que podemos simular.",
+                mensaje_agricultor="That irrigation change is outside what we can simulate.",
             )
         p["factor"] = factor
     elif intent is Intent.excluir_cultivo:
@@ -109,7 +109,7 @@ def validar_parametros(intent: Intent, parametros: dict[str, Any], catalogo: set
                 CodigoError.ENTRADA_INVALIDA,
                 f"campania {campania} debe ser 1, 2 o 3",
                 campo="parametros.campania",
-                mensaje_agricultor="Dinos en que campania quieres ese cultivo: la primera, la segunda o la tercera.",
+                mensaje_agricultor="Tell us which season you want that crop in: the first, second or third.",
             )
     elif intent is Intent.cambiar_prioridad:
         if p.get("prioridad") not in {x.value for x in Prioridad}:
