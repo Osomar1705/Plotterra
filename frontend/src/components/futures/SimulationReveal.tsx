@@ -151,7 +151,7 @@ export function SimulationReveal({ values, previousValues, scenarios, changeLabe
   const water = family && s?.irrigationFactor !== undefined && family !== 'tipica' ? Math.min(1, s.irrigationFactor) : def.water;
   const price = family && s?.priceFactor !== undefined && family !== 'tipica' ? Math.min(1, s.priceFactor) : def.price;
 
-  const shown = (i: number) => !!values && plan.rank[i] < shownN;
+  const shown = (i: number) => plan.rank[i] < shownN;
   const wins = values?.filter((v) => v > 0).length ?? 0;
   const worsened = values && previousValues ? values.filter((v, i) => v < 0 && (previousValues[i] ?? 0) >= 0).length : 0;
   const lit = summary ? SOURCES.length : Math.min(SOURCES.length, Math.floor((shownN / n) * SOURCES.length) + (values ? 1 : 0));
@@ -200,9 +200,9 @@ export function SimulationReveal({ values, previousValues, scenarios, changeLabe
 
         <div className="sx-board">
           <div className="sx-count"><b>{String(shownN).padStart(3, '0')}</b><span>/ {n} tests</span></div>
-          <div className={`sx-grid ${values ? '' : 'is-waiting'}`}>
+          <div className="sx-grid">
             <FuturesGrid values={values ?? Array.from({ length: 100 }, () => 0)} scenarios={scenarios} size="mini" order="scenario"
-              revealed={!!values} shown={values ? shown : undefined} previousValues={previousValues} layoutId={layoutId} cellPx={28}
+              revealed pending={!values} shown={shown} previousValues={previousValues} layoutId={layoutId} cellPx={28}
               ariaLabel="Simulation of 100 possible futures" />
           </div>
           <div className="sx-bar"><i style={{ width: `${(shownN / n) * 100}%` }} /></div>

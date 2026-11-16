@@ -86,6 +86,18 @@ def _fallback(alternativas: list[dict], ingles: bool) -> str:
     return "Los planes tienen distintas prioridades: " + ", ".join(partes) + ". Las cifras vienen de la simulación. Compara el riesgo, los ingresos y el agua que requieren antes de decidir."
 
 
+_SENAL_ESPANOL = re.compile(
+    r"[áéíóúñ¿¡]|\b(que|cuanto|como|necesito|puedo|cual|porque|hola|dime|explica|explicame|cuando|donde|"
+    r"los|las|una|del|para|con|tengo|quiero|debo|riego|agua|cultivo|cultivos|suelo|mejor|ayuda|gracias)\b")
+
+
+def _responde_en_ingles(texto: str) -> bool:
+    """La app esta en ingles: se responde en ingles salvo que la pregunta este claramente en espanol."""
+    if texto.startswith("RESUMEN_POST_SIMULACION") or es_ingles(texto):
+        return True
+    return not _SENAL_ESPANOL.search(texto.lower())
+
+
 def _es_cambio(texto: str) -> bool:
     """Un cambio debe formularse explícitamente; una explicación no propone recalcular."""
     t = texto.lower()
@@ -96,14 +108,22 @@ def _es_cambio(texto: str) -> bool:
                           r"prefiero .*agua|prefiero .*dinero|no puedo vender)\b", t))
 
 
-def _explicar(texto: str, history: list[Turno], alternativas: list[dict], idioma_en: bool) -> str:
+def _explicar(texto: str, history: list[Turno], alternativas: list[dict], idioma_en: bool, usd_por_pen: float | None = None) -> str:
     if not CONFIG.openai_api_key:
         return _fallback(alternativas, idioma_en)
     from app.llm.cliente import responder
     class RespuestaTextual(BaseModel):
         message: str = Field(min_length=1, max_length=1600)
 
-    sistema = ("You are FieldShift's agricultural assistant. Reply in the user's language. "
+    idioma = "English" if idioma_en else "Spanish"
+    sistema = (f"You are Plotterra's agricultural assistant for small farmers in Huanuco, Peru. Write the WHOLE reply in {idioma}, "
+               "even though the field names in the data are in Spanish. Use short sentences and everyday words. "
+               "There are exactly three plans, never more: 'Earn more money' (criterio economy/economia), "
+               "'Save water' (water/agua) and 'Care for soil' (soil/suelo); each is a 3-season crop rotation "
+               "(use the crop names as given, translated into the reply language). Never invent a fourth plan or option. "
+               "Money in the data is in PEN per hectare over the three seasons"
+               + (f"; show it in US dollars instead (1 USD = {1/usd_por_pen:.3f} PEN, i.e. divide by that rate) rounded to the nearest 10 USD, written like $2,020." if usd_por_pen else ".")
+               + " "
                "Answer the actual question concisely and practically, in plain language. "
                "Use only the provided simulation figures; do not invent agricultural statistics, costs, "
                "probabilities or rankings. If a fact is unavailable say so. "
@@ -124,7 +144,10 @@ def guide_chat(p: PeticionGuia) -> dict:
     comparison_id = p.comparison_id or (comparison_ctx.get("id") if isinstance(comparison_ctx, dict) else None)
     persisted = REPO.respuesta(comparison_id) if isinstance(comparison_id, str) and comparison_id else None
     alternativas = _alternativas(context, persisted)
-    english = es_ingles(p.message) or p.message.startswith("RESUMEN_POST_SIMULACION")
+    english = _responde_en_ingles(p.message)
+    fx = context.get("displayFx")
+    pen_por_usd = fx.get("penPerUsd") if isinstance(fx, dict) else None
+    usd_por_pen = (1 / pen_por_usd) if isinstance(pen_por_usd, (int, float)) and pen_por_usd > 0 else None
     # La ruta del chat no exige que exista una comparación: el usuario puede preguntar desde la parcela.
     if _es_cambio(p.message):
         interpretacion = interpretar_por_reglas(p.message, set(REPO.fichas))
@@ -133,5 +156,5 @@ def guide_chat(p: PeticionGuia) -> dict:
                                          requiere_confirmacion=True, interpretado_por="reglas", idioma="en" if english else "es")
             return {"status": "proposed_change", "message": respuesta.mensaje,
                     "change": respuesta.cambio, "conversation_id": p.conversation_id}
-    return {"status": "answered", "message": _explicar(p.message, p.history, alternativas, english),
+    return {"status": "answered", "message": _explicar(p.message, p.history, alternativas, english, usd_por_pen),
             "conversation_id": p.conversation_id}

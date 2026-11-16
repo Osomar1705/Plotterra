@@ -29,3 +29,13 @@ def test_guide_chat_explains_supplied_results(cliente, monkeypatch):
                                          {"type": "soil", "margin": {"min": 90, "max": 195}}]}}})
     assert response.status_code == 200
     assert response.json()["status"] == "answered"
+
+
+def test_el_chat_responde_en_ingles_salvo_que_pregunten_en_espanol():
+    from app.api.routes_guide_chat import _responde_en_ingles
+
+    assert _responde_en_ingles("Explain the three options in simple words.")
+    assert _responde_en_ingles("Where do the numbers come from?")
+    assert _responde_en_ingles("ok")
+    assert not _responde_en_ingles("cuanto de agua necesito")
+    assert not _responde_en_ingles("¿Qué plan es más seguro?")
