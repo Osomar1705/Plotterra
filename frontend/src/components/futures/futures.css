@@ -412,7 +412,3 @@
 .fg-pending rect:first-child{fill:#b9d8e3;stroke:#8fbccd;stroke-width:1}
 .fg-pending .fg-furrow{stroke:#d9ecf2}
 .sx-grid .fg-cell rect:first-child{transition:fill .5s ease,stroke .5s ease}
-
-/* en la escena de precios la ilustracion trae su propio grafico arriba: los medidores bajan para no taparlo */
-.sx-gauges.is-bottom{top:auto;bottom:12px;right:12px}
-@media (max-width:900px){.sx-gauges.is-bottom{top:auto;bottom:8px;right:8px}}

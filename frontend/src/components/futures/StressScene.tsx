@@ -56,7 +56,7 @@ export function StressScene({ family, summary = false, rain, water, price }: {
   const layers: [string, number, string][] = [[rainImg, w.rain, 'rain'], [priceImg, w.price, 'price'], [deadImg, w.dead, 'dead']];
   return <div className="sx-scene" aria-hidden="true">
     {layers.map(([src, o, k]) => <img key={k} className={`sx-img sx-img--${k}`} src={src} alt="" style={{ opacity: o }} draggable={false} />)}
-    <div className={`sx-gauges ${family === 'caida_precio' ? 'is-bottom' : ''}`}>
+    <div className="sx-gauges">
       <Gauge icon={<RainIcon size={16} />} label="Rain" value={rain} tone="rain" />
       <Gauge icon={<WaterIcon size={16} />} label="Irrigation" value={water} tone="water" />
       <Gauge icon={<CoinsIcon size={16} />} label="Price" value={price} tone="price" />
